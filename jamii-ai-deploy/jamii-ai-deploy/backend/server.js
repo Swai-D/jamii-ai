@@ -230,52 +230,32 @@ app.get("/api/posts", optionalAuth, async (req, res) => {
   try {
     const { category, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
-    
-    let queryParams = [limit, offset];
-    let whereClause = "";
-    
+    const params = [limit, offset];
+    let where = "";
     if (category && category !== "all") {
-      whereClause = `WHERE p.category = $3`;
-      queryParams.push(category);
+      params.unshift(category);
+      where = `WHERE p.category = $1`;
+      params[params.length - 2] = limit;
+      params[params.length - 1] = offset;
     }
 
-    const userId = req.user?.id || null;
-
-    const sql = `
-      SELECT p.*, u.name AS author_name, u.handle AS author_handle,
+    const result = await db.query(
+      `SELECT p.*, u.name AS author_name, u.handle AS author_handle,
               u.avatar_url, u.role AS author_role, u.city AS author_city,
               (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
               (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comment_count,
-              (SELECT COUNT(*) FROM bookmarks WHERE post_id = p.id) AS bookmark_count,
-              CASE WHEN $1::uuid IS NOT NULL AND EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) THEN true ELSE false END AS user_liked,
-              CASE WHEN $1::uuid IS NOT NULL AND EXISTS (SELECT 1 FROM bookmarks WHERE post_id = p.id AND user_id = $1) THEN true ELSE false END AS user_bookmarked
+              (SELECT COUNT(*) FROM bookmarks WHERE post_id = p.id) AS bookmark_count
+              ${req.user ? `, (SELECT 1 FROM post_likes WHERE post_id=p.id AND user_id='${req.user.id}') AS user_liked,
+              (SELECT 1 FROM bookmarks WHERE post_id=p.id AND user_id='${req.user.id}') AS user_bookmarked` : ""}
        FROM posts p
        JOIN users u ON u.id = p.user_id
-       ${whereClause}
+       ${where}
        ORDER BY p.created_at DESC
-       LIMIT $1 OFFSET $2`;
-
-    // Note: Parameter mapping changed to $1=limit, $2=offset, $3=category
-    // But logic above needs careful adjustment for the $1::uuid (userId)
-    
-    const finalSql = `
-      SELECT p.*, u.name AS author_name, u.handle AS author_handle,
-              u.avatar_url, u.role AS author_role, u.city AS author_city,
-              (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
-              (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comment_count,
-              (SELECT COUNT(*) FROM bookmarks WHERE post_id = p.id) AS bookmark_count,
-              EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) AS user_liked,
-              EXISTS (SELECT 1 FROM bookmarks WHERE post_id = p.id AND user_id = $1) AS user_bookmarked
-       FROM posts p
-       JOIN users u ON u.id = p.user_id
-       ${category && category !== "all" ? "WHERE p.category = $4" : ""}
-       ORDER BY p.created_at DESC
-       LIMIT $2 OFFSET $3`;
-
-    const result = await db.query(finalSql, [userId, limit, offset, ...(category && category !== "all" ? [category] : [])]);
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
     res.json({ posts: result.rows, page: +page });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
@@ -534,93 +514,6 @@ app.post("/api/events/:id/rsvp", auth, async (req, res) => {
       [uuid(), req.params.id, req.user.id]
     );
     res.json({ rsvp: true });
-  } catch (err) {
-    res.status(500).json({ error: "Hitilafu ya server" });
-  }
-});
-
-// ════════════════════════════════════════════════════════════════════
-//  MESSAGES
-// ════════════════════════════════════════════════════════════════════
-
-// GET /api/messages/conversations
-app.get("/api/messages/conversations", auth, async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT DISTINCT ON (u.id)
-              u.id, u.name, u.handle, u.avatar_url,
-              m.text AS last_message, m.created_at AS last_message_at,
-              (SELECT COUNT(*) FROM messages WHERE receiver_id = $1 AND sender_id = u.id AND is_read = false) AS unread_count
-       FROM users u
-       JOIN messages m ON (m.sender_id = u.id AND m.receiver_id = $1) OR (m.sender_id = $1 AND m.receiver_id = u.id)
-       WHERE u.id != $1
-       ORDER BY u.id, m.created_at DESC`,
-      [req.user.id]
-    );
-    res.json(result.rows.sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at)));
-  } catch (err) {
-    res.status(500).json({ error: "Hitilafu ya server" });
-  }
-});
-
-// GET /api/messages/:userId
-app.get("/api/messages/:userId", auth, async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT * FROM messages
-       WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)
-       ORDER BY created_at ASC`,
-      [req.user.id, req.params.userId]
-    );
-    // Mark as read
-    await db.query(
-      "UPDATE messages SET is_read = true WHERE receiver_id = $1 AND sender_id = $2",
-      [req.user.id, req.params.userId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: "Hitilafu ya server" });
-  }
-});
-
-// POST /api/messages
-app.post("/api/messages", auth, async (req, res) => {
-  try {
-    const { receiver_id, text } = req.body;
-    if (!text?.trim()) return res.status(400).json({ error: "Ujumbe hauwezi kuwa mtupu" });
-    const result = await db.query(
-      `INSERT INTO messages (id, sender_id, receiver_id, text, created_at)
-       VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
-      [uuid(), req.user.id, receiver_id, text.trim()]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: "Hitilafu ya server" });
-  }
-});
-
-// GET /api/sidebar — Summary data for right sidebar
-app.get("/api/sidebar", async (req, res) => {
-  try {
-    const trending = ["#SwahiliNLP", "#TanzaniaAI", "#ClaudeAPI", "#Hackathon2025", "#ZanzibarTech"];
-    
-    const upcomingEvents = await db.query(
-      "SELECT id, name, date, color FROM events WHERE date >= NOW() ORDER BY date ASC LIMIT 3"
-    );
-
-    const newSections = [
-      { id: "v1", label: "AI Job Board", is_new: true },
-      { id: "v2", label: "Swahili Dataset Hub", is_new: true },
-    ];
-
-    const onlineCount = Math.floor(Math.random() * 20) + 5; // Fake online count
-
-    res.json({
-      trending,
-      upcoming_events: upcomingEvents.rows,
-      new_sections: newSections,
-      online_count: onlineCount
-    });
   } catch (err) {
     res.status(500).json({ error: "Hitilafu ya server" });
   }

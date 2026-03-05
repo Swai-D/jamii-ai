@@ -1,17 +1,5 @@
 import { useState, useRef } from "react";
 
-function ToggleItem({ label, defaultOn }) {
-  const [on, setOn] = useState(defaultOn);
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-      <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
-      <div onClick={() => setOn(!on)} style={{ width: 40, height: 22, borderRadius: 11, background: on ? "#F5A623" : "rgba(255,255,255,0.1)", cursor: "pointer", position: "relative", transition: "all 0.2s" }}>
-        <div style={{ position: "absolute", top: 3, left: on ? 21 : 3, width: 16, height: 16, borderRadius: "50%", background: on ? "#0A0F1C" : "rgba(220,230,240,0.5)", transition: "left 0.2s" }} />
-      </div>
-    </div>
-  );
-}
-
 // ─── SEED DATA ────────────────────────────────────────────────────
 const INITIAL_PROFILE = {
   id: "usr_001",
@@ -62,7 +50,7 @@ const CAT_COLORS = { mradi: { bg: "rgba(52,211,153,0.12)", color: "#34D399" }, s
 // ─── HELPERS ─────────────────────────────────────────────────────
 function Av({ initials, color, size = 80, src }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: src ? "transparent" : color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: size * 0.28, color: "#0A0F1C", flexShrink: 0, overflow: "hidden", border: `3px solid ${color}40` }}>
+    <div style={{ width: size, height: size, borderRadius: "50%", background: src ? "transparent" : color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Space Mono',monospace", fontWeight: 700, fontSize: size * 0.28, color: "#0A0F1C", flexShrink: 0, overflow: "hidden", border: `3px solid ${color}40` }}>
       {src ? <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
     </div>
   );
@@ -70,7 +58,7 @@ function Av({ initials, color, size = 80, src }) {
 
 function Pill({ label, bg, color, onRemove }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Roboto Mono',monospace", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, background: bg, color, whiteSpace: "nowrap" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20, background: bg, color, whiteSpace: "nowrap" }}>
       {label}
       {onRemove && <span onClick={onRemove} style={{ cursor: "pointer", opacity: 0.7, fontSize: 12, lineHeight: 1 }}>×</span>}
     </span>
@@ -79,10 +67,10 @@ function Pill({ label, bg, color, onRemove }) {
 
 function InputField({ label, value, onChange, placeholder, type = "text", multiline, rows = 3 }) {
   const [focused, setFocused] = useState(false);
-  const base = { background: "rgba(255,255,255,0.04)", border: `1px solid ${focused ? "#F5A623" : "rgba(255,255,255,0.1)"}`, borderRadius: 10, padding: "11px 14px", color: "#DCE6F0", fontFamily: "'Roboto Mono',monospace", fontSize: 14, outline: "none", width: "100%", transition: "border-color 0.2s" };
+  const base = { background: "rgba(255,255,255,0.04)", border: `1px solid ${focused ? "#F5A623" : "rgba(255,255,255,0.1)"}`, borderRadius: 10, padding: "11px 14px", color: "#DCE6F0", fontFamily: "'Syne',sans-serif", fontSize: 14, outline: "none", width: "100%", transition: "border-color 0.2s" };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {label && <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase" }}>{label}</label>}
+      {label && <label style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase" }}>{label}</label>}
       {multiline
         ? <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={{ ...base, resize: "vertical", lineHeight: 1.6 }} />
         : <input type={type} value={value} onChange={onChange} placeholder={placeholder} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={base} />
@@ -93,7 +81,7 @@ function InputField({ label, value, onChange, placeholder, type = "text", multil
 
 function Toast({ msg, onDone }) {
   return (
-    <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: "#F5A623", color: "#0A0F1C", padding: "12px 20px", borderRadius: 10, fontWeight: 700, fontSize: 13, fontFamily: "'Roboto Mono',monospace", animation: "notif 2.5s ease forwards", pointerEvents: "none" }}>{msg}</div>
+    <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: "#F5A623", color: "#0A0F1C", padding: "12px 20px", borderRadius: 10, fontWeight: 800, fontSize: 13, fontFamily: "'Space Mono',monospace", animation: "notif 2.5s ease forwards", pointerEvents: "none" }}>{msg}</div>
   );
 }
 
@@ -201,9 +189,9 @@ export default function ProfilePage() {
   const P = editing ? draft : profile;
 
   return (
-    <div style={{ fontFamily: "'Roboto Mono',monospace", background: "#0A0F1C", color: "#DCE6F0", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'Syne',sans-serif", background: "#0A0F1C", color: "#DCE6F0", minHeight: "100vh" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; }
         ::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-thumb{background:#F5A623;border-radius:2px}
         input,textarea,select,button{font-family:inherit}
@@ -217,7 +205,7 @@ export default function ProfilePage() {
         .icon-btn.danger:hover{background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.25);color:#F87171}
         .card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:24px}
         .card:hover{border-color:rgba(255,255,255,0.11)}
-        .skill-chip{display:inline-flex;align-items:center;gap:4px;font-family:'Roboto Mono',monospace;font-size:10px;font-weight:700;padding:4px 10px;border-radius:5px;background:rgba(255,255,255,0.06);color:rgba(220,230,240,0.65);cursor:default}
+        .skill-chip{display:inline-flex;align-items:center;gap:4px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;padding:4px 10px;border-radius:5px;background:rgba(255,255,255,0.06);color:rgba(220,230,240,0.65);cursor:default}
         .skill-chip.add{cursor:pointer;background:rgba(245,166,35,0.08);color:#F5A623;border:1px solid rgba(245,166,35,0.2)}
         .skill-chip.add:hover{background:rgba(245,166,35,0.15)}
         .skill-chip.selected{background:rgba(245,166,35,0.12);color:#F5A623}
@@ -241,13 +229,13 @@ export default function ProfilePage() {
           <div className="modal" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 44, marginBottom: 16 }}>🗑️</div>
-              <h3 style={{ fontWeight: 700, fontSize: 20, marginBottom: 10 }}>Futa Mradi?</h3>
+              <h3 style={{ fontWeight: 800, fontSize: 20, marginBottom: 10 }}>Futa Mradi?</h3>
               <p style={{ color: "rgba(220,230,240,0.5)", fontSize: 14, marginBottom: 24, lineHeight: 1.6 }}>
                 Mradi huu utafutwa kabisa. Hakuna njia ya kuurejesha tena.
               </p>
               <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
                 <button className="icon-btn" onClick={() => setConfirmDelete(null)}>Ghairi</button>
-                <button onClick={() => deleteProject(confirmDelete)} style={{ background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", color: "#F87171", padding: "9px 22px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 13 }}>Futa Kabisa</button>
+                <button onClick={() => deleteProject(confirmDelete)} style={{ background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", color: "#F87171", padding: "9px 22px", borderRadius: 8, cursor: "pointer", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 13 }}>Futa Kabisa</button>
               </div>
             </div>
           </div>
@@ -258,17 +246,17 @@ export default function ProfilePage() {
       {showNewProject && (
         <div className="overlay" onClick={() => setShowNewProject(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontWeight: 700, fontSize: 20, marginBottom: 20 }}>Ongeza Mradi Mpya ◧</h3>
+            <h3 style={{ fontWeight: 800, fontSize: 20, marginBottom: 20 }}>Ongeza Mradi Mpya ◧</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <InputField label="Jina la Mradi" value={newProject.title} onChange={e => setNewProject(p => ({ ...p, title: e.target.value }))} placeholder="Mfano: SwahiliBot" />
               <InputField label="Maelezo" value={newProject.desc} onChange={e => setNewProject(p => ({ ...p, desc: e.target.value }))} placeholder="Elezea mradi wako kwa ufupi..." multiline rows={3} />
               <InputField label="Link (hiari)" value={newProject.link} onChange={e => setNewProject(p => ({ ...p, link: e.target.value }))} placeholder="github.com/wewe/mradi" />
 
               <div>
-                <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase" }}>Status</label>
+                <label style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase" }}>Status</label>
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   {["active", "completed", "paused"].map(s => (
-                    <div key={s} onClick={() => setNewProject(p => ({ ...p, status: s }))} style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontSize: 11, fontWeight: 700, border: `1px solid ${newProject.status === s ? STATUS_COLORS[s].color : "rgba(255,255,255,0.1)"}`, background: newProject.status === s ? STATUS_COLORS[s].bg : "transparent", color: newProject.status === s ? STATUS_COLORS[s].color : "rgba(220,230,240,0.4)", transition: "all 0.18s" }}>
+                    <div key={s} onClick={() => setNewProject(p => ({ ...p, status: s }))} style={{ padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, border: `1px solid ${newProject.status === s ? STATUS_COLORS[s].color : "rgba(255,255,255,0.1)"}`, background: newProject.status === s ? STATUS_COLORS[s].bg : "transparent", color: newProject.status === s ? STATUS_COLORS[s].color : "rgba(220,230,240,0.4)", transition: "all 0.18s" }}>
                       {STATUS_COLORS[s].label}
                     </div>
                   ))}
@@ -276,10 +264,10 @@ export default function ProfilePage() {
               </div>
 
               <div>
-                <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase" }}>Tech Stack</label>
+                <label style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase" }}>Tech Stack</label>
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <input value={newProject.techInput} onChange={e => setNewProject(p => ({ ...p, techInput: e.target.value }))} onKeyDown={e => e.key === "Enter" && addProjectTech()} placeholder="Ongeza tech..." style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "9px 12px", color: "#DCE6F0", fontSize: 13 }} />
-                  <button onClick={addProjectTech} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", borderRadius: 8, padding: "9px 14px", cursor: "pointer", fontWeight: 700 }}>+</button>
+                  <button onClick={addProjectTech} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", borderRadius: 8, padding: "9px 14px", cursor: "pointer", fontWeight: 800 }}>+</button>
                 </div>
                 {newProject.tech.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
@@ -292,7 +280,7 @@ export default function ProfilePage() {
 
               <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
                 <button className="icon-btn" style={{ flex: 1 }} onClick={() => setShowNewProject(false)}>Ghairi</button>
-                <button onClick={saveProject} disabled={!newProject.title.trim()} style={{ flex: 2, background: newProject.title.trim() ? "#F5A623" : "rgba(245,166,35,0.2)", color: newProject.title.trim() ? "#0A0F1C" : "rgba(220,230,240,0.25)", border: "none", padding: "11px", borderRadius: 9, cursor: newProject.title.trim() ? "pointer" : "default", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14 }}>Hifadhi Mradi →</button>
+                <button onClick={saveProject} disabled={!newProject.title.trim()} style={{ flex: 2, background: newProject.title.trim() ? "#F5A623" : "rgba(245,166,35,0.2)", color: newProject.title.trim() ? "#0A0F1C" : "rgba(220,230,240,0.25)", border: "none", padding: "11px", borderRadius: 9, cursor: newProject.title.trim() ? "pointer" : "default", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 14 }}>Hifadhi Mradi →</button>
               </div>
             </div>
           </div>
@@ -326,12 +314,12 @@ export default function ProfilePage() {
               {editing ? (
                 <>
                   <button className="icon-btn" onClick={cancelEdit}>✕ Ghairi</button>
-                  <button onClick={saveProfile} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "9px 22px", borderRadius: 9, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 7 }}>✓ Hifadhi Mabadiliko</button>
+                  <button onClick={saveProfile} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "9px 22px", borderRadius: 9, cursor: "pointer", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", gap: 7 }}>✓ Hifadhi Mabadiliko</button>
                 </>
               ) : (
                 <>
                   <button className="icon-btn" onClick={startEdit}>✏️ Hariri Profile</button>
-                  <button style={{ background: P.available ? "rgba(52,211,153,0.12)" : "rgba(100,100,100,0.12)", border: `1px solid ${P.available ? "rgba(52,211,153,0.3)" : "rgba(100,100,100,0.2)"}`, color: P.available ? "#34D399" : "#666", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontSize: 11, fontWeight: 700, transition: "all 0.2s" }} onClick={() => setProfile(p => ({ ...p, available: !p.available }))}>
+                  <button style={{ background: P.available ? "rgba(52,211,153,0.12)" : "rgba(100,100,100,0.12)", border: `1px solid ${P.available ? "rgba(52,211,153,0.3)" : "rgba(100,100,100,0.2)"}`, color: P.available ? "#34D399" : "#666", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, transition: "all 0.2s" }} onClick={() => setProfile(p => ({ ...p, available: !p.available }))}>
                     {P.available ? "● Available" : "● Busy"}
                   </button>
                 </>
@@ -350,14 +338,14 @@ export default function ProfilePage() {
               <InputField label="Jina Kamili" value={draft.name} onChange={setD("name")} placeholder="Jina lako" />
               <InputField label="Handle" value={draft.handle} onChange={e => setDraft(d => ({ ...d, handle: e.target.value.toLowerCase().replace(/\s/g,"") }))} placeholder="handle_yako" />
               <div>
-                <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Jukumu</label>
-                <select value={draft.role} onChange={setD("role")} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "11px 14px", color: "#DCE6F0", fontFamily: "'Roboto Mono',monospace", fontSize: 14, outline: "none", width: "100%", appearance: "none", cursor: "pointer" }}>
+                <label style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Jukumu</label>
+                <select value={draft.role} onChange={setD("role")} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "11px 14px", color: "#DCE6F0", fontFamily: "'Syne',sans-serif", fontSize: 14, outline: "none", width: "100%", appearance: "none", cursor: "pointer" }}>
                   {ROLES.map(r => <option key={r} value={r} style={{ background: "#111827" }}>{r}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Mji</label>
-                <select value={draft.city} onChange={setD("city")} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "11px 14px", color: "#DCE6F0", fontFamily: "'Roboto Mono',monospace", fontSize: 14, outline: "none", width: "100%", appearance: "none", cursor: "pointer" }}>
+                <label style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Mji</label>
+                <select value={draft.city} onChange={setD("city")} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "11px 14px", color: "#DCE6F0", fontFamily: "'Syne',sans-serif", fontSize: 14, outline: "none", width: "100%", appearance: "none", cursor: "pointer" }}>
                   {CITIES.map(c => <option key={c} value={c} style={{ background: "#111827" }}>{c}</option>)}
                 </select>
               </div>
@@ -379,7 +367,7 @@ export default function ProfilePage() {
             {/* Skills editor */}
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase" }}>Skills ({draft.skills.length}/10)</label>
+                <label style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase" }}>Skills ({draft.skills.length}/10)</label>
                 <button onClick={() => setShowSkillSearch(!showSkillSearch)} className="skill-chip add">+ Ongeza Skill</button>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
@@ -401,12 +389,12 @@ export default function ProfilePage() {
 
             {/* Interests editor */}
             <div style={{ marginBottom: 24 }}>
-              <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase", display: "block", marginBottom: 12 }}>Maslahi ({draft.interests.length}/6)</label>
+              <label style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: "rgba(220,230,240,0.45)", textTransform: "uppercase", display: "block", marginBottom: 12 }}>Maslahi ({draft.interests.length}/6)</label>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {ALL_INTERESTS.map(interest => {
                   const sel = draft.interests.includes(interest);
                   return (
-                    <div key={interest} onClick={() => toggleInterest(interest)} style={{ padding: "7px 14px", borderRadius: 20, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontSize: 11, fontWeight: 700, border: `1px solid ${sel ? "#4ECDC4" : "rgba(255,255,255,0.09)"}`, background: sel ? "rgba(78,205,196,0.1)" : "transparent", color: sel ? "#4ECDC4" : "rgba(220,230,240,0.45)", transition: "all 0.18s", userSelect: "none" }}>
+                    <div key={interest} onClick={() => toggleInterest(interest)} style={{ padding: "7px 14px", borderRadius: 20, cursor: "pointer", fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, border: `1px solid ${sel ? "#4ECDC4" : "rgba(255,255,255,0.09)"}`, background: sel ? "rgba(78,205,196,0.1)" : "transparent", color: sel ? "#4ECDC4" : "rgba(220,230,240,0.45)", transition: "all 0.18s", userSelect: "none" }}>
                       {sel && "✓ "}{interest}
                     </div>
                   );
@@ -416,7 +404,7 @@ export default function ProfilePage() {
 
             {/* Danger zone */}
             <div style={{ background: "rgba(248,113,113,0.05)", border: "1px solid rgba(248,113,113,0.15)", borderRadius: 14, padding: "20px 22px" }}>
-              <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F87171", letterSpacing: "0.12em", marginBottom: 12 }}>DANGER ZONE</div>
+              <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "#F87171", letterSpacing: "0.12em", marginBottom: 12 }}>DANGER ZONE</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Futa Akaunti Yangu</div>
@@ -429,22 +417,22 @@ export default function ProfilePage() {
         ) : (
           /* ── VIEW MODE ── */
           <div className="fin">
-            <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.035em", marginBottom: 4 }}>{P.name}</h1>
+            <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.035em", marginBottom: 4 }}>{P.name}</h1>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 12, color: "rgba(220,230,240,0.4)" }}>@{P.handle}</span>
-              <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, padding: "3px 9px", borderRadius: 20, background: "rgba(245,166,35,0.1)", color: "#F5A623" }}>{P.role}</span>
-              <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.4)" }}>📍 {P.city}</span>
-              <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.4)" }}>⭐ {P.rating}</span>
-              {P.hourlyRate && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, padding: "3px 9px", borderRadius: 20, background: "rgba(78,205,196,0.1)", color: "#4ECDC4" }}>{P.hourlyRate}/hr</span>}
-              <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.3)" }}>Alijiunga: {P.joinedAt}</span>
+              <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: "rgba(220,230,240,0.4)" }}>@{P.handle}</span>
+              <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, padding: "3px 9px", borderRadius: 20, background: "rgba(245,166,35,0.1)", color: "#F5A623" }}>{P.role}</span>
+              <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.4)" }}>📍 {P.city}</span>
+              <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.4)" }}>⭐ {P.rating}</span>
+              {P.hourlyRate && <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, padding: "3px 9px", borderRadius: 20, background: "rgba(78,205,196,0.1)", color: "#4ECDC4" }}>{P.hourlyRate}/hr</span>}
+              <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.3)" }}>Alijiunga: {P.joinedAt}</span>
             </div>
             {P.bio && <p style={{ fontSize: 14, lineHeight: 1.75, color: "rgba(220,230,240,0.65)", maxWidth: 680, marginBottom: 16 }}>{P.bio}</p>}
 
             {/* Social links */}
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
-              {P.github   && <a href={`https://${P.github}`}   target="_blank" rel="noreferrer" style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#60A5FA", textDecoration: "none" }}>⎇ {P.github}</a>}
-              {P.linkedin && <a href={`https://${P.linkedin}`} target="_blank" rel="noreferrer" style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#60A5FA", textDecoration: "none" }}>in {P.linkedin}</a>}
-              {P.website  && <a href={`https://${P.website}`}  target="_blank" rel="noreferrer" style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#60A5FA", textDecoration: "none" }}>🔗 {P.website}</a>}
+              {P.github   && <a href={`https://${P.github}`}   target="_blank" rel="noreferrer" style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "#60A5FA", textDecoration: "none" }}>⎇ {P.github}</a>}
+              {P.linkedin && <a href={`https://${P.linkedin}`} target="_blank" rel="noreferrer" style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "#60A5FA", textDecoration: "none" }}>in {P.linkedin}</a>}
+              {P.website  && <a href={`https://${P.website}`}  target="_blank" rel="noreferrer" style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "#60A5FA", textDecoration: "none" }}>🔗 {P.website}</a>}
             </div>
 
             {/* Stats */}
@@ -456,8 +444,8 @@ export default function ProfilePage() {
                 [P.projectCount, "Miradi"],
               ].map(([n, l]) => (
                 <div key={l} style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#F5A623", fontFamily: "'Roboto Mono',monospace" }}>{n}</div>
-                  <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 9, color: "rgba(220,230,240,0.35)", marginTop: 2 }}>{l}</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#F5A623", fontFamily: "'Space Mono',monospace" }}>{n}</div>
+                  <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 9, color: "rgba(220,230,240,0.35)", marginTop: 2 }}>{l}</div>
                 </div>
               ))}
             </div>
@@ -485,7 +473,7 @@ export default function ProfilePage() {
 
                 {/* Skills */}
                 <div className="card">
-                  <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F5A623", letterSpacing: "0.12em", marginBottom: 14 }}>SKILLS ({P.skills.length})</div>
+                  <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "#F5A623", letterSpacing: "0.12em", marginBottom: 14 }}>SKILLS ({P.skills.length})</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                     {P.skills.length ? P.skills.map(s => <span key={s} className="skill-chip">{s}</span>) : <span style={{ color: "rgba(220,230,240,0.35)", fontSize: 13 }}>Bado haujajaza skills — bonyeza "Hariri Profile"</span>}
                   </div>
@@ -493,7 +481,7 @@ export default function ProfilePage() {
 
                 {/* Interests */}
                 <div className="card">
-                  <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#4ECDC4", letterSpacing: "0.12em", marginBottom: 14 }}>MASLAHI</div>
+                  <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "#4ECDC4", letterSpacing: "0.12em", marginBottom: 14 }}>MASLAHI</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                     {P.interests.length ? P.interests.map(i => (
                       <Pill key={i} label={i} bg="rgba(78,205,196,0.1)" color="#4ECDC4" />
@@ -504,13 +492,13 @@ export default function ProfilePage() {
                 {/* Recent Projects preview */}
                 <div className="card">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#A78BFA", letterSpacing: "0.12em" }}>MIRADI YA HIVI KARIBUNI</div>
-                    <span onClick={() => setTab("miradi")} style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F5A623", cursor: "pointer" }}>Tazama Yote →</span>
+                    <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "#A78BFA", letterSpacing: "0.12em" }}>MIRADI YA HIVI KARIBUNI</div>
+                    <span onClick={() => setTab("miradi")} style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "#F5A623", cursor: "pointer" }}>Tazama Yote →</span>
                   </div>
                   {projects.slice(0, 2).map(p => (
                     <div key={p.id} style={{ padding: "14px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                        <span style={{ fontWeight: 700, fontSize: 15 }}>{p.title}</span>
+                        <span style={{ fontWeight: 800, fontSize: 15 }}>{p.title}</span>
                         <Pill label={STATUS_COLORS[p.status]?.label || p.status} bg={STATUS_COLORS[p.status]?.bg} color={STATUS_COLORS[p.status]?.color} />
                       </div>
                       <p style={{ fontSize: 13, color: "rgba(220,230,240,0.55)", lineHeight: 1.6, marginBottom: 8 }}>{p.desc}</p>
@@ -526,14 +514,14 @@ export default function ProfilePage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {/* Contact card */}
                 <div className="card">
-                  <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 14 }}>WASILIANA</div>
-                  <button style={{ width: "100%", background: "#F5A623", color: "#0A0F1C", border: "none", padding: "11px", borderRadius: 9, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>💬 Tuma Ujumbe</button>
-                  <button style={{ width: "100%", background: "transparent", color: "#4ECDC4", border: "1px solid rgba(78,205,196,0.25)", padding: "11px", borderRadius: 9, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14 }}>⚡ Hire Now</button>
+                  <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 14 }}>WASILIANA</div>
+                  <button style={{ width: "100%", background: "#F5A623", color: "#0A0F1C", border: "none", padding: "11px", borderRadius: 9, cursor: "pointer", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 14, marginBottom: 8 }}>💬 Tuma Ujumbe</button>
+                  <button style={{ width: "100%", background: "transparent", color: "#4ECDC4", border: "1px solid rgba(78,205,196,0.25)", padding: "11px", borderRadius: 9, cursor: "pointer", fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 14 }}>⚡ Hire Now</button>
                 </div>
 
                 {/* Info */}
                 <div className="card">
-                  <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 14 }}>MAELEZO</div>
+                  <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 14 }}>MAELEZO</div>
                   {[
                     ["📍 Mji", P.city],
                     ["💰 Kiwango", P.hourlyRate + "/hr"],
@@ -542,7 +530,7 @@ export default function ProfilePage() {
                     ["📅 Alijiunga", P.joinedAt],
                   ].filter(([,v]) => v).map(([label, value]) => (
                     <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", fontSize: 13 }}>
-                      <span style={{ color: "rgba(220,230,240,0.45)", fontFamily: "'Roboto Mono',monospace", fontSize: 11 }}>{label}</span>
+                      <span style={{ color: "rgba(220,230,240,0.45)", fontFamily: "'Space Mono',monospace", fontSize: 11 }}>{label}</span>
                       <span style={{ fontWeight: 700 }}>{value}</span>
                     </div>
                   ))}
@@ -551,7 +539,7 @@ export default function ProfilePage() {
                 {/* Avatar color */}
                 {editing === false && (
                   <div className="card">
-                    <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 12 }}>RANGI YA AVATAR</div>
+                    <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 12 }}>RANGI YA AVATAR</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {["#F5A623","#4ECDC4","#A78BFA","#F87171","#34D399","#60A5FA","#F59E0B","#EC4899"].map(c => (
                         <div key={c} onClick={() => setProfile(p => ({ ...p, avatarColor: c }))} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: `3px solid ${P.avatarColor === c ? "#fff" : "transparent"}`, transition: "all 0.18s" }} />
@@ -567,8 +555,8 @@ export default function ProfilePage() {
           {tab === "miradi" && (
             <div className="fin">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-                <h2 style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.03em" }}>Miradi Yangu ({projects.length})</h2>
-                <button onClick={() => setShowNewProject(true)} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "10px 20px", borderRadius: 9, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 7 }}>+ Mradi Mpya</button>
+                <h2 style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.03em" }}>Miradi Yangu ({projects.length})</h2>
+                <button onClick={() => setShowNewProject(true)} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "10px 20px", borderRadius: 9, cursor: "pointer", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", gap: 7 }}>+ Mradi Mpya</button>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -583,12 +571,12 @@ export default function ProfilePage() {
                           <InputField label="Link" value={projectDraft.link} onChange={e => setProjectDraft(d => ({ ...d, link: e.target.value }))} />
                           <div style={{ display: "flex", gap: 8 }}>
                             {["active","completed","paused"].map(s => (
-                              <div key={s} onClick={() => setProjectDraft(d => ({ ...d, status: s }))} style={{ padding: "6px 13px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontSize: 11, fontWeight: 700, border: `1px solid ${projectDraft.status === s ? STATUS_COLORS[s].color : "rgba(255,255,255,0.1)"}`, background: projectDraft.status === s ? STATUS_COLORS[s].bg : "transparent", color: projectDraft.status === s ? STATUS_COLORS[s].color : "rgba(220,230,240,0.4)", transition: "all 0.18s" }}>{STATUS_COLORS[s].label}</div>
+                              <div key={s} onClick={() => setProjectDraft(d => ({ ...d, status: s }))} style={{ padding: "6px 13px", borderRadius: 8, cursor: "pointer", fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, border: `1px solid ${projectDraft.status === s ? STATUS_COLORS[s].color : "rgba(255,255,255,0.1)"}`, background: projectDraft.status === s ? STATUS_COLORS[s].bg : "transparent", color: projectDraft.status === s ? STATUS_COLORS[s].color : "rgba(220,230,240,0.4)", transition: "all 0.18s" }}>{STATUS_COLORS[s].label}</div>
                             ))}
                           </div>
                           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
                             <button className="icon-btn" onClick={() => setEditingProject(null)}>Ghairi</button>
-                            <button onClick={saveProjectEdit} style={{ flex: 1, background: "#F5A623", color: "#0A0F1C", border: "none", padding: "9px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 13 }}>✓ Hifadhi</button>
+                            <button onClick={saveProjectEdit} style={{ flex: 1, background: "#F5A623", color: "#0A0F1C", border: "none", padding: "9px", borderRadius: 8, cursor: "pointer", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 13 }}>✓ Hifadhi</button>
                           </div>
                         </div>
                       </div>
@@ -597,7 +585,7 @@ export default function ProfilePage() {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                           <div>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                              <h3 style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-0.02em" }}>{p.title}</h3>
+                              <h3 style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.02em" }}>{p.title}</h3>
                               <Pill label={STATUS_COLORS[p.status]?.label || p.status} bg={STATUS_COLORS[p.status]?.bg} color={STATUS_COLORS[p.status]?.color} />
                             </div>
                             <p style={{ fontSize: 13, color: "rgba(220,230,240,0.6)", lineHeight: 1.65 }}>{p.desc}</p>
@@ -611,8 +599,8 @@ export default function ProfilePage() {
                           {p.tech.map(t => <span key={t} className="skill-chip">{t}</span>)}
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          {p.link ? <a href={`https://${p.link}`} target="_blank" rel="noreferrer" style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#60A5FA", textDecoration: "none" }}>🔗 {p.link}</a> : <span />}
-                          <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F5A623" }}>⭐ {p.stars}</span>
+                          {p.link ? <a href={`https://${p.link}`} target="_blank" rel="noreferrer" style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "#60A5FA", textDecoration: "none" }}>🔗 {p.link}</a> : <span />}
+                          <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "#F5A623" }}>⭐ {p.stars}</span>
                         </div>
                       </div>
                     )}
@@ -621,9 +609,9 @@ export default function ProfilePage() {
                 {projects.length === 0 && (
                   <div style={{ textAlign: "center", padding: "60px 0" }}>
                     <div style={{ fontSize: 44, marginBottom: 16 }}>📂</div>
-                    <h3 style={{ fontWeight: 700, fontSize: 18, marginBottom: 10 }}>Hakuna miradi bado</h3>
+                    <h3 style={{ fontWeight: 800, fontSize: 18, marginBottom: 10 }}>Hakuna miradi bado</h3>
                     <p style={{ color: "rgba(220,230,240,0.4)", marginBottom: 20 }}>Ongeza mradi wako wa kwanza!</p>
-                    <button onClick={() => setShowNewProject(true)} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "11px 24px", borderRadius: 9, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14 }}>+ Ongeza Mradi</button>
+                    <button onClick={() => setShowNewProject(true)} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "11px 24px", borderRadius: 9, cursor: "pointer", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 14 }}>+ Ongeza Mradi</button>
                   </div>
                 )}
               </div>
@@ -633,7 +621,7 @@ export default function ProfilePage() {
           {/* ── POSTS ── */}
           {tab === "posts" && (
             <div className="fin">
-              <h2 style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.03em", marginBottom: 22 }}>Posts Zangu ({posts.length})</h2>
+              <h2 style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.03em", marginBottom: 22 }}>Posts Zangu ({posts.length})</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {posts.map(p => {
                   const cc = CAT_COLORS[p.category] || CAT_COLORS.swali;
@@ -641,12 +629,12 @@ export default function ProfilePage() {
                     <div key={p.id} className="card">
                       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
                         <Pill label={p.category.charAt(0).toUpperCase() + p.category.slice(1)} bg={cc.bg} color={cc.color} />
-                        <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.3)" }}>{p.time}</span>
+                        <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.3)" }}>{p.time}</span>
                       </div>
                       <p style={{ fontSize: 14, lineHeight: 1.75, color: "rgba(220,230,240,0.82)" }}>{p.content}</p>
                       <div style={{ display: "flex", gap: 16, marginTop: 14 }}>
-                        <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 12, color: "#F5A623" }}>♥ {p.likes}</span>
-                        <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 12, color: "rgba(220,230,240,0.35)" }}>◻ {p.comments}</span>
+                        <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: "#F5A623" }}>♥ {p.likes}</span>
+                        <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: "rgba(220,230,240,0.35)" }}>◻ {p.comments}</span>
                       </div>
                     </div>
                   );
@@ -658,36 +646,44 @@ export default function ProfilePage() {
           {/* ── SETTINGS ── */}
           {tab === "settings" && (
             <div className="fin" style={{ maxWidth: 600 }}>
-              <h2 style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.03em", marginBottom: 24 }}>Mipangilio ya Akaunti</h2>
+              <h2 style={{ fontWeight: 800, fontSize: 20, letterSpacing: "-0.03em", marginBottom: 24 }}>Mipangilio ya Akaunti</h2>
 
               {/* Password change */}
               <div className="card" style={{ marginBottom: 16 }}>
-                <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 16 }}>BADILISHA NYWILA</div>
+                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 16 }}>BADILISHA NYWILA</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <InputField label="Nywila ya Sasa" placeholder="••••••••" type="password" value="" onChange={() => {}} />
                   <InputField label="Nywila Mpya" placeholder="••••••••" type="password" value="" onChange={() => {}} />
                   <InputField label="Thibitisha Nywila Mpya" placeholder="••••••••" type="password" value="" onChange={() => {}} />
-                  <button onClick={() => notify("🔐 Nywila imebadilishwa!")} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "11px", borderRadius: 9, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14 }}>Badilisha Nywila</button>
+                  <button onClick={() => notify("🔐 Nywila imebadilishwa!")} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "11px", borderRadius: 9, cursor: "pointer", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 14 }}>Badilisha Nywila</button>
                 </div>
               </div>
 
               {/* Notifications */}
               <div className="card" style={{ marginBottom: 16 }}>
-                <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 16 }}>ARIFA</div>
+                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 16 }}>ARIFA</div>
                 {[
                   ["Arifa za Likes na Comments", true],
                   ["Email Digest ya Wiki", true],
                   ["Arifa za Changamoto Mpya", true],
                   ["Newsletter ya JamiiAI", false],
                   ["Arifa za AI Jobs", true],
-                ].map(([label, def]) => (
-                  <ToggleItem key={label} label={label} defaultOn={def} />
-                ))}
+                ].map(([label, def]) => {
+                  const [on, setOn] = useState(def);
+                  return (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
+                      <div onClick={() => setOn(!on)} style={{ width: 40, height: 22, borderRadius: 11, background: on ? "#F5A623" : "rgba(255,255,255,0.1)", cursor: "pointer", position: "relative", transition: "all 0.2s" }}>
+                        <div style={{ position: "absolute", top: 3, left: on ? 21 : 3, width: 16, height: 16, borderRadius: "50%", background: on ? "#0A0F1C" : "rgba(220,230,240,0.5)", transition: "left 0.2s" }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Danger zone */}
               <div style={{ background: "rgba(248,113,113,0.05)", border: "1px solid rgba(248,113,113,0.15)", borderRadius: 14, padding: "22px 24px" }}>
-                <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F87171", letterSpacing: "0.12em", marginBottom: 16 }}>DANGER ZONE</div>
+                <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "#F87171", letterSpacing: "0.12em", marginBottom: 16 }}>DANGER ZONE</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>

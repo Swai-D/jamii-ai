@@ -22,7 +22,7 @@ const RECENT_ACTIVITY = [
 
 function Av({ initials, color, size = 36 }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: size * 0.3, color: "#0A0F1C", flexShrink: 0 }}>
+    <div style={{ width: size, height: size, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Space Mono',monospace", fontWeight: 700, fontSize: size * 0.3, color: "#0A0F1C", flexShrink: 0 }}>
       {initials}
     </div>
   );
@@ -30,18 +30,14 @@ function Av({ initials, color, size = 36 }) {
 
 // ─────────────────────────────────────────────────────────────────
 
-export default function JamiiAILanding({ initialPage = "landing", user, onLogin, onRegister, onLogout }) {
+export default function JamiiAILanding() {
   // page: "landing" | "auth" | "community"
-  const [page, setPage] = useState(initialPage);
+  const [page, setPage] = useState("landing");
   const [authMode, setAuthMode] = useState("login"); // "login" | "register"
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [scrollY, setScrollY] = useState(0);
   const [activeNav, setActiveNav] = useState("nyumbani");
   const [mobileMenu, setMobileMenu] = useState(false);
-
-  useEffect(() => {
-    if (initialPage) setPage(initialPage);
-  }, [initialPage]);
 
   useEffect(() => {
     const mm = (e) => setMousePos({ x: e.clientX, y: e.clientY });
@@ -54,15 +50,8 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
   const px = typeof window !== "undefined" ? (mousePos.x / window.innerWidth  - 0.5) * 18 : 0;
   const py = typeof window !== "undefined" ? (mousePos.y / window.innerHeight - 0.5) * 18 : 0;
 
-  const goAuth = (mode = "login") => { 
-    if (onLogin && mode === "login") onLogin();
-    else if (onRegister && mode === "register") onRegister();
-    else { setAuthMode(mode); setPage("auth"); }
-  };
-  const goCommunity = (nav = "nyumbani") => { 
-    setActiveNav(nav); 
-    setPage("community"); 
-  };
+  const goAuth = (mode = "login") => { setAuthMode(mode); setPage("auth"); };
+  const goCommunity = (nav = "nyumbani") => { setActiveNav(nav); setPage("community"); };
 
   // ── AUTH STUB ─────────────────────────────────────────────────
   if (page === "auth") {
@@ -71,14 +60,14 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
 
   // ── COMMUNITY STUB ────────────────────────────────────────────
   if (page === "community") {
-    return <CommunityStub activeNav={activeNav} setActiveNav={setActiveNav} onLogout={onLogout || (() => setPage("landing"))} user={user} />;
+    return <CommunityStub activeNav={activeNav} setActiveNav={setActiveNav} onLogout={() => setPage("landing")} />;
   }
 
   // ── LANDING ───────────────────────────────────────────────────
   return (
-    <div style={{ fontFamily: "'Roboto Mono',monospace", background: "#080C14", color: "#E8EDF5", minHeight: "100vh", overflowX: "hidden" }}>
+    <div style={{ fontFamily: "'Syne',sans-serif", background: "#080C14", color: "#E8EDF5", minHeight: "100vh", overflowX: "hidden" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; }
         ::-webkit-scrollbar{width:3px} ::-webkit-scrollbar-thumb{background:#F5A623;border-radius:2px}
         .glow-orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;transition:transform 0.1s ease-out}
@@ -86,11 +75,11 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
         .noise{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
         .fcard{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:28px;transition:all 0.28s;cursor:default}
         .fcard:hover{background:rgba(255,255,255,0.05);border-color:rgba(245,166,35,0.18);transform:translateY(-4px)}
-        .btn-p{background:#F5A623;color:#080C14;border:none;cursor:pointer;font-family:'Roboto Mono',monospace;font-weight:700;font-size:14px;padding:13px 30px;border-radius:9px;letter-spacing:0.02em;transition:all 0.2s;text-transform:uppercase}
+        .btn-p{background:#F5A623;color:#080C14;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;padding:13px 30px;border-radius:9px;letter-spacing:0.02em;transition:all 0.2s;text-transform:uppercase}
         .btn-p:hover{background:#FFB940;transform:translateY(-2px);box-shadow:0 12px 36px rgba(245,166,35,0.3)}
-        .btn-g{background:transparent;color:#E8EDF5;border:1px solid rgba(232,237,245,0.14);cursor:pointer;font-family:'Roboto Mono',monospace;font-weight:600;font-size:14px;padding:13px 30px;border-radius:9px;transition:all 0.2s;text-transform:uppercase}
+        .btn-g{background:transparent;color:#E8EDF5;border:1px solid rgba(232,237,245,0.14);cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;padding:13px 30px;border-radius:9px;transition:all 0.2s;text-transform:uppercase}
         .btn-g:hover{border-color:rgba(245,166,35,0.45);color:#F5A623}
-        .nav-link{cursor:pointer;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;transition:all 0.2s;letter-spacing:0.06em;text-transform:uppercase;color:rgba(232,237,245,0.5)}
+        .nav-link{cursor:pointer;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;transition:all 0.2s;letter-spacing:0.06em;text-transform:uppercase;color:rgba(232,237,245,0.5)}
         .nav-link:hover,.nav-link.active{color:#F5A623}
         .act-item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);transition:padding 0.2s;cursor:pointer}
         .act-item:hover{padding-left:4px}
