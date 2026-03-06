@@ -249,23 +249,70 @@ function StartupCard({ st, t }) {
   const color = st.color || "#F5A623";
   
   return (
-    <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "20px 22px", transition: "all 0.2s" }} className="post-card">
-      <div style={{ display: "flex", gap: 14 }}>
-        <div style={{ width: 50, height: 50, borderRadius: 13, background: `${color}20`, border: `1px solid ${color}40`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14, color: color, flexShrink: 0 }}>{st.logo}</div>
+    <div style={{ 
+      background: "rgba(255,255,255,0.02)", 
+      border: "1px solid rgba(255,255,255,0.06)", 
+      borderRadius: 20, 
+      padding: "24px", 
+      transition: "all 0.3s ease",
+      position: "relative",
+      overflow: "hidden"
+    }} className="post-card">
+      {/* Background Glow */}
+      <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, background: `${color}10`, filter: "blur(40px)", borderRadius: "50%" }} />
+      
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        <div style={{ 
+          width: 70, 
+          height: 70, 
+          borderRadius: 18, 
+          background: `linear-gradient(135deg, ${color}25 0%, ${color}05 100%)`, 
+          border: `1px solid ${color}30`, 
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "center", 
+          fontFamily: "'Roboto Mono',monospace", 
+          fontWeight: 800, 
+          fontSize: 20, 
+          color: color, 
+          flexShrink: 0,
+          boxShadow: `0 8px 20px ${color}10`
+        }}>{st.logo}</div>
+        
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-            <span style={{ fontWeight: 800, fontSize: 16 }}>{st.name}</span>
-            <Pill label={st.sector} bg={`${color}18`} color={color} />
-            {st.stage && <Pill label={st.stage} bg="rgba(255,255,255,0.05)" color="rgba(220,230,240,0.5)" />}
-            {st.hiring && <Pill label={`🔍 Hiring`} bg="rgba(52,211,153,0.12)" color="#34D399" />}
-            <span style={{ marginLeft: "auto", fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.35)" }}>📍 {st.loc || st.location} · {st.founded}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
+                <h3 style={{ fontWeight: 800, fontSize: 19, letterSpacing: "-0.01em" }}>{st.name}</h3>
+                <Pill label={st.sector} bg={`${color}12`} color={color} />
+                {st.hiring && <span style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(52,211,153,0.1)", color: "#34D399", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700 }}>🔍 Hiring</span>}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, opacity: 0.4 }}>
+                <span>📍 {st.loc || st.location}</span>
+                <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor" }} />
+                <span>Founded {st.founded}</span>
+                <span style={{ width: 3, height: 3, borderRadius: "50%", background: "currentColor" }} />
+                <span style={{ color }}>{st.stage} Stage</span>
+              </div>
+            </div>
+            <button style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#FFF", padding: "8px 16px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Visit Website ↗</button>
           </div>
-          <p style={{ fontSize: 13, color: "rgba(220,230,240,0.6)", lineHeight: 1.6, marginBottom: 12 }}>{st.description || st.desc}</p>
-          <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", gap: 5 }}>{tech.map(t => <SkillTag key={t} label={t} />)}</div>
-            <div style={{ display: "flex", gap: 16, marginLeft: "auto" }}>
-              <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.4)" }}>👥 {st.team_size || st.team}</span>
-              <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#34D399" }}>💰 {st.funding}</span>
+          
+          <p style={{ fontSize: 14, color: "rgba(220,230,240,0.7)", lineHeight: 1.65, marginBottom: 20, maxWidth: "90%" }}>{st.description || st.desc}</p>
+          
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 16 }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              {tech.map(t => <SkillTag key={t} label={t} />)}
+            </div>
+            <div style={{ display: "flex", gap: 24 }}>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 10, opacity: 0.3, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Team Size</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#FFF" }}>👥 {st.team_size || st.team}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 10, opacity: 0.3, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Funding</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#34D399" }}>💰 {st.funding}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -874,16 +921,24 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
 
             {activeNav === "startups" && (
               <div className="fin">
-                <div style={{ marginBottom: 20 }}>
-                  <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 4 }}>AI Startups <span style={{ color: "#F5A623" }}>Tanzania</span></h2>
-                  <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 13 }}>Makampuni yanayojenga mustakabali wa Tanzania</p>
+                <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <div>
+                    <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 6 }}>AI Startups <span style={{ color: "#F5A623" }}>Tanzania</span></h2>
+                    <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 14 }}>Makampuni yanayojenga mustakabali wa teknolojia Tanzania</p>
+                  </div>
+                  <div style={{ padding: "8px 16px", background: "rgba(245,166,35,0.1)", borderRadius: 12, border: "1px solid rgba(245,166,35,0.15)", display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ fontSize: 20 }}>🚀</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#F5A623" }}>{dataList.length} Active</div>
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 5, marginBottom: 20, flexWrap: "wrap" }}>
+                
+                <div style={{ display: "flex", gap: 8, marginBottom: 24, overflowX: "auto", paddingBottom: 8 }} className="hide-scrollbar">
                   {["Zote", "AgriTech", "HealthTech", "EdTech", "FinTech", "TravelTech", "Language Tech"].map(s => (
-                    <button key={s} onClick={() => setStartupFilter(s)} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${startupFilter === s ? "#F5A623" : "rgba(255,255,255,0.1)"}`, background: startupFilter === s ? "rgba(245,166,35,0.12)" : "transparent", color: startupFilter === s ? "#F5A623" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{s}</button>
+                    <button key={s} onClick={() => setStartupFilter(s)} style={{ padding: "6px 16px", borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${startupFilter === s ? "#F5A623" : "rgba(255,255,255,0.08)"}`, background: startupFilter === s ? "rgba(245,166,35,0.12)" : "rgba(255,255,255,0.02)", color: startupFilter === s ? "#F5A623" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s", whiteSpace: "nowrap" }}>{s}</button>
                   ))}
                 </div>
-                <div className="responsive-grid">
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {loading ? t.inapakia : dataList.filter(st => startupFilter === "Zote" || st.sector === startupFilter).map(st => <StartupCard key={st.id} st={st} t={t} />)}
                 </div>
               </div>
