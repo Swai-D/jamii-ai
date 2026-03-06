@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const MONO = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+const MONO = "'Roboto Mono', monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
 
 // ── SEED DATA ─────────────────────────────────────────────────────
 const STATS = {
@@ -127,7 +127,7 @@ function MiniBar({ data, valueKey, color, max }) {
 
 function ActionBtn({ label, color="#F5A623", danger, onClick, small }) {
   return (
-    <button onClick={onClick} style={{ background: danger ? "rgba(248,113,113,0.1)" : `${color}15`, color: danger ? "#F87171" : color, border:`1px solid ${danger ? "rgba(248,113,113,0.25)" : `${color}30`}`, padding: small ? "4px 10px" : "7px 14px", borderRadius:7, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:600, fontSize: small ? 11 : 12, transition:"all 0.18s", whiteSpace:"nowrap" }}>
+    <button onClick={onClick} style={{ background: danger ? "rgba(248,113,113,0.1)" : `${color}15`, color: danger ? "#F87171" : color, border:`1px solid ${danger ? "rgba(248,113,113,0.25)" : `${color}30`}`, padding: small ? "4px 10px" : "7px 14px", borderRadius:7, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:600, fontSize: small ? 11 : 12, transition:"all 0.18s", whiteSpace:"nowrap" }}>
       {label}
     </button>
   );
@@ -177,7 +177,7 @@ function Modal({ title, onClose, children }) {
 
 function FormField({ label, value, onChange, type="text", multiline, options }) {
   const [focused, setFocused] = useState(false);
-  const base = { background:"rgba(255,255,255,0.04)", border:`1px solid ${focused?"rgba(245,166,35,0.4)":"#232325"}`, borderRadius:9, padding:"10px 13px", color:"#F2F2F5", fontFamily:"'Inter',sans-serif", fontSize:13, outline:"none", width:"100%", transition:"border-color 0.2s" };
+  const base = { background:"rgba(255,255,255,0.04)", border:`1px solid ${focused?"rgba(245,166,35,0.4)":"#232325"}`, borderRadius:9, padding:"10px 13px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, outline:"none", width:"100%", transition:"border-color 0.2s" };
   return (
     <div style={{ marginBottom:14 }}>
       <label style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.4)", letterSpacing:"0.04em", display:"block", marginBottom:6 }}>{label}</label>
@@ -287,7 +287,7 @@ function UsersPage() {
 
       <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
         <div style={{ position:"relative", flex:1, minWidth:200 }}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Tafuta jina au handle..." style={{ background:"#161618", border:"1px solid #232325", borderRadius:9, padding:"9px 12px 9px 32px", color:"#F2F2F5", fontFamily:"'Inter',sans-serif", fontSize:13, outline:"none", width:"100%" }} />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Tafuta jina au handle..." style={{ background:"#161618", border:"1px solid #232325", borderRadius:9, padding:"9px 12px 9px 32px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, outline:"none", width:"100%" }} />
           <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:"rgba(242,242,245,0.28)", fontSize:13 }}>◎</span>
         </div>
         {["Wote","Active","Banned","Pending","Verified"].map(f=>(
@@ -423,7 +423,7 @@ function ChangamotoPage() {
           <FormField label="DEADLINE" value={form.deadline} onChange={f("deadline")} type="date" />
           <FormField label="UGUMU" value={form.difficulty} onChange={f("difficulty")} options={["Rahisi","Kati","Ngumu"]} />
           <FormField label="MAELEZO" value={form.desc} onChange={f("desc")} placeholder="Elezea challenge..." multiline />
-          <button onClick={save} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:14 }}>Hifadhi Challenge →</button>
+          <button onClick={save} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14 }}>Hifadhi Challenge →</button>
         </Modal>
       )}
 
@@ -498,7 +498,7 @@ function MatukioPage() {
           <FormField label="AINA" value={form.type} onChange={f("type")} options={["Hackathon","Webinar","Meetup","Workshop","Conference"]} />
           <FormField label="MAHALI" value={form.loc} onChange={f("loc")} placeholder="DSM / Online — Zoom" />
           <FormField label="MAELEZO" value={form.desc} onChange={f("desc")} multiline placeholder="Elezea event..." />
-          <button onClick={save} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:14 }}>Hifadhi Draft →</button>
+          <button onClick={save} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14 }}>Hifadhi Draft →</button>
         </Modal>
       )}
 
@@ -583,8 +583,8 @@ function RasilimaliPage() {
           <FormField label="TAGS (tenganisha kwa koma)" value={form.tags} onChange={f("tags")} placeholder="NLP, Swahili, Free" />
           <FormField label="MAELEZO MAFUPI" value={form.desc} onChange={f("desc")} multiline placeholder="Elezea resource hii — ni ya nini, inasaidia nani..." />
           <div style={{ display:"flex", gap:8, marginTop:4 }}>
-            <button onClick={()=>setShowNew(false)} style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.5)", border:"1px solid #232325", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:600, fontSize:13 }}>Ghairi</button>
-            <button onClick={save} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:13 }}>✅ Ongeza Resource →</button>
+            <button onClick={()=>setShowNew(false)} style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.5)", border:"1px solid #232325", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:600, fontSize:13 }}>Ghairi</button>
+            <button onClick={save} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:13 }}>✅ Ongeza Resource →</button>
           </div>
         </Modal>
       )}
@@ -846,8 +846,8 @@ function HabariPage() {
           </div>
           <FormField label="MUHTASARI (Kiswahili)" value={manualForm.summary} onChange={mf("summary")} multiline placeholder="Elezea habari kwa Kiswahili — mistari 2-3..." />
           <div style={{ display:"flex", gap:8, marginTop:4 }}>
-            <button onClick={()=>setShowManual(false)} style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.5)", border:"1px solid #232325", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:600, fontSize:13 }}>Ghairi</button>
-            <button onClick={saveManual} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:13 }}>🚀 Chapisha Sasa</button>
+            <button onClick={()=>setShowManual(false)} style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.5)", border:"1px solid #232325", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:600, fontSize:13 }}>Ghairi</button>
+            <button onClick={saveManual} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:13 }}>🚀 Chapisha Sasa</button>
           </div>
         </Modal>
       )}
@@ -859,7 +859,7 @@ function HabariPage() {
         action={
           <div style={{ display:"flex", gap:8 }}>
             <ActionBtn label="+ Manual" color="#A78BFA" onClick={()=>setShowManual(true)} />
-            <button onClick={runScraper} disabled={scraping} style={{ background: scraping ? "rgba(245,166,35,0.1)" : "#F5A623", color: scraping ? "#F5A623" : "#0C0C0E", border: scraping ? "1px solid rgba(245,166,35,0.3)" : "none", padding:"8px 16px", borderRadius:9, cursor: scraping ? "default":"pointer", fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:13, display:"flex", alignItems:"center", gap:7, transition:"all 0.2s" }}>
+            <button onClick={runScraper} disabled={scraping} style={{ background: scraping ? "rgba(245,166,35,0.1)" : "#F5A623", color: scraping ? "#F5A623" : "#0C0C0E", border: scraping ? "1px solid rgba(245,166,35,0.3)" : "none", padding:"8px 16px", borderRadius:9, cursor: scraping ? "default":"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:700, fontSize:13, display:"flex", alignItems:"center", gap:7, transition:"all 0.2s" }}>
               {scraping
                 ? <><span style={{ display:"inline-block", animation:"spin 1s linear infinite" }}>⟳</span> Inascrape...</>
                 : <>⟳ Scrape Sasa</>
@@ -963,7 +963,7 @@ function HabariPage() {
                         )}
                       </div>
                       {isEditing
-                        ? <textarea value={editSummary} onChange={e=>setEditSummary(e.target.value)} rows={4} style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(245,166,35,0.3)", borderRadius:8, padding:"10px 12px", color:"#F2F2F5", fontFamily:"'Inter',sans-serif", fontSize:13, lineHeight:1.65, outline:"none", resize:"vertical" }} />
+                        ? <textarea value={editSummary} onChange={e=>setEditSummary(e.target.value)} rows={4} style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(245,166,35,0.3)", borderRadius:8, padding:"10px 12px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, lineHeight:1.65, outline:"none", resize:"vertical" }} />
                         : <p style={{ fontSize:13, color:"rgba(242,242,245,0.75)", lineHeight:1.7 }}>{item.aiSummary}</p>
                       }
                       {isEditing && (
@@ -981,10 +981,10 @@ function HabariPage() {
 
                     {/* Action buttons */}
                     <div style={{ display:"flex", gap:8 }}>
-                      <button onClick={()=>publishFromInbox(item)} style={{ flex:2, background:"#34D399", color:"#0C0C0E", border:"none", padding:"10px", borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:13 }}>
+                      <button onClick={()=>publishFromInbox(item)} style={{ flex:2, background:"#34D399", color:"#0C0C0E", border:"none", padding:"10px", borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:13 }}>
                         🚀 Chapisha kwenye Community
                       </button>
-                      <button onClick={()=>discard(item.id)} style={{ flex:1, background:"rgba(248,113,113,0.08)", color:"#F87171", border:"1px solid rgba(248,113,113,0.2)", padding:"10px", borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:13 }}>
+                      <button onClick={()=>discard(item.id)} style={{ flex:1, background:"rgba(248,113,113,0.08)", color:"#F87171", border:"1px solid rgba(248,113,113,0.2)", padding:"10px", borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:700, fontSize:13 }}>
                         🗑 Discard
                       </button>
                     </div>
@@ -1113,7 +1113,7 @@ function RolesPage() {
               ))}
             </div>
           </div>
-          <button onClick={()=>{if(!newRole.label.trim())return;setRoles(rs=>[...rs,{id:Date.now().toString(),label:newRole.label,color:newRole.color,icon:"🎭",perms:[],members:[],desc:newRole.desc}]);setShowNew(false);setNewRole({label:"",color:"#4ECDC4",desc:""});notify("✅ Role mpya imeundwa!");}} style={{width:"100%",background:"#F5A623",color:"#0C0C0E",border:"none",padding:12,borderRadius:9,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:14}}>Unda Role →</button>
+          <button onClick={()=>{if(!newRole.label.trim())return;setRoles(rs=>[...rs,{id:Date.now().toString(),label:newRole.label,color:newRole.color,icon:"🎭",perms:[],members:[],desc:newRole.desc}]);setShowNew(false);setNewRole({label:"",color:"#4ECDC4",desc:""});notify("✅ Role mpya imeundwa!");}} style={{width:"100%",background:"#F5A623",color:"#0C0C0E",border:"none",padding:12,borderRadius:9,cursor:"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:800,fontSize:14}}>Unda Role →</button>
         </Modal>
       )}
 
@@ -1179,13 +1179,13 @@ function RolesPage() {
               </div>
               {sel.id!=="member" && (
                 <div style={{display:"flex",gap:8}}>
-                  <input value={assignHandle} onChange={e=>setAssignHandle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&assign()} placeholder="@handle au email..." style={{flex:1,background:"rgba(255,255,255,0.04)",border:"1px solid #2C2C2E",borderRadius:8,padding:"8px 12px",color:"#F2F2F5",fontFamily:"'Inter',sans-serif",fontSize:13,outline:"none"}} />
-                  <button onClick={assign} style={{background:sel.color,color:"#0C0C0E",border:"none",padding:"0 14px",borderRadius:8,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:700,fontSize:13}}>+ Ongeza</button>
+                  <input value={assignHandle} onChange={e=>setAssignHandle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&assign()} placeholder="@handle au email..." style={{flex:1,background:"rgba(255,255,255,0.04)",border:"1px solid #2C2C2E",borderRadius:8,padding:"8px 12px",color:"#F2F2F5",fontFamily:"'Roboto Mono',monospace",fontSize:13,outline:"none"}} />
+                  <button onClick={assign} style={{background:sel.color,color:"#0C0C0E",border:"none",padding:"0 14px",borderRadius:8,cursor:"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:700,fontSize:13}}>+ Ongeza</button>
                 </div>
               )}
             </div>
 
-            <button onClick={()=>notify(`✅ ${sel.label} permissions zimehifadhiwa!`)} style={{width:"100%",background:"#F5A623",color:"#0C0C0E",border:"none",padding:11,borderRadius:9,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:13}}>Hifadhi Mabadiliko →</button>
+            <button onClick={()=>notify(`✅ ${sel.label} permissions zimehifadhiwa!`)} style={{width:"100%",background:"#F5A623",color:"#0C0C0E",border:"none",padding:11,borderRadius:9,cursor:"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:800,fontSize:13}}>Hifadhi Mabadiliko →</button>
           </div>
         ) : (
           <div style={{background:"#161618",border:"1px solid #232325",borderRadius:14,padding:"40px 24px",textAlign:"center",color:"rgba(242,242,245,0.25)"}}>
@@ -1527,7 +1527,7 @@ function AnnouncementsPage() {
     notify("📣 Tangazo limetumwa!");
   };
 
-  const inputS = { background:"rgba(255,255,255,0.04)", border:"1px solid #2C2C2E", borderRadius:9, padding:"10px 13px", color:"#F2F2F5", fontFamily:"'Inter',sans-serif", fontSize:13, outline:"none", width:"100%", transition:"border-color 0.2s" };
+  const inputS = { background:"rgba(255,255,255,0.04)", border:"1px solid #2C2C2E", borderRadius:9, padding:"10px 13px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, outline:"none", width:"100%", transition:"border-color 0.2s" };
 
   return (
     <div>
@@ -1612,7 +1612,7 @@ function AnnouncementsPage() {
                 <span style={{fontSize:13,color:"rgba(242,242,245,0.6)"}}>Tangazo hili litawafikia <strong style={{color:"#F5A623"}}>{targetCount[form.target]||0} wanachama</strong> kupitia {Object.entries(form.channels).filter(([,v])=>v).length} channel(s)</span>
               </div>
 
-              <button onClick={send} disabled={!form.title.trim()||!form.body.trim()} style={{width:"100%",background:form.title.trim()&&form.body.trim()?"#F5A623":"#1C1C1E",color:form.title.trim()&&form.body.trim()?"#0C0C0E":"rgba(242,242,245,0.2)",border:"none",padding:12,borderRadius:9,cursor:form.title.trim()&&form.body.trim()?"pointer":"default",fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:14,transition:"all 0.2s"}}>
+              <button onClick={send} disabled={!form.title.trim()||!form.body.trim()} style={{width:"100%",background:form.title.trim()&&form.body.trim()?"#F5A623":"#1C1C1E",color:form.title.trim()&&form.body.trim()?"#0C0C0E":"rgba(242,242,245,0.2)",border:"none",padding:12,borderRadius:9,cursor:form.title.trim()&&form.body.trim()?"pointer":"default",fontFamily:"'Roboto Mono',monospace",fontWeight:800,fontSize:14,transition:"all 0.2s"}}>
                 {form.schedule==="now"?"📣 Tuma Sasa →":"⏰ Panga Kutuma →"}
               </button>
             </>
@@ -1636,7 +1636,7 @@ function AnnouncementsPage() {
                 {form.channels.email && <Badge label="📧 Email" color="#A78BFA" />}
                 {form.channels.whatsapp && <Badge label="💬 WhatsApp" color="#34D399" />}
               </div>
-              <button onClick={()=>setPreview(false)} style={{width:"100%",background:"transparent",color:"rgba(242,242,245,0.5)",border:"1px solid #232325",padding:11,borderRadius:9,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:600,fontSize:13,marginTop:14}}>← Rudi Kuhariri</button>
+              <button onClick={()=>setPreview(false)} style={{width:"100%",background:"transparent",color:"rgba(242,242,245,0.5)",border:"1px solid #232325",padding:11,borderRadius:9,cursor:"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:600,fontSize:13,marginTop:14}}>← Rudi Kuhariri</button>
             </div>
           )}
         </div>
@@ -1725,7 +1725,7 @@ function SettingsPage() {
   const STATUS_C = { connected:"#34D399", missing:"#F87171", optional:"rgba(242,242,245,0.3)" };
   const STATUS_L = { connected:"● Connected", missing:"● Missing", optional:"● Optional" };
 
-  const inputS = (focus) => ({ width:"100%", background:"rgba(255,255,255,0.04)", border:`1px solid ${focus?"rgba(245,166,35,0.4)":"#2C2C2E"}`, borderRadius:9, padding:"10px 13px", color:"#F2F2F5", fontFamily:"'Inter',sans-serif", fontSize:13, outline:"none", transition:"border-color 0.2s" });
+  const inputS = (focus) => ({ width:"100%", background:"rgba(255,255,255,0.04)", border:`1px solid ${focus?"rgba(245,166,35,0.4)":"#2C2C2E"}`, borderRadius:9, padding:"10px 13px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, outline:"none", transition:"border-color 0.2s" });
 
   function FocusInput({ value, onChange, placeholder, type="text" }) {
     const [f,setF] = useState(false);
@@ -1894,7 +1894,7 @@ function SettingsPage() {
                 sub="Chapisha habari moja kwa moja bila admin review — HATARI, usiwashe bila makini"
               />
 
-              <button onClick={()=>notify("✅ Mipangilio ya Apify imehifadhiwa!")} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:14, marginTop:20 }}>
+              <button onClick={()=>notify("✅ Mipangilio ya Apify imehifadhiwa!")} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
                 Hifadhi Mipangilio →
               </button>
             </div>
@@ -1921,7 +1921,7 @@ function SettingsPage() {
               <Toggle checked={platform.registrationOpen} onChange={()=>setPlatform(p=>({...p,registrationOpen:!p.registrationOpen}))} label="Usajili Wazi" sub="Ruhusu watu wapya kujisajili JamiiAI" />
               <Toggle checked={platform.requireApproval}  onChange={()=>setPlatform(p=>({...p,requireApproval:!p.requireApproval}))} label="Idhini ya Admin kwa Wanachama Wapya" sub="Kila mwanachama mpya anahitaji idhini yako kabla ya kutumia platform" />
               <Toggle checked={platform.maintenanceMode}  onChange={()=>setPlatform(p=>({...p,maintenanceMode:!p.maintenanceMode}))} label="Maintenance Mode" sub="Zuia ufikiaji wa platform — inaonyesha ukurasa wa 'Tunafanya kazi'" />
-              <button onClick={()=>notify("✅ Platform settings zimehifadhiwa!")} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:14, marginTop:20 }}>
+              <button onClick={()=>notify("✅ Platform settings zimehifadhiwa!")} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
                 Hifadhi Mipangilio →
               </button>
             </div>
@@ -1956,8 +1956,8 @@ function SettingsPage() {
                 💡 <strong style={{color:"#60A5FA"}}>Brevo (Sendinblue):</strong> brevo.com — free plan ina 300 emails/siku, recommended kwa production.
               </div>
               <div style={{ display:"flex", gap:8, marginTop:16 }}>
-                <button onClick={()=>notify("📧 Test email imetumwa kwa admin@jamii.ai!")} style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.55)", border:"1px solid #2C2C2E", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:600, fontSize:13 }}>📧 Tuma Test Email</button>
-                <button onClick={()=>notify("✅ SMTP settings zimehifadhiwa!")} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:14 }}>Hifadhi →</button>
+                <button onClick={()=>notify("📧 Test email imetumwa kwa admin@jamii.ai!")} style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.55)", border:"1px solid #2C2C2E", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:600, fontSize:13 }}>📧 Tuma Test Email</button>
+                <button onClick={()=>notify("✅ SMTP settings zimehifadhiwa!")} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14 }}>Hifadhi →</button>
               </div>
             </div>
           )}
@@ -1978,7 +1978,7 @@ function SettingsPage() {
                       <div style={{ fontWeight:600, fontSize:13, marginBottom:3 }}>{label}</div>
                       <div style={{ fontSize:12, color:"rgba(242,242,245,0.4)" }}>{sub}</div>
                     </div>
-                    <button onClick={()=>notify(action)} style={{ background:`${color}12`, color, border:`1px solid ${color}30`, padding:"8px 16px", borderRadius:8, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:12, whiteSpace:"nowrap", flexShrink:0 }}>{btn}</button>
+                    <button onClick={()=>notify(action)} style={{ background:`${color}12`, color, border:`1px solid ${color}30`, padding:"8px 16px", borderRadius:8, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:700, fontSize:12, whiteSpace:"nowrap", flexShrink:0 }}>{btn}</button>
                   </div>
                 ))}
               </div>
@@ -1989,7 +1989,7 @@ function SettingsPage() {
                 <div style={{ fontSize:13, color:"rgba(242,242,245,0.5)", marginBottom:14, lineHeight:1.7 }}>
                   Hatua hii itafuta <strong style={{color:"#F87171"}}>data yote</strong> — wanachama, posts, challenges, events. Haiwezi kurudishwa. Tumia tu kama una backup kamili.
                 </div>
-                <button onClick={()=>notify("⛔ Hatua hii imezuiwa — wasiliana na developer kwanza!")} style={{ background:"rgba(248,113,113,0.15)", color:"#F87171", border:"1px solid rgba(248,113,113,0.4)", padding:"11px 20px", borderRadius:9, cursor:"pointer", fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:13 }}>
+                <button onClick={()=>notify("⛔ Hatua hii imezuiwa — wasiliana na developer kwanza!")} style={{ background:"rgba(248,113,113,0.15)", color:"#F87171", border:"1px solid rgba(248,113,113,0.4)", padding:"11px 20px", borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:13 }}>
                   ⛔ Futa Yote — Bila Kurudisha
                 </button>
               </div>
@@ -2029,9 +2029,9 @@ export default function AdminPanel() {
   };
 
   return (
-    <div style={{ fontFamily:"'Inter',sans-serif", background:"#0C0C0E", color:"#F2F2F5", minHeight:"100vh", display:"flex" }}>
+    <div style={{ fontFamily:"'Roboto Mono',monospace", background:"#0C0C0E", color:"#F2F2F5", minHeight:"100vh", display:"flex" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
         *{margin:0;padding:0;box-sizing:border-box}
         ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:#0C0C0E}::-webkit-scrollbar-thumb{background:#333;border-radius:2px}::-webkit-scrollbar-thumb:hover{background:#F5A623}
         input::placeholder,textarea::placeholder{color:rgba(242,242,245,0.25)}
