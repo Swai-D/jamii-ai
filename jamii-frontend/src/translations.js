@@ -16,15 +16,15 @@ export const translations = {
 
     // Dashboard Headers
     kichwa_nyumbani: "Nyumbani 🏠",
-    kichwa_gundua: "Gundua ◎",
-    kichwa_wataalamu: "Wataalamu ◈",
-    kichwa_startups: "Startups Tanzania",
-    kichwa_vyuo: "Vyuo & Taasisi",
-    kichwa_changamoto: "Changamoto ◆",
-    kichwa_rasilimali: "Rasilimali ◧",
-    kichwa_habari: "Habari za AI 📡",
-    kichwa_matukio: "Matukio ◷",
-    kichwa_ujumbe: "Ujumbe ◻",
+    kichwa_gundua: "Gundua 🧭",
+    kichwa_wataalamu: "Wataalamu 👨‍💻",
+    kichwa_startups: "Startups Tanzania 🚀",
+    kichwa_vyuo: "Vyuo & Taasisi 🎓",
+    kichwa_changamoto: "Changamoto 🏆",
+    kichwa_rasilimali: "Rasilimali 📚",
+    kichwa_habari: "Habari za AI 📰",
+    kichwa_matukio: "Matukio 🗓️",
+    kichwa_ujumbe: "Ujumbe 💬",
 
     // Filters & Categories
     all: "Yote",
@@ -51,6 +51,7 @@ export const translations = {
     privacy: "Privacy · Terms · Mawasiliano",
 
     // Common
+    tafuta: "Tafuta hapa...",
     inapakia: "Inapakia...",
     rudisha: "Rudi",
     wanafunzi: "Wanafunzi",
@@ -94,15 +95,15 @@ export const translations = {
 
     // Dashboard Headers
     kichwa_nyumbani: "Home 🏠",
-    kichwa_gundua: "Explore ◎",
-    kichwa_wataalamu: "Experts ◈",
-    kichwa_startups: "Tanzania Startups",
-    kichwa_vyuo: "Institutions",
-    kichwa_changamoto: "Challenges ◆",
-    kichwa_rasilimali: "Resources ◧",
-    kichwa_habari: "AI News 📡",
-    kichwa_matukio: "Events ◷",
-    kichwa_ujumbe: "Messages ◻",
+    kichwa_gundua: "Explore 🧭",
+    kichwa_wataalamu: "Experts 👨‍💻",
+    kichwa_startups: "Tanzania Startups 🚀",
+    kichwa_vyuo: "Institutions 🎓",
+    kichwa_changamoto: "Challenges 🏆",
+    kichwa_rasilimali: "Resources 📚",
+    kichwa_habari: "AI News 📰",
+    kichwa_matukio: "Events 🗓️",
+    kichwa_ujumbe: "Messages 💬",
 
     // Filters & Categories
     all: "All",
@@ -129,6 +130,7 @@ export const translations = {
     privacy: "Privacy · Terms · Contact",
 
     // Common
+    tafuta: "Search here...",
     inapakia: "Loading...",
     rudisha: "Back",
     wanafunzi: "Students",

@@ -1,4 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import axios from "axios";
+
+const API_URL = "http://localhost:4000/api";
 
 function ToggleItem({ label, defaultOn }) {
   const [on, setOn] = useState(defaultOn);
@@ -106,33 +109,93 @@ const TABS = [
 ];
 
 // ─── MAIN ─────────────────────────────────────────────────────────
-export default function ProfilePage() {
+export default function ProfilePage({ user, lang, onLogout }) {
   const [profile, setProfile]   = useState(INITIAL_PROFILE);
-  const [projects, setProjects] = useState(INITIAL_PROJECTS);
-  const [posts]                 = useState(INITIAL_POSTS);
+  const [projects, setProjects] = useState([]);
+  const [posts, setPosts]       = useState([]);
   const [tab, setTab]           = useState("overview");
   const [editing, setEditing]   = useState(false);
   const [draft, setDraft]       = useState(null);
   const [toast, setToast]       = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(null); // project id
+  const [loading, setLoading]   = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProject, setNewProject] = useState({ title: "", desc: "", tech: [], techInput: "", status: "active", link: "" });
   const [showSkillSearch, setShowSkillSearch] = useState(false);
   const [skillQ, setSkillQ]     = useState("");
   const fileRef                 = useRef();
+  const coverFileRef            = useRef();
 
   const notify = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+
+  const fetchProfile = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      let userData = user;
+
+      // Only attempt to fetch if we have an ID and a token
+      if (user?.id && token) {
+        try {
+          const res = await axios.get(`${API_URL}/users/${user.id}`, { headers: { Authorization: `Bearer ${token}` } });
+          if (res.data) userData = res.data;
+        } catch (e) {
+          console.warn("API User fetch failed, using local prop data");
+        }
+      }
+      
+      // Merge INITIAL_PROFILE with whatever data we have
+      setProfile(prev => ({
+        ...INITIAL_PROFILE,
+        ...userData,
+        avatarInitials: userData?.name ? userData.name.split(" ").map(w => w[0]).join("") : "??",
+        skills: Array.isArray(userData?.skills) ? userData.skills : (typeof userData?.skills === 'string' ? JSON.parse(userData.skills || "[]") : INITIAL_PROFILE.skills),
+        interests: Array.isArray(userData?.interests) ? userData.interests : (typeof userData?.interests === 'string' ? JSON.parse(userData.interests || "[]") : INITIAL_PROFILE.interests),
+      }));
+
+      // Mock projects if API fails
+      try {
+        const pRes = await axios.get(`${API_URL}/projects/user/${userData?.id}`);
+        setProjects(pRes.data.map(p => ({
+          ...p,
+          tech: Array.isArray(p.tech_stack) ? p.tech_stack : JSON.parse(p.tech_stack || "[]"),
+          desc: p.description
+        })));
+      } catch (e) { 
+        console.warn("Projects API not ready, using default projects");
+        setProjects(INITIAL_PROJECTS); 
+      }
+
+    } catch (err) { 
+      console.error("Profile load error:", err); 
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchProfile(); }, []);
 
   // ── Edit helpers ─────────────────────────────────────────────
   const startEdit = () => { setDraft({ ...profile }); setEditing(true); };
   const cancelEdit = () => { setDraft(null); setEditing(false); };
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (!draft.name.trim()) return notify("❌ Jina linahitajika!");
-    setProfile({ ...draft });
+    setProfile({ ...draft }); // Save locally first
     setEditing(false);
+    
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(`${API_URL}/users/${draft.id}`, {
+        ...draft,
+        skills: JSON.stringify(draft.skills),
+        interests: JSON.stringify(draft.interests)
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      notify("✅ Profile imehifadhiwa!");
+    } catch (err) { 
+      console.warn("API save failed, profile updated locally only");
+      notify("💾 Imehifadhiwa (Local)");
+    }
     setDraft(null);
-    notify("✅ Profile imehifadhiwa!");
   };
 
   const setD = (key) => (e) => setDraft(d => ({ ...d, [key]: e.target.value }));
@@ -156,29 +219,56 @@ export default function ProfilePage() {
   };
 
   // ── Project CRUD ─────────────────────────────────────────────
-  const saveProject = () => {
+  const saveProject = async () => {
     if (!newProject.title.trim()) return;
-    const p = { ...newProject, id: `p${Date.now()}`, stars: 0 };
-    setProjects(ps => [p, ...ps]);
-    setNewProject({ title: "", desc: "", tech: [], techInput: "", status: "active", link: "" });
-    setShowNewProject(false);
-    notify("✅ Mradi umeongezwa!");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(`${API_URL}/projects`, {
+        title: newProject.title,
+        description: newProject.desc,
+        tech_stack: JSON.stringify(newProject.tech),
+        status: newProject.status,
+        link: newProject.link
+      }, { headers: { Authorization: `Bearer ${token}` } });
+
+      const p = { ...res.data, tech: newProject.tech, desc: newProject.desc, stars: 0 };
+      setProjects(ps => [p, ...ps]);
+      setNewProject({ title: "", desc: "", tech: [], techInput: "", status: "active", link: "" });
+      setShowNewProject(false);
+      notify("✅ Mradi umeongezwa!");
+    } catch (err) { notify("⚠️ Kushindwa kuongeza mradi"); }
   };
 
-  const deleteProject = (id) => {
-    setProjects(ps => ps.filter(p => p.id !== id));
-    setConfirmDelete(null);
-    notify("🗑 Mradi umefutwa");
+  const deleteProject = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_URL}/projects/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      setProjects(ps => ps.filter(p => p.id !== id));
+      setConfirmDelete(null);
+      notify("🗑 Mradi umefutwa");
+    } catch (err) { notify("⚠️ Kushindwa kufuta mradi"); }
   };
 
   const [editingProject, setEditingProject] = useState(null);
   const [projectDraft, setProjectDraft] = useState(null);
 
   const startEditProject = (p) => { setEditingProject(p.id); setProjectDraft({ ...p }); };
-  const saveProjectEdit = () => {
-    setProjects(ps => ps.map(p => p.id === editingProject ? { ...projectDraft } : p));
-    setEditingProject(null); setProjectDraft(null);
-    notify("✅ Mradi umehifadhiwa!");
+  
+  const saveProjectEdit = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(`${API_URL}/projects/${editingProject}`, {
+        title: projectDraft.title,
+        description: projectDraft.desc,
+        tech_stack: JSON.stringify(projectDraft.tech),
+        status: projectDraft.status,
+        link: projectDraft.link
+      }, { headers: { Authorization: `Bearer ${token}` } });
+
+      setProjects(ps => ps.map(p => p.id === editingProject ? { ...projectDraft } : p));
+      setEditingProject(null); setProjectDraft(null);
+      notify("✅ Mradi umehifadhiwa!");
+    } catch (err) { notify("⚠️ Kushindwa kuhifadhi mradi"); }
   };
 
   const addProjectTech = () => {
@@ -186,16 +276,50 @@ export default function ProfilePage() {
     setNewProject(p => ({ ...p, tech: [...p.tech, p.techInput.trim()], techInput: "" }));
   };
 
-  // ── Avatar upload (simulated) ─────────────────────────────────
-  const handleAvatarChange = (e) => {
+  // ── Avatar/Cover upload logic ─────────────────────────────────
+  const uploadFile = async (file, type) => {
+    const formData = new FormData();
+    formData.append(type, file);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(`${API_URL}/users/me/upload-${type}`, formData, {
+        headers: { 
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`
+        }
+      });
+      return res.data.url;
+    } catch (err) {
+      console.warn(`Backend upload endpoint for ${type} not found, using local preview only.`);
+      return null;
+    }
+  };
+
+  const handleFileChange = async (e, type) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    if (editing) setDraft(d => ({ ...d, avatar: url }));
-    else { setProfile(p => ({ ...p, avatar: url })); notify("✅ Picha imebadilishwa!"); }
+    
+    // Show local preview first
+    const localUrl = URL.createObjectURL(file);
+    if (editing) {
+      setDraft(d => ({ ...d, [type === 'avatar' ? 'avatar' : 'cover_image']: localUrl }));
+    } else {
+      setProfile(p => ({ ...p, [type === 'avatar' ? 'avatar' : 'cover_image']: localUrl }));
+    }
+
+    // Actual upload
+    const remoteUrl = await uploadFile(file, type);
+    if (remoteUrl) {
+      const field = type === 'avatar' ? 'avatar' : 'cover_image';
+      if (editing) setDraft(d => ({ ...d, [field]: remoteUrl }));
+      setProfile(p => ({ ...p, [field]: remoteUrl }));
+      notify(`✅ ${type === 'avatar' ? 'Picha' : 'Cover'} imesasishwa!`);
+    }
   };
 
   const filteredSkills = ALL_SKILLS.filter(s => s.toLowerCase().includes(skillQ.toLowerCase()) && !(draft?.skills || []).includes(s));
+
+  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "rgba(220,230,240,0.4)" }}>Pakia profile...</div>;
 
   // ─────────────────────────────────────────────────────────────
   const P = editing ? draft : profile;
@@ -232,8 +356,9 @@ export default function ProfilePage() {
 
       {toast && <Toast msg={toast} />}
 
-      {/* Hidden file input */}
-      <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
+      {/* Hidden file inputs */}
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleFileChange(e, 'avatar')} />
+      <input ref={coverFileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => handleFileChange(e, 'cover')} />
 
       {/* ── CONFIRM DELETE MODAL ── */}
       {confirmDelete && (
@@ -302,10 +427,10 @@ export default function ProfilePage() {
       {/* ── COVER + HEADER ── */}
       <div style={{ position: "relative" }}>
         {/* Cover */}
-        <div style={{ height: 180, background: `linear-gradient(135deg, ${P.avatarColor}22 0%, rgba(78,205,196,0.08) 50%, rgba(167,139,250,0.06) 100%)`, backgroundImage: "linear-gradient(rgba(245,166,35,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.04) 1px,transparent 1px)", backgroundSize: "40px 40px", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: `${P.avatarColor}12`, filter: "blur(80px)", top: -150, right: -100 }} />
+        <div style={{ height: 180, background: P.cover_image ? `url(${P.cover_image}) center/cover` : `linear-gradient(135deg, ${P.avatarColor}22 0%, rgba(78,205,196,0.08) 50%, rgba(167,139,250,0.06) 100%)`, backgroundImage: !P.cover_image && "linear-gradient(rgba(245,166,35,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.04) 1px,transparent 1px)", backgroundSize: !P.cover_image && "40px 40px", position: "relative", overflow: "hidden" }}>
+          {!P.cover_image && <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: `${P.avatarColor}12`, filter: "blur(80px)", top: -150, right: -100 }} />}
           {editing && (
-            <button style={{ position: "absolute", bottom: 12, right: 16, background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.15)", color: "#DCE6F0", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
+            <button onClick={() => coverFileRef.current?.click()} style={{ position: "absolute", bottom: 12, right: 16, background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.15)", color: "#DCE6F0", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
               📷 Badilisha Cover
             </button>
           )}
