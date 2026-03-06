@@ -15,6 +15,7 @@ const TAG_COLORS = {
 
 const NAV_ITEMS = [
   { id: "nyumbani",    icon: "🏠", label: "Nyumbani",       badge: null },
+  { id: "gundua",     icon: "🧭", label: "Gundua",         badge: null },
   { id: "wataalamu",  icon: "👨‍💻", label: "Wataalamu",      badge: null },
   { id: "startups",   icon: "🚀", label: "Startups",       badge: null },
   { id: "vyuo",       icon: "🎓", label: "Vyuo & Taasisi", badge: null },
@@ -42,6 +43,11 @@ const PAGE_TITLE = {
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
 
+const MOCK_POSTS = [
+  { id: 1, author_name: "Amina Hassan", author_handle: "aminahassan", color: "#4ECDC4", author_role: "ML Engineer", created_at: new Date().toISOString(), category: "swali", content: "Habari wote! 🙋‍♀️ Ninajaribu kujenga sentiment analysis model kwa Kiswahili lakini dataset ni ndogo sana. Kuna mtu ana dataset ya Swahili text au amefanya kitu kama hiki?", like_count: 24, comment_count: 8, bookmark_count: 5, user_liked: false, user_bookmarked: false },
+  { id: 2, author_name: "Jonas Kimaro", author_handle: "jonaskimaro", color: "#F87171", author_role: "AI Architect", created_at: new Date().toISOString(), category: "mradi", content: "🚀 Nimekamilisha mradi wangu wa kwanza wa RAG system kwa Kiswahili! Bot inaweza kujibu maswali kutoka documents za Kiswahili kwa usahihi wa 89%. Stack: LangChain + Claude API.", like_count: 87, comment_count: 15, bookmark_count: 32, user_liked: true, user_bookmarked: false },
+];
+
 const MOCK_EVENTS = [
   { id:1, name:"Tanzania AI Hackathon 2025", date:"2025-03-15", type:"Hackathon", color:"#F5A623", location:"Dar es Salaam + Online", description:"Jenga AI solution kwa Tanzania. Teams za 2–4. Prize pool TZS 10M+.", tags:["AI","NLP","Open"], rsvp_count:128, max_rsvp:200 },
   { id:2, name:"AI for Agriculture Webinar", date:"2025-03-22", type:"Webinar", color:"#4ECDC4", location:"Online — Zoom", description:"Jinsi AI inavyosaidia wakulima Tanzania — hali ya hewa, magonjwa ya mazao, bei za soko.", tags:["AgriTech","ML"], rsvp_count:67, max_rsvp:300 },
@@ -63,10 +69,10 @@ const MOCK_MEMBERS_ONLINE = [
 const MOCK_TRENDING = ["#SwahiliNLP", "#TanzaniaAI", "#ClaudeAPI", "#AIJobs", "#RAGSystem"];
 
 const MOCK_EXPERTS = [
-  { id: 1, name: "Amina Hassan", handle: "aminahassan", avatar: "AH", color: "#4ECDC4", role: "ML Engineer", city: "Dar es Salaam", bio: "Specialized katika NLP na low-resource language models. PhD candidate UDSM.", skills: ["Python", "TensorFlow", "NLP"], rating: 4.9, hourly_rate: "TZS 45K/hr", available: true },
-  { id: 2, name: "Jonas Kimaro", handle: "jonaskimaro", avatar: "JK", color: "#F87171", role: "AI Architect", city: "Dodoma", bio: "Ninajenga AI systems kwa enterprises. 5+ years experience.", skills: ["LangChain", "RAG", "AWS"], rating: 4.8, hourly_rate: "TZS 60K/hr", available: true },
-  { id: 3, name: "Fatuma Said", handle: "fatumasaid", avatar: "FS", color: "#A78BFA", role: "Data Scientist", city: "Zanzibar", bio: "Computer vision na data pipeline specialist. Open source contributor.", skills: ["Pandas", "PyTorch", "CV"], rating: 5.0, hourly_rate: "TZS 50K/hr", available: false },
-  { id: 4, name: "David Mkwawa", handle: "davidmkwawa", avatar: "DM", color: "#34D399", role: "AI Dev", city: "Arusha", bio: "Full-stack AI developer. Najua kuintegrisha AI kwenye apps za biashara.", skills: ["Node.js", "OpenAI", "VectorDB"], rating: 4.7, hourly_rate: "TZS 35K/hr", available: true },
+  { id: 1, name: "Amina Hassan", handle: "aminahassan", avatar: "AH", color: "#4ECDC4", role: "ML Engineer", city: "Dar es Salaam", bio: "Specialized katika NLP na low-resource language models. PhD candidate UDSM.", skills: ["Python", "TensorFlow", "NLP"], rating: 4.9, hourly_rate: "TZS 45K/hr", available: true, is_verified: true },
+  { id: 2, name: "Jonas Kimaro", handle: "jonaskimaro", avatar: "JK", color: "#F87171", role: "AI Architect", city: "Dodoma", bio: "Ninajenga AI systems kwa enterprises. 5+ years experience.", skills: ["LangChain", "RAG", "AWS"], rating: 4.8, hourly_rate: "TZS 60K/hr", available: true, is_verified: true },
+  { id: 3, name: "Fatuma Said", handle: "fatumasaid", avatar: "FS", color: "#A78BFA", role: "Data Scientist", city: "Zanzibar", bio: "Computer vision na data pipeline specialist. Open source contributor.", skills: ["Pandas", "PyTorch", "CV"], rating: 5.0, hourly_rate: "TZS 50K/hr", available: false, is_verified: false },
+  { id: 4, name: "David Mkwawa", handle: "davidmkwawa", avatar: "DM", color: "#34D399", role: "AI Dev", city: "Arusha", bio: "Full-stack AI developer. Najua kuintegrisha AI kwenye apps za biashara.", skills: ["Node.js", "OpenAI", "VectorDB"], rating: 4.7, hourly_rate: "TZS 35K/hr", available: true, is_verified: false },
 ];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -85,6 +91,23 @@ function Pill({ label, bg, color }) {
 
 function SkillTag({ label }) {
   return <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, padding: "3px 8px", borderRadius: 4, background: "rgba(255,255,255,0.06)", color: "rgba(220,230,240,0.55)" }}>{label}</span>;
+}
+
+function VerifiedBadge({ size = 14 }) {
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginLeft: 4 }}>
+      <svg viewBox="0 0 24 24" style={{ width: size, height: size }}>
+        <path 
+          d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.97-.81-4.01s-2.62-1.27-4.01-.81C14.67 2.53 13.43 1.65 12 1.65s-2.67.88-3.34 2.19c-1.39-.46-2.97-.2-4.01.81s-1.27 2.62-.81 4.01C2.53 9.33 1.65 10.57 1.65 12s.88 2.67 2.19 3.34c-.46 1.39-.2 2.97.81 4.01s2.62 1.27 4.01.81c.67 1.31 1.91 2.19 3.34 2.19s2.67-.88 3.34-2.19c1.39.46 2.97.2 4.01-.81s1.27-2.62.81-4.01c1.31-.67 2.19-1.91 2.19-3.34z" 
+          fill="#1D9BF0" 
+        />
+        <path 
+          d="M10.54 16.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.35-6.2 6.78z" 
+          fill="white" 
+        />
+      </svg>
+    </div>
+  );
 }
 
 // ─── SUB-COMPONENTS ──────────────────────────────────────────────────────────
@@ -106,8 +129,8 @@ function ExpertDetailModal({ dev, onClose, t }) {
             <div style={{ position: "relative" }}>
               <Av initials={dev.name ? dev.name.split(" ").map(w => w[0]).join("") : "??"} color={dev.color || "#4ECDC4"} size={110} />
               {dev.is_verified && (
-                <div style={{ position: "absolute", bottom: 5, right: 5, background: "#0D1322", borderRadius: "50%", padding: 2 }}>
-                  <CheckCircle2 size={26} color="#34D399" fill="#34D399" style={{ stroke: "#0D1322" }} />
+                <div style={{ position: "absolute", bottom: 4, right: 4, background: "#0D1322", borderRadius: "50%", padding: 3, display: "flex" }}>
+                  <VerifiedBadge size={28} />
                 </div>
               )}
             </div>
@@ -198,8 +221,9 @@ function ExpertCard({ dev, onClick, t }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
         <Av initials={dev.name ? dev.name.split(" ").map(w => w[0]).join("") : "??"} color="#4ECDC4" size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dev.name}</span>
+            {dev.is_verified && <VerifiedBadge size={14} />}
             <div style={{ width: 7, height: 7, borderRadius: "50%", background: dev.available ? "#34D399" : "#444", marginLeft: "auto", flexShrink: 0 }} />
           </div>
           <div style={{ color: "rgba(220,230,240,0.4)", fontSize: 11, fontFamily: "'Roboto Mono',monospace", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis" }}>{dev.role} · {dev.city}</div>
@@ -515,6 +539,7 @@ function PostCard({ post, onLike, onBookmark, me, t }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{post.author_name}</span>
+            {post.is_verified && <VerifiedBadge size={16} />}
             <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.3)" }}>@{post.author_handle}</span>
             <Pill label={t[post.category] || post.category} bg={ts.bg} color={ts.color} />
           </div>
@@ -575,6 +600,34 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
   const [startupFilter, setStartupFilter] = useState("Zote");
   const [instFilter, setInstFilter]       = useState("Zote");
   const [resFilter, setResFilter]         = useState("Zote");
+  const [showResForm, setShowResForm]     = useState(false);
+  const [resSubmitted, setResSubmitted]   = useState(false);
+  const [resForm, setResForm]             = useState({ title: "", type: "Dataset", link: "", tags: "", desc: "" });
+
+  const handleResSubmit = () => {
+    if (!resForm.title.trim() || !resForm.link.trim()) return;
+
+    const newRes = {
+      id: Date.now(),
+      title: resForm.title,
+      type: resForm.type,
+      author_name: user?.name || "Mwanachama",
+      link: resForm.link,
+      tags: resForm.tags.split(",").map(t => t.trim()).filter(Boolean),
+      description: resForm.desc,
+      stars: 0,
+      downloads: 0,
+      status: "pending"
+    };
+
+    setDataList([newRes, ...dataList]);
+    setResForm({ title: "", type: "Dataset", link: "", tags: "", desc: "" });
+    setShowResForm(false);
+    setResSubmitted(true);
+    setTimeout(() => setResSubmitted(false), 4000);
+    notify("✓ Resource imewasilishwa kwa ajili ya mapitio!");
+  };
+
   const [searchQuery, setSearchQuery]     = useState("");
   const [expertSearch, setExpertSearch]   = useState("");
   const [expertRole, setExpertRole]       = useState("Zote");
@@ -769,10 +822,16 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
 
                 <div className="responsive-grid">
                   {loading ? t.inapakia : (() => {
-                    const filtered = (dataList.length > 0 ? dataList : MOCK_EXPERTS).filter(dev => {
-                      const matchesSearch = dev.name.toLowerCase().includes(expertSearch.toLowerCase()) || 
-                                          dev.bio.toLowerCase().includes(expertSearch.toLowerCase()) ||
-                                          (dev.skills || []).some(s => s.toLowerCase().includes(expertSearch.toLowerCase()));
+                    const baseList = dataList.length > 0 ? dataList : MOCK_EXPERTS;
+                    // Force Amina and Jonas to be in the list if it's mock-only or empty
+                    const fullList = dataList.length > 0 ? dataList : MOCK_EXPERTS;
+                    
+                    const filtered = fullList.filter(dev => {
+                      const searchStr = expertSearch.toLowerCase();
+                      const matchesSearch = (dev.name || "").toLowerCase().includes(searchStr) || 
+                                          (dev.bio || "").toLowerCase().includes(searchStr) ||
+                                          (dev.city || "").toLowerCase().includes(searchStr) ||
+                                          (Array.isArray(dev.skills) ? dev.skills : []).some(s => s.toLowerCase().includes(searchStr));
                       const matchesRole = expertRole === "Zote" || dev.role === expertRole;
                       return matchesSearch && matchesRole;
                     });
@@ -870,10 +929,60 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
 
             {activeNav === "rasilimali" && (
               <div className="fin">
-                <div style={{ marginBottom: 20 }}>
-                  <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 4 }}>Rasilimali za <span style={{ color: "#34D399" }}>AI Tanzania</span></h2>
-                  <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 13 }}>Datasets, tutorials, guides — nyingi bure</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+                  <div>
+                    <h2 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 4 }}>Rasilimali za <span style={{ color: "#34D399" }}>AI Tanzania</span></h2>
+                    <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 13 }}>Datasets, tutorials, guides — shiriki na jamii yako</p>
+                  </div>
+                  <button onClick={() => { setShowResForm(!showResForm); setResSubmitted(false); }} style={{ background: showResForm ? "rgba(255,255,255,0.06)" : "#34D399", color: showResForm ? "rgba(220,230,240,0.6)" : "#0A0F1C", border: "none", padding: "9px 18px", borderRadius: 9, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 13, transition: "all 0.2s", flexShrink: 0 }}>
+                    {showResForm ? "✕ Funga" : "+ Wasilisha Resource"}
+                  </button>
                 </div>
+
+                {resSubmitted && (
+                  <div style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)", borderRadius: 12, padding: "14px 18px", marginBottom: 18, display: "flex", gap: 12, alignItems: "center" }}>
+                    <CheckCircle2 color="#34D399" size={20} />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "#34D399", marginBottom: 2 }}>Resource imewasilishwa!</div>
+                      <div style={{ fontSize: 13, color: "rgba(220,230,240,0.55)" }}>Itapitiwa na admin na kuchapishwa hivi karibuni. Asante kwa mchango wako! 🙏</div>
+                    </div>
+                  </div>
+                )}
+
+                {showResForm && (
+                  <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(52,211,153,0.25)", borderRadius: 16, padding: "20px 22px", marginBottom: 22 }}>
+                    <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.38)", letterSpacing: "0.04em", marginBottom: 16 }}>WASILISHA RESOURCE MPYA</div>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                      <div>
+                        <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.38)", display: "block", marginBottom: 6 }}>JINA LA RESOURCE *</label>
+                        <input value={resForm.title} onChange={e => setResForm({...resForm, title: e.target.value})} placeholder="Swahili NLP Dataset..." style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, padding: "10px 13px", color: "#F2F2F5", fontSize: 13, outline: "none" }} />
+                      </div>
+                      <div>
+                        <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.38)", display: "block", marginBottom: 6 }}>AINA *</label>
+                        <select value={resForm.type} onChange={e => setResForm({...resForm, type: e.target.value})} style={{ width: "100%", background: "#0A0F1C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, padding: "10px 13px", color: "#F2F2F5", fontSize: 13, outline: "none", appearance: "none" }}>
+                          {["Dataset", "Tutorial", "Guide", "Research Paper"].map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 12 }}>
+                      <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.38)", display: "block", marginBottom: 6 }}>LINK (GitHub, Drive, URL) *</label>
+                      <input value={resForm.link} onChange={e => setResForm({...resForm, link: e.target.value})} placeholder="https://github.com/..." style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, padding: "10px 13px", color: "#F2F2F5", fontSize: 13, outline: "none" }} />
+                    </div>
+
+                    <div style={{ marginBottom: 18 }}>
+                      <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.38)", display: "block", marginBottom: 6 }}>MAELEZO MAFUPI</label>
+                      <textarea value={resForm.desc} onChange={e => setResForm({...resForm, desc: e.target.value})} rows={3} placeholder="Elezea resource hii — ni ya nini, inasaidia nani..." style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, padding: "10px 13px", color: "#F2F2F5", fontSize: 13, outline: "none", resize: "vertical" }} />
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <button onClick={() => setShowResForm(false)} style={{ flex: 1, background: "rgba(255,255,255,0.04)", color: "rgba(220,230,240,0.45)", border: "none", padding: "10px", borderRadius: 9, cursor: "pointer", fontWeight: 600 }}>Ghairi</button>
+                      <button onClick={handleResSubmit} disabled={!resForm.title.trim() || !resForm.link.trim()} style={{ flex: 3, background: (resForm.title.trim() && resForm.link.trim()) ? "#34D399" : "rgba(255,255,255,0.05)", color: (resForm.title.trim() && resForm.link.trim()) ? "#0A0F1C" : "rgba(220,230,240,0.2)", border: "none", padding: "10px", borderRadius: 9, cursor: "pointer", fontWeight: 800 }}>Wasilisha kwa Review →</button>
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ display: "flex", gap: 5, marginBottom: 20, flexWrap: "wrap" }}>
                   {["Zote", "Dataset", "Tutorial", "Guide", "Research Paper"].map(t => (
                     <button key={t} onClick={() => setResFilter(t)} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${resFilter === t ? "#34D399" : "rgba(255,255,255,0.1)"}`, background: resFilter === t ? "rgba(52,211,153,0.12)" : "transparent", color: resFilter === t ? "#34D399" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{t}</button>
@@ -883,14 +992,18 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
                   {loading ? t.inapakia : dataList.filter(r => resFilter === "Zote" || r.type === resFilter).map(r => {
                     const typeColor = { Dataset: "#4ECDC4", Tutorial: "#F5A623", Guide: "#34D399", "Research Paper": "#A78BFA" };
                     const tc = typeColor[r.type] || "#F5A623";
-                    const tags = Array.isArray(r.tags) ? r.tags : JSON.parse(r.tags || "[]");
+                    const tags = Array.isArray(r.tags) ? r.tags : (typeof r.tags === 'string' ? JSON.parse(r.tags || "[]") : []);
+                    const isPending = r.status === "pending";
                     return (
-                      <div key={r.id} style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", cursor: "pointer", transition: "all 0.2s" }} className="post-card">
+                      <div key={r.id} style={{ background: "rgba(255,255,255,0.025)", border: `1px solid ${isPending ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", cursor: "pointer", transition: "all 0.2s", opacity: isPending ? 0.8 : 1 }} className="post-card">
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                          <Pill label={r.type} bg={`${tc}18`} color={tc} />
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <Pill label={r.type} bg={`${tc}18`} color={tc} />
+                            {isPending && <Pill label="⏳ INASUBIRI" bg="rgba(245,166,35,0.1)" color="#F5A623" />}
+                          </div>
                           <div style={{ display: "flex", gap: 8 }}>
-                            <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F5A623" }}>⭐ {r.stars}</span>
-                            <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.35)" }}>↓ {r.downloads?.toLocaleString()}</span>
+                            {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F5A623" }}>⭐ {r.stars}</span>}
+                            {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.35)" }}>↓ {r.downloads?.toLocaleString()}</span>}
                           </div>
                         </div>
                         <h3 style={{ fontWeight: 800, fontSize: 14, letterSpacing: "-0.01em", marginBottom: 5, lineHeight: 1.3, flex: 1 }}>{r.title}</h3>
@@ -899,7 +1012,11 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
                           {tags.slice(0, 3).map(t => <SkillTag key={t} label={t} />)}
                         </div>
-                        <button style={{ background: tc, color: "#0A0F1C", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',sans-serif", fontWeight: 800, fontSize: 12, marginTop: "auto" }}>Pakua / Angalia →</button>
+                        {isPending ? (
+                          <div style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.15)", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "rgba(245,166,35,0.6)", textAlign: "center", fontWeight: 700 }}>MAPITIO YA ADMIN...</div>
+                        ) : (
+                          <button style={{ background: tc, color: "#0A0F1C", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',sans-serif", fontWeight: 800, fontSize: 12, marginTop: "auto" }}>Pakua / Angalia →</button>
+                        )}
                       </div>
                     );
                   })}

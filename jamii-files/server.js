@@ -163,7 +163,7 @@ app.get("/api/users", optionalAuth, async (req, res) => {
     params.push(limit, offset);
     const sql = `
       SELECT u.id, u.name, u.handle, u.avatar_url, u.role, u.city, u.bio,
-             u.skills, u.hourly_rate, u.available, u.rating, u.project_count,
+             u.skills, u.hourly_rate, u.available, u.rating, u.project_count, u.is_verified,
              (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers
       FROM users u
       WHERE ${conditions.join(" AND ")}
@@ -184,7 +184,7 @@ app.get("/api/users/:handle", optionalAuth, async (req, res) => {
       `SELECT u.id, u.name, u.handle, u.avatar_url, u.role, u.city, u.bio,
               u.skills, u.interests, u.hourly_rate, u.available, u.rating,
               u.project_count, u.github_url, u.linkedin_url, u.website_url,
-              u.created_at,
+              u.created_at, u.is_verified,
               (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
               (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following,
               (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS post_count
@@ -260,7 +260,7 @@ app.get("/api/posts", optionalAuth, async (req, res) => {
     
     const finalSql = `
       SELECT p.*, u.name AS author_name, u.handle AS author_handle,
-              u.avatar_url, u.role AS author_role, u.city AS author_city,
+              u.avatar_url, u.role AS author_role, u.city AS author_city, u.is_verified,
               (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) AS like_count,
               (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS comment_count,
               (SELECT COUNT(*) FROM bookmarks WHERE post_id = p.id) AS bookmark_count,
