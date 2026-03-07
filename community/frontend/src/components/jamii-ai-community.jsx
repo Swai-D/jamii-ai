@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { id: "vyuo",       icon: "🎓", label: "Vyuo & Taasisi", badge: null },
   { id: "changamoto", icon: "🏆", label: "Changamoto",     badge: "2"  },
   { id: "rasilimali", icon: "📚", label: "Rasilimali",     badge: null },
+  { id: "kazi",       icon: "💼", label: "Kazi",           badge: "6"  },
   { id: "habari",     icon: "📰", label: "Habari",         badge: null },
   { id: "matukio",    icon: "🗓️", label: "Matukio",        badge: null },
   { id: "ujumbe",     icon: "💬", label: "Ujumbe",         badge: null },
@@ -39,7 +40,93 @@ const PAGE_TITLE = {
   startups: "Startups Tanzania 🚀", vyuo: "Vyuo & Taasisi 🎓",
   changamoto: "Changamoto 🏆", rasilimali: "Rasilimali 📚",
   habari: "Habari za AI 📰", matukio: "Matukio 🗓️", ujumbe: "Ujumbe 💬",
+  kazi: "Kazi za AI 💼",
 };
+
+// ─── MOCK DATA ───────────────────────────────────────────────────────────────
+
+const JOBS = [
+  {
+    id: "1", title: "Senior ML Engineer", type: "full_time", category: "ML Engineer",
+    company_name: "Vodacom Tanzania", company_logo: null,
+    location: "Dar es Salaam", country: "Tanzania", is_remote: false,
+    salary_min: 3000000, salary_max: 7000000, salary_currency: "TZS", salary_visible: true,
+    tags: ["Python", "TensorFlow", "MLOps", "SQL"],
+    is_featured: true, is_hot: true, views: 342, applications_count: 18,
+    deadline: "2026-03-28", created_at: "2026-03-01", is_saved: false, has_applied: false,
+    description: "Tunatafuta ML Engineer mwenye uzoefu wa kujenga mifano ya AI kwa bidhaa zetu za mobile money na network optimization. Utafanya kazi na team ya data scientists kujenga na deploy models za production.",
+    requirements: "• Uzoefu wa miaka 3+ wa ML/AI\n• Python, TensorFlow/PyTorch\n• MLOps na cloud (AWS/GCP)\n• SQL na data pipelines",
+    benefits: "• Bima ya afya\n• Remote siku 2/wiki\n• Training budget TZS 500K/mwaka\n• Bonus ya mwaka",
+  },
+  {
+    id: "2", title: "Data Science Intern", type: "internship", category: "Data Analyst",
+    company_name: "CRDB Bank", company_logo: null,
+    location: "Dar es Salaam", country: "Tanzania", is_remote: false,
+    salary_min: 500000, salary_max: 1000000, salary_currency: "TZS", salary_visible: true,
+    tags: ["Python", "SQL", "Excel", "Power BI"],
+    is_featured: false, is_hot: false, views: 156, applications_count: 47,
+    deadline: "2026-03-20", created_at: "2026-03-03", is_saved: true, has_applied: false,
+    description: "Internship ya miezi 3 kwenye team ya Data Science. Utajifunza Python, SQL, na jinsi ya kuchanganua data za benki za kweli.",
+    requirements: "• Mwanafunzi au aliyehitimu hivi karibuni\n• Maarifa ya Python au Excel\n• Hamu ya kujifunza data science",
+    benefits: "• Posho ya kila mwezi\n• Certificate ya mwisho\n• Uwezekano wa ajira ya kudumu",
+  },
+  {
+    id: "3", title: "NLP Research Assistant", type: "remote", category: "NLP Engineer",
+    company_name: "Sarufi NLP", company_logo: null,
+    location: "Remote", country: "Tanzania", is_remote: true,
+    salary_min: 1500000, salary_max: 3000000, salary_currency: "TZS", salary_visible: true,
+    tags: ["Python", "NLP", "Kiswahili", "Annotation"],
+    is_featured: true, is_hot: false, views: 89, applications_count: 12,
+    deadline: "2026-04-15", created_at: "2026-03-05", is_saved: false, has_applied: true,
+    description: "Tunatengeneza NLP tools za Kiswahili. Tunatafuta mtu wa kutusaidia kukusanya data na ku-annotate datasets za lugha za Kiswahili na Kibongo.",
+    requirements: "• Ufahamu wa Kiswahili (native au fluent)\n• Python basics\n• Uvumilivu na makini kwenye data annotation",
+    benefits: "• Kazi 100% remote\n• Saa za kazi flexible\n• Co-authorship kwenye research papers",
+  },
+];
+
+const TYPE_LABELS = {
+  full_time:  { label: "Full-time",  color: "#34D399", bg: "rgba(52,211,153,0.1)" },
+  internship: { label: "Internship", color: "#60A5FA", bg: "rgba(96,165,250,0.1)" },
+  remote:     { label: "Remote",     color: "#F5A623", bg: "rgba(245,166,35,0.12)" },
+  freelance:  { label: "Freelance",  color: "#A78BFA", bg: "rgba(167,139,250,0.1)" },
+  part_time:  { label: "Part-time",  color: "#F87171", bg: "rgba(248,113,113,0.1)" },
+  contract:   { label: "Contract",   color: "#94A3B8", bg: "rgba(148,163,184,0.1)" },
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function fmtSalary(min, max, curr) {
+  const fmt = (n) => n >= 1000000 ? `${(n/1000000).toFixed(1)}M` : `${(n/1000).toFixed(0)}K`;
+  if (!min && !max) return "Mshahara wa mazungumzo";
+  if (!max) return `${curr} ${fmt(min)}+`;
+  return `${curr} ${fmt(min)} – ${fmt(max)}`;
+}
+
+function daysLeft(deadline) {
+  if (!deadline) return null;
+  const diff = Math.ceil((new Date(deadline) - new Date()) / 86400000);
+  return diff <= 0 ? "Imekwisha" : diff === 1 ? "Siku 1 imebaki" : `Siku ${diff} zimebaki`;
+}
+
+function CompanyInitials({ name, size = 44 }) {
+  const colors = ["#F5A623","#34D399","#60A5FA","#A78BFA","#F87171"];
+  const color  = colors[name.charCodeAt(0) % colors.length];
+  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  return (
+    <div style={{ width: size, height: size, borderRadius: 10, background: `${color}18`, border: `1.5px solid ${color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: size * 0.32, color, fontFamily: "'Roboto Mono',monospace", flexShrink: 0 }}>
+      {initials}
+    </div>
+  );
+}
+
+function TypeBadge({ type }) {
+  const t = TYPE_LABELS[type] || { label: type, color: "#94A3B8", bg: "rgba(148,163,184,0.1)" };
+  return (
+    <span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 10, fontWeight: 700, color: t.color, background: t.bg, border: `1px solid ${t.color}25`, fontFamily: "'Roboto Mono',monospace" }}>
+      {t.label}
+    </span>
+  );
+}
 
 // ─── MOCK DATA ───────────────────────────────────────────────────────────────
 
@@ -416,6 +503,289 @@ function EventCard({ ev, t }) {
   );
 }
 
+// ─── JOB COMPONENTS ──────────────────────────────────────────────────────────
+
+function JobCard({ job, onClick, onSave, t }) {
+  const [saved, setSaved] = useState(job.is_saved);
+  const dl = daysLeft(job.deadline);
+  const dlUrgent = dl && dl.includes("Siku") && parseInt(dl) <= 5;
+
+  return (
+    <div
+      onClick={() => onClick(job)}
+      style={{
+        background: job.is_featured ? "linear-gradient(135deg,rgba(245,166,35,0.05) 0%, rgba(255,255,255,0.02) 60%)" : "rgba(255,255,255,0.025)",
+        border: `1px solid ${job.is_featured ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.07)"}`,
+        borderRadius: 16, padding: "20px", cursor: "pointer", position: "relative",
+        transition: "all 0.2s", overflow: "hidden",
+      }}
+      className="post-card"
+    >
+      {job.is_featured && (
+        <div style={{
+          position: "absolute", top: 0, right: 0,
+          background: "linear-gradient(135deg,#F5A623,#e8961a)",
+          color: "#0A0F1C", fontSize: 9, fontWeight: 800, padding: "4px 12px",
+          borderBottomLeftRadius: 10, letterSpacing: "0.05em"
+        }}>⭐ FEATURED</div>
+      )}
+
+      {/* Header */}
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 14 }}>
+        <CompanyInitials name={job.company_name} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 15, fontWeight: 700, color: "#F2F2F5",
+            fontFamily: "'Roboto Mono',monospace", lineHeight: 1.3,
+            marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>
+            {job.title}
+          </div>
+          <div style={{ fontSize: 12, color: "rgba(242,242,245,0.4)", fontFamily: "'Roboto Mono',monospace" }}>
+            {job.company_name}
+          </div>
+        </div>
+        <button
+          onClick={e => { e.stopPropagation(); setSaved(!saved); onSave?.(job.id); }}
+          style={{
+            background: "none", border: "none", cursor: "pointer",
+            fontSize: 16, opacity: saved ? 1 : 0.3,
+            transition: "all 0.15s", padding: 2, flexShrink: 0,
+          }}
+        >
+          {saved ? "🔖" : "🔖"}
+        </button>
+      </div>
+
+      {/* Type + Location */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+        <TypeBadge type={job.type} />
+        <span style={{ fontSize: 11, color: "rgba(242,242,245,0.35)", fontFamily: "'Roboto Mono',monospace" }}>
+          📍 {job.is_remote ? "Remote" : job.location}
+        </span>
+        {job.salary_visible && (
+          <span style={{ fontSize: 11, color: "#F5A623", fontFamily: "'Roboto Mono',monospace", fontWeight: 700 }}>
+            💰 {fmtSalary(job.salary_min, job.salary_max, job.salary_currency)}
+          </span>
+        )}
+      </div>
+
+      {/* Tags */}
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 14 }}>
+        {job.tags.slice(0, 3).map(tag => <SkillTag key={tag} label={tag} />)}
+      </div>
+
+      {/* Footer */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 12 }}>
+        <div style={{ display: "flex", gap: 10 }}>
+          <span style={{ fontSize: 10, color: "rgba(242,242,245,0.25)", fontFamily: "'Roboto Mono',monospace" }}>
+            👁 {job.views}
+          </span>
+          <span style={{ fontSize: 10, color: "rgba(242,242,245,0.25)", fontFamily: "'Roboto Mono',monospace" }}>
+            📄 {job.applications_count}
+          </span>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {dl && (
+            <span style={{
+              fontSize: 10, fontFamily: "'Roboto Mono',monospace",
+              color: dlUrgent ? "#F87171" : "rgba(242,242,245,0.25)",
+              fontWeight: dlUrgent ? 700 : 400,
+            }}>
+              ⏰ {dl}
+            </span>
+          )}
+          {job.has_applied ? (
+            <span style={{
+              fontSize: 10, padding: "4px 10px", borderRadius: 20,
+              background: "rgba(52,211,153,0.1)", color: "#34D399",
+              border: "1px solid rgba(52,211,153,0.2)", fontFamily: "'Roboto Mono',monospace",
+              fontWeight: 700,
+            }}>{t.umeapply}</span>
+          ) : (
+            <span style={{
+              fontSize: 10, padding: "4px 10px", borderRadius: 20,
+              background: "rgba(245,166,35,0.12)", color: "#F5A623",
+              border: "1px solid rgba(245,166,35,0.25)", fontFamily: "'Roboto Mono',monospace",
+              fontWeight: 700,
+            }}>{t.apply_sasa}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function JobModal({ job, onClose, onApply, t }) {
+  const [tab, setTab] = useState("maelezo");
+  const [form, setForm] = useState({ cover_letter: "", linkedin_url: "", portfolio_url: "" });
+  const [submitted, setSubmitted] = useState(job.has_applied);
+
+  if (!job) return null;
+
+  const handleApply = () => {
+    if (!form.cover_letter.trim()) return;
+    setSubmitted(true);
+    onApply?.(job.id, form);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={onClose} style={{ position: "absolute", inset: 0 }} />
+      <div
+        style={{
+          background: "#0D1322", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 24,
+          width: "100%", maxWidth: 640, maxHeight: "90vh", overflow: "hidden",
+          display: "flex", flexDirection: "column", position: "relative", boxShadow: "0 20px 50px rgba(0,0,0,0.5)"
+        }}
+      >
+        {/* Modal header */}
+        <div style={{ padding: "28px 28px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ display: "flex", gap: 18, alignItems: "flex-start", marginBottom: 20 }}>
+            <CompanyInitials name={job.company_name} size={60} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#FFF", fontFamily: "'Roboto Mono',monospace", marginBottom: 4, letterSpacing: "-0.02em" }}>
+                {job.title}
+              </div>
+              <div style={{ fontSize: 14, color: "rgba(220,230,240,0.5)", fontFamily: "'Roboto Mono',monospace", marginBottom: 12 }}>
+                {job.company_name} · {job.is_remote ? "Remote" : job.location}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <TypeBadge type={job.type} />
+                {job.salary_visible && (
+                  <span style={{ fontSize: 12, color: "#F5A623", fontWeight: 700, fontFamily: "'Roboto Mono',monospace" }}>
+                    💰 {fmtSalary(job.salary_min, job.salary_max, job.salary_currency)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: "50%", width: 32, height: 32, color: "#FFF", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>✕</button>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 4 }}>
+            {[["maelezo", t.maelezo_ya_kazi], ["mahitaji", t.mahitaji], ["apply", submitted ? t.umeapply : "Apply"]].map(([id, label]) => (
+              <button key={id} onClick={() => setTab(id)} style={{
+                padding: "12px 20px", background: "none", border: "none",
+                cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontSize: 12, fontWeight: 700,
+                color: tab === id ? "#F5A623" : "rgba(220,230,240,0.4)",
+                borderBottom: `2px solid ${tab === id ? "#F5A623" : "transparent"}`,
+                transition: "all 0.15s",
+              }}>{label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Modal body */}
+        <div style={{ padding: 28, overflowY: "auto", flex: 1 }}>
+          {tab === "maelezo" && (
+            <div>
+              <p style={{ fontSize: 14, color: "rgba(220,230,240,0.7)", lineHeight: 1.8, fontFamily: "'Roboto Mono',monospace", marginBottom: 24 }}>
+                {job.description}
+              </p>
+              {job.benefits && (
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#F5A623", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>🎁 {t.benefits}</div>
+                  {job.benefits.split("\n").map((b, i) => (
+                    <div key={i} style={{ fontSize: 13, color: "rgba(220,230,240,0.6)", fontFamily: "'Roboto Mono',monospace", marginBottom: 6, display: "flex", gap: 8 }}>
+                      <span style={{ color: "#34D399" }}>•</span> {b.replace(/^•\s*/, '')}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 16, padding: "20px", background: "rgba(255,255,255,0.03)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ flex: 1, textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#FFF" }}>{job.applications_count}</div>
+                  <div style={{ fontSize: 10, color: "rgba(220,230,240,0.3)", textTransform: "uppercase", marginTop: 4 }}>Wameapply</div>
+                </div>
+                <div style={{ width: 1, background: "rgba(255,255,255,0.06)" }} />
+                <div style={{ flex: 1, textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#FFF" }}>{job.views}</div>
+                  <div style={{ fontSize: 10, color: "rgba(220,230,240,0.3)", textTransform: "uppercase", marginTop: 4 }}>Wameona</div>
+                </div>
+                <div style={{ width: 1, background: "rgba(255,255,255,0.06)" }} />
+                <div style={{ flex: 1, textAlign: "center" }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#F5A623" }}>{daysLeft(job.deadline)}</div>
+                  <div style={{ fontSize: 10, color: "rgba(220,230,240,0.3)", textTransform: "uppercase", marginTop: 4 }}>{t.deadline}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === "mahitaji" && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#F5A623", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 16 }}>📋 {t.mahitaji}</div>
+              {(job.requirements || "").split("\n").map((r, i) => (
+                <div key={i} style={{ fontSize: 13, color: "rgba(220,230,240,0.7)", fontFamily: "'Roboto Mono',monospace", marginBottom: 10, paddingLeft: 4 }}>{r}</div>
+              ))}
+              <div style={{ marginTop: 28 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(220,230,240,0.4)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>🏷 Skills Zinazohitajika</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {job.tags.map(tag => (
+                    <span key={tag} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, background: "rgba(245,166,35,0.1)", color: "#F5A623", border: "1px solid rgba(245,166,35,0.2)", fontWeight: 700 }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === "apply" && (
+            submitted ? (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <div style={{ fontSize: 48, marginBottom: 20 }}>🎉</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: "#34D399", marginBottom: 10 }}>
+                  {t.application_imewasilishwa}
+                </div>
+                <div style={{ fontSize: 14, color: "rgba(220,230,240,0.5)", lineHeight: 1.6 }}>
+                  {job.company_name} {t.asante_apply}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: 13, color: "rgba(220,230,240,0.5)", marginBottom: 24, lineHeight: 1.6 }}>
+                  Unaapply kwa <strong style={{ color: "#FFF" }}>{job.title}</strong> kwenye <strong style={{ color: "#FFF" }}>{job.company_name}</strong>.
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ fontSize: 10, fontWeight: 700, color: "rgba(220,230,240,0.4)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 8 }}>
+                    {t.barua_ya_kuomba} *
+                  </label>
+                  <textarea
+                    value={form.cover_letter}
+                    onChange={e => setForm({...form, cover_letter: e.target.value})}
+                    placeholder="Eleza kwa nini unataka kazi hii..."
+                    rows={6}
+                    style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 14, padding: "16px", color: "#FFF", fontSize: 13, fontFamily: "'Roboto Mono',monospace", resize: "none", outline: "none" }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
+                   <div>
+                    <label style={{ fontSize: 9, fontWeight: 700, color: "rgba(220,230,240,0.4)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>LINKEDIN URL</label>
+                    <input value={form.linkedin_url} onChange={e => setForm({...form, linkedin_url: e.target.value})} placeholder="https://..." style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "#FFF", fontSize: 12, outline: "none" }} />
+                   </div>
+                   <div>
+                    <label style={{ fontSize: 9, fontWeight: 700, color: "rgba(220,230,240,0.4)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>PORTFOLIO URL</label>
+                    <input value={form.portfolio_url} onChange={e => setForm({...form, portfolio_url: e.target.value})} placeholder="https://..." style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "#FFF", fontSize: 12, outline: "none" }} />
+                   </div>
+                </div>
+
+                <button
+                  onClick={handleApply}
+                  disabled={!form.cover_letter.trim()}
+                  style={{ width: "100%", padding: "16px", borderRadius: 16, border: "none", background: form.cover_letter.trim() ? "#F5A623" : "rgba(255,255,255,0.05)", color: form.cover_letter.trim() ? "#0A0F1C" : "rgba(220,230,240,0.2)", fontWeight: 800, fontSize: 14, cursor: form.cover_letter.trim() ? "pointer" : "not-allowed", transition: "all 0.2s" }}
+                >
+                  {t.wasilisha_application}
+                </button>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MESSAGING UI ────────────────────────────────────────────────────────────
 
 function MessagingUI({ user, t }) {
@@ -650,6 +1020,42 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
   const [showResForm, setShowResForm]     = useState(false);
   const [resSubmitted, setResSubmitted]   = useState(false);
   const [resForm, setResForm]             = useState({ title: "", type: "Dataset", link: "", tags: "", desc: "" });
+
+  const [jobs, setJobs]                   = useState(JOBS);
+  const [selectedJob, setSelectedJob]     = useState(null);
+  const [jobSearch, setJobSearch]         = useState("");
+  const [jobType, setJobType]             = useState("all");
+  const [jobLoc, setJobLoc]               = useState("all");
+  const [showJobForm, setShowJobForm]     = useState(false);
+  const [jobForm, setJobForm]             = useState({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
+
+  const handleJobSubmit = () => {
+    if (!jobForm.title.trim() || !jobForm.company.trim()) return;
+    const newJob = {
+      id: Date.now().toString(),
+      title: jobForm.title,
+      company_name: jobForm.company,
+      type: jobForm.type,
+      location: jobForm.location || "Remote",
+      is_remote: !jobForm.location,
+      description: jobForm.desc,
+      requirements: jobForm.requirements,
+      salary_visible: !!jobForm.salary,
+      salary_min: jobForm.salary ? parseInt(jobForm.salary) : 0,
+      salary_currency: "TZS",
+      tags: ["AI", "New"],
+      views: 0,
+      applications_count: 0,
+      deadline: "2026-12-31",
+      created_at: new Date().toISOString(),
+      is_saved: false,
+      has_applied: false
+    };
+    setJobs([newJob, ...jobs]);
+    setShowJobForm(false);
+    setJobForm({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
+    notify("✓ Kazi imechapishwa!");
+  };
 
   const handleResSubmit = () => {
     if (!resForm.title.trim() || !resForm.link.trim()) return;
@@ -1168,6 +1574,131 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {activeNav === "matukio" && (
+              <div className="fin">
+                {/* ... existing matukio code ... */}
+              </div>
+            )}
+
+            {activeNav === "kazi" && (
+              <div className="fin">
+                {selectedJob && <JobModal job={selectedJob} onClose={() => setSelectedJob(null)} onApply={(id) => setJobs(jobs.map(j => j.id === id ? {...j, has_applied: true} : j))} t={t} />}
+                
+                <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <div>
+                    <h2 style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 6 }}>{t.kazi_board} <span style={{ color: "#F5A623" }}>Tanzania 🇹🇿</span></h2>
+                    <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 14 }}>Nafasi zinazochipukia katika ulimwengu wa AI na Data</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowJobForm(!showJobForm)}
+                    style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "10px 20px", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}
+                  >
+                    {showJobForm ? "✕ Funga" : `+ ${t.chapisha_kazi}`}
+                  </button>
+                </div>
+
+                {showJobForm && (
+                  <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(245,166,35,0.25)", borderRadius: 16, padding: "24px", marginBottom: 24 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(220,230,240,0.4)", letterSpacing: "0.1em", marginBottom: 20, textTransform: "uppercase" }}>CHAPISHA NAFASI MPYA YA KAZI</div>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+                      <div>
+                        <label style={{ fontSize: 10, fontWeight: 700, color: "rgba(220,230,240,0.4)", display: "block", marginBottom: 8 }}>JINA LA NAFASI *</label>
+                        <input value={jobForm.title} onChange={e => setJobForm({...jobForm, title: e.target.value})} placeholder="e.g. Senior ML Engineer" style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", color: "#FFF", fontSize: 13, outline: "none" }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 10, fontWeight: 700, color: "rgba(220,230,240,0.4)", display: "block", marginBottom: 8 }}>KAMPUNI *</label>
+                        <input value={jobForm.company} onChange={e => setJobForm({...jobForm, company: e.target.value})} placeholder="e.g. JamiiAI Corp" style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", color: "#FFF", fontSize: 13, outline: "none" }} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+                      <div>
+                        <label style={{ fontSize: 10, fontWeight: 700, color: "rgba(220,230,240,0.4)", display: "block", marginBottom: 8 }}>AINA YA KAZI</label>
+                        <select value={jobForm.type} onChange={e => setJobForm({...jobForm, type: e.target.value})} style={{ width: "100%", background: "#0A0F1C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", color: "#FFF", fontSize: 13, outline: "none" }}>
+                          {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 10, fontWeight: 700, color: "rgba(220,230,240,0.4)", display: "block", marginBottom: 8 }}>MAHALI (Wacha wazi kama ni Remote)</label>
+                        <input value={jobForm.location} onChange={e => setJobForm({...jobForm, location: e.target.value})} placeholder="e.g. Dar es Salaam" style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", color: "#FFF", fontSize: 13, outline: "none" }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 10, fontWeight: 700, color: "rgba(220,230,240,0.4)", display: "block", marginBottom: 8 }}>MSHAHARA (TZS)</label>
+                        <input type="number" value={jobForm.salary} onChange={e => setJobForm({...jobForm, salary: e.target.value})} placeholder="e.g. 2000000" style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", color: "#FFF", fontSize: 13, outline: "none" }} />
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ fontSize: 10, fontWeight: 700, color: "rgba(220,230,240,0.4)", display: "block", marginBottom: 8 }}>MAELEZO YA KAZI *</label>
+                      <textarea value={jobForm.desc} onChange={e => setJobForm({...jobForm, desc: e.target.value})} rows={4} placeholder="Elezea majukumu ya kazi..." style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "12px 14px", color: "#FFF", fontSize: 13, outline: "none", resize: "none" }} />
+                    </div>
+
+                    <div style={{ marginBottom: 20 }}>
+                      <label style={{ fontSize: 10, fontWeight: 700, color: "rgba(220,230,240,0.4)", display: "block", marginBottom: 8 }}>MAHITAJI (Requirements)</label>
+                      <textarea value={jobForm.requirements} onChange={e => setJobForm({...jobForm, requirements: e.target.value})} rows={3} placeholder="e.g. Miaka 3+ ya uzoefu, Python, SQL..." style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "12px 14px", color: "#FFF", fontSize: 13, outline: "none", resize: "none" }} />
+                    </div>
+
+                    <div style={{ display: "flex", gap: 12 }}>
+                      <button onClick={() => setShowJobForm(false)} style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#FFF", border: "none", padding: "12px", borderRadius: 12, fontWeight: 700, cursor: "pointer" }}>Ghairi</button>
+                      <button onClick={handleJobSubmit} disabled={!jobForm.title.trim() || !jobForm.company.trim()} style={{ flex: 2, background: "#F5A623", color: "#0A0F1C", border: "none", padding: "12px", borderRadius: 12, fontWeight: 800, cursor: "pointer", opacity: (!jobForm.title.trim() || !jobForm.company.trim()) ? 0.5 : 1 }}>Wasilisha Nafasi →</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Filter Bar */}
+                <div style={{ display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
+                  <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
+                    <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", opacity: 0.3 }} />
+                    <input 
+                      placeholder={t.tafuta_kazi}
+                      value={jobSearch}
+                      onChange={(e) => setJobSearch(e.target.value)}
+                      style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 12px 10px 36px", color: "#FFF", fontSize: 13, outline: "none" }}
+                    />
+                  </div>
+                  <select 
+                    value={jobType} 
+                    onChange={(e) => setJobType(e.target.value)}
+                    style={{ background: "#0A0F1C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", color: "#DCE6F0", fontSize: 13, outline: "none", cursor: "pointer" }}
+                  >
+                    <option value="all">{t.all} Types</option>
+                    {Object.keys(TYPE_LABELS).map(k => <option key={k} value={k}>{TYPE_LABELS[k].label}</option>)}
+                  </select>
+                </div>
+
+                {/* Featured Section */}
+                {jobs.some(j => j.is_featured) && !jobSearch && jobType === "all" && (
+                  <div style={{ marginBottom: 28 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#F5A623", letterSpacing: "0.1em", marginBottom: 14, textTransform: "uppercase" }}>🔥 Featured Opportunities</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
+                      {jobs.filter(j => j.is_featured).map(job => (
+                        <JobCard key={job.id} job={job} onClick={setSelectedJob} onSave={id => setJobs(jobs.map(j => j.id === id ? {...j, is_saved: !j.is_saved} : j))} t={t} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Regular Jobs */}
+                <div style={{ fontSize: 10, fontWeight: 800, color: "rgba(220,230,240,0.3)", letterSpacing: "0.1em", marginBottom: 14, textTransform: "uppercase" }}>
+                  {jobSearch || jobType !== "all" ? "Search Results" : "Recent Openings"}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
+                  {jobs
+                    .filter(j => {
+                      const matchesSearch = j.title.toLowerCase().includes(jobSearch.toLowerCase()) || j.company_name.toLowerCase().includes(jobSearch.toLowerCase());
+                      const matchesType = jobType === "all" || j.type === jobType;
+                      return matchesSearch && matchesType;
+                    })
+                    .filter(j => !j.is_featured || jobSearch || jobType !== "all")
+                    .map(job => (
+                      <JobCard key={job.id} job={job} onClick={setSelectedJob} onSave={id => setJobs(jobs.map(j => j.id === id ? {...j, is_saved: !j.is_saved} : j))} t={t} />
+                    ))
+                  }
                 </div>
               </div>
             )}

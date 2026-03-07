@@ -72,18 +72,18 @@ const WEEKLY = [
 ];
 
 const NAV = [
-  { id:"dashboard",      icon:"◈", label:"Dashboard"                },
-  { id:"users",          icon:"◉", label:"Watumiaji",  badge:"8"    },
-  { id:"content",        icon:"◆", label:"Moderation", badge:"12"   },
-  { id:"roles",          icon:"◐", label:"Roles"                    },
-  { id:"changamoto",     icon:"◇", label:"Changamoto"               },
-  { id:"matukio",        icon:"◷", label:"Matukio"                  },
-  { id:"rasilimali",     icon:"◧", label:"Rasilimali", badge:"2"    },
-  { id:"habari",         icon:"◻", label:"Habari",     badge:"2"    },
+  { id:"dashboard",      icon:"🏠", label:"Dashboard"                },
+  { id:"users",          icon:"👥", label:"Watumiaji",  badge:"8"    },
+  { id:"content",        icon:"🛡️", label:"Moderation", badge:"12"   },
+  { id:"roles",          icon:"🔐", label:"Roles"                    },
+  { id:"changamoto",     icon:"🏆", label:"Changamoto"               },
+  { id:"matukio",        icon:"🗓️", label:"Matukio"                  },
+  { id:"rasilimali",     icon:"📚", label:"Rasilimali", badge:"2"    },
+  { id:"habari",         icon:"📰", label:"Habari",     badge:"2"    },
   { id:"billing",        icon:"💰", label:"Billing"                  },
   { id:"analytics",      icon:"📊", label:"Analytics"               },
   { id:"announcements",  icon:"📣", label:"Matangazo"               },
-  { id:"settings",       icon:"⚙", label:"Settings"                 },
+  { id:"settings",       icon:"⚙️", label:"Settings"                 },
 ];
 
 // ── HELPERS ───────────────────────────────────────────────────────

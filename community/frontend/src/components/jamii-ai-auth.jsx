@@ -49,7 +49,7 @@ function Btn({ children, onClick, variant = "primary", disabled, full }) {
 
 // ─── PANELS ──────────────────────────────────────────────────────────────────
 
-function LoginPanel({ onSwitch, onSuccess }) {
+function LoginPanel({ onSwitch, onSuccess, onForgot }) {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -90,7 +90,7 @@ function LoginPanel({ onSwitch, onSuccess }) {
         {err && <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: "10px 14px", fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F87171" }}>{err}</div>}
 
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F5A623", cursor: "pointer" }}>Umesahau nywila?</span>
+          <span onClick={onForgot} style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F5A623", cursor: "pointer" }}>Umesahau nywila?</span>
         </div>
 
         <Btn onClick={handleLogin} disabled={loading} full>
@@ -113,6 +113,104 @@ function LoginPanel({ onSwitch, onSuccess }) {
         Huna akaunti?{" "}
         <span onClick={onSwitch} style={{ color: "#F5A623", fontWeight: 700, cursor: "pointer" }}>Jiandikishe bure →</span>
       </p>
+    </div>
+  );
+}
+
+function ForgotPasswordPanel({ onBack, onNext }) {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const handleSubmit = async () => {
+    if (!email) { setErr("Jaza barua pepe."); return; }
+    setLoading(true); setErr("");
+    try {
+      const res = await axios.post(`${API_URL}/auth/forgot-password`, { email });
+      setLoading(false);
+      setMsg("Code imetumwa kwenye barua pepe yako.");
+      if (res.data.debug_token) {
+        alert("DEBUG: Code yako ni " + res.data.debug_token);
+      }
+      setTimeout(() => onNext(email), 2000);
+    } catch (error) {
+      setLoading(false);
+      setErr(error.response?.data?.error || "Hitilafu imetokea.");
+    }
+  };
+
+  return (
+    <div className="panel-in">
+      <div style={{ marginBottom: 36 }}>
+        <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 8 }}>Umesahau nywila? 🔐</h2>
+        <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 14, lineHeight: 1.6 }}>Tutakutumia code ya siri ili uweze kubadili nywila yako.</p>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <FloatLabel label="Barua Pepe">
+          <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="wewe@mfano.com" type="email" />
+        </FloatLabel>
+
+        {err && <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: "10px 14px", fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F87171" }}>{err}</div>}
+        {msg && <div style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.2)", borderRadius: 8, padding: "10px 14px", fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#34D399" }}>{msg}</div>}
+
+        <Btn onClick={handleSubmit} disabled={loading} full>
+          {loading ? "Inatuma..." : "Tuma Code →"}
+        </Btn>
+
+        <p style={{ marginTop: 24, textAlign: "center", color: "rgba(220,230,240,0.4)", fontSize: 13 }}>
+          Kumbuka nywila?{" "}
+          <span onClick={onBack} style={{ color: "#F5A623", fontWeight: 700, cursor: "pointer" }}>Rudi kwenye Ingia</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ResetPasswordPanel({ email, onSuccess }) {
+  const [form, setForm] = useState({ token: "", password: "", confirm: "" });
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const handleSubmit = async () => {
+    if (!form.token || !form.password) { setErr("Jaza fields zote."); return; }
+    if (form.password !== form.confirm) { setErr("Nywila hazilingani."); return; }
+    setLoading(true); setErr("");
+    try {
+      await axios.post(`${API_URL}/auth/reset-password`, { email, token: form.token, password: form.password });
+      setLoading(false);
+      onSuccess();
+    } catch (error) {
+      setLoading(false);
+      setErr(error.response?.data?.error || "Hitilafu imetokea.");
+    }
+  };
+
+  return (
+    <div className="panel-in">
+      <div style={{ marginBottom: 36 }}>
+        <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 8 }}>Badili Nywila ✨</h2>
+        <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 14, lineHeight: 1.6 }}>Weka code uliyotumiwa na nywila yako mpya.</p>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <FloatLabel label="Code ya Siri (6 digits)">
+          <Input value={form.token} onChange={e => setForm({...form, token: e.target.value})} placeholder="123456" />
+        </FloatLabel>
+        <FloatLabel label="Nywila Mpya">
+          <Input value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="••••••••" type="password" />
+        </FloatLabel>
+        <FloatLabel label="Thibitisha Nywila">
+          <Input value={form.confirm} onChange={e => setForm({...form, confirm: e.target.value})} placeholder="••••••••" type="password" />
+        </FloatLabel>
+
+        {err && <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: "10px 14px", fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F87171" }}>{err}</div>}
+
+        <Btn onClick={handleSubmit} disabled={loading} full>
+          {loading ? "Inabadilisha..." : "Badili Nywila →"}
+        </Btn>
+      </div>
     </div>
   );
 }
@@ -407,6 +505,7 @@ function SuccessScreen({ user, onFinish }) {
 
 export default function JamiiAIAuth({ onAuthSuccess, onBack }) {
   const [screen, setScreen] = useState("login");
+  const [resetEmail, setResetEmail] = useState("");
   const [authData, setAuthData] = useState(null); // stores { token, user }
   const [onboardData, setOnboardData] = useState({
     handle: "", role: "", city: "", bio: "",
@@ -494,8 +593,10 @@ export default function JamiiAIAuth({ onAuthSuccess, onBack }) {
 
       <div style={{ padding: "48px 56px", display: "flex", flexDirection: "column", justifyContent: "center", overflowY: "auto" }}>
         <div style={{ maxWidth: 420, width: "100%", margin: "0 auto" }}>
-          {screen === "login"    && <LoginPanel    onSwitch={() => setScreen("register")} onSuccess={handleAuthResult} />}
+          {screen === "login"    && <LoginPanel    onSwitch={() => setScreen("register")} onSuccess={handleAuthResult} onForgot={() => setScreen("forgot")} />}
           {screen === "register" && <RegisterPanel onSwitch={() => setScreen("login")} onNext={handleAuthResult} />}
+          {screen === "forgot"   && <ForgotPasswordPanel onBack={() => setScreen("login")} onNext={(email) => { setResetEmail(email); setScreen("reset"); }} />}
+          {screen === "reset"    && <ResetPasswordPanel email={resetEmail} onSuccess={() => setScreen("login")} />}
           {screen === "onboard1" && <OnboardStep1  data={onboardData} setData={setOnboardData} onNext={() => setScreen("onboard2")} token={authData?.token} />}
           {screen === "onboard2" && <OnboardStep2  data={onboardData} setData={setOnboardData} onNext={() => setScreen("onboard3")} onBack={() => setScreen("onboard1")} />}
           {screen === "onboard3" && <OnboardStep3  data={onboardData} setData={setOnboardData} onFinish={() => setScreen("success")} token={authData?.token} />}

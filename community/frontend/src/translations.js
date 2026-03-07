@@ -25,6 +25,7 @@ export const translations = {
     kichwa_habari: "Habari za AI 📰",
     kichwa_matukio: "Matukio 🗓️",
     kichwa_ujumbe: "Ujumbe 💬",
+    kichwa_kazi: "Kazi za AI 💼",
 
     // Filters & Categories
     all: "Yote",
@@ -32,6 +33,21 @@ export const translations = {
     mradi: "Miradi",
     habari_filter: "Habari",
     kazi: "Kazi",
+    kazi_board: "Kazi za AI",
+    tafuta_kazi: "Tafuta kazi, kampuni...",
+    zilizohifadhiwa: "Zilizohifadhiwa",
+    zangu: "Zangu",
+    chapisha_kazi: "Chapisha Kazi",
+    apply_sasa: "Apply →",
+    umeapply: "✓ Umeapply",
+    deadline: "Deadline",
+    maelezo_ya_kazi: "Maelezo ya Kazi",
+    mahitaji: "Mahitaji",
+    benefits: "Faida na Benefits",
+    application_imewasilishwa: "Application Imewasilishwa!",
+    asante_apply: "watakupiga simu au kuandika email hivi karibuni.",
+    barua_ya_kuomba: "BARUA YA KUOMBA (Cover Letter)",
+    wasilisha_application: "Wasilisha Application 🚀",
 
     // Composer
     shiriki_kitu: "Shiriki kitu na jamii...",
@@ -104,6 +120,7 @@ export const translations = {
     kichwa_habari: "AI News 📰",
     kichwa_matukio: "Events 🗓️",
     kichwa_ujumbe: "Messages 💬",
+    kichwa_kazi: "AI Jobs 💼",
 
     // Filters & Categories
     all: "All",
@@ -111,6 +128,21 @@ export const translations = {
     mradi: "Projects",
     habari_filter: "News",
     kazi: "Jobs",
+    kazi_board: "AI Jobs",
+    tafuta_kazi: "Search jobs, companies...",
+    zilizohifadhiwa: "Saved",
+    zangu: "My Jobs",
+    chapisha_kazi: "Post Job",
+    apply_sasa: "Apply →",
+    umeapply: "✓ Applied",
+    deadline: "Deadline",
+    maelezo_ya_kazi: "Job Description",
+    mahitaji: "Requirements",
+    benefits: "Benefits",
+    application_imewasilishwa: "Application Submitted!",
+    asante_apply: "will contact you soon via phone or email.",
+    barua_ya_kuomba: "COVER LETTER",
+    wasilisha_application: "Submit Application 🚀",
 
     // Composer
     shiriki_kitu: "Share something with the community...",

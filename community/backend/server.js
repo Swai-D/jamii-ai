@@ -30,7 +30,19 @@ const db = new Pool({
 });
 
 db.connect()
-  .then(() => console.log("✅ Database imeunganishwa"))
+  .then(async () => {
+    console.log("✅ Database imeunganishwa");
+    // Auto-migration: Hakikisha column za reset password zipo
+    try {
+      await db.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMPTZ;
+      `);
+      console.log("✅ Database migration imekamilika");
+    } catch (err) {
+      console.error("❌ Migration error:", err.message);
+    }
+  })
   .catch(err => console.error("❌ DB error:", err.message));
 
 // ── MIDDLEWARE ──────────────────────────────────────────────────────
@@ -60,9 +72,9 @@ const signToken = (user) =>
 // ════════════════════════════════════════════════════════════════════
 //  AUTH ROUTES
 // ════════════════════════════════════════════════════════════════════
+const authRouter = express.Router();
 
-// POST /api/auth/register
-app.post("/api/auth/register", async (req, res) => {
+authRouter.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
     if (!name || !email || !password)
@@ -85,8 +97,7 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-// POST /api/auth/login
-app.post("/api/auth/login", async (req, res) => {
+authRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     const result = await db.query("SELECT * FROM users WHERE email = $1", [email?.toLowerCase()]);
@@ -101,8 +112,59 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-// GET /api/auth/me
-app.get("/api/auth/me", auth, async (req, res) => {
+authRouter.post("/forgot-password", async (req, res) => {
+  console.log("POST /api/auth/forgot-password - Email:", req.body.email);
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Barua pepe inahitajika" });
+
+    const result = await db.query("SELECT id FROM users WHERE email = $1", [email.toLowerCase()]);
+    
+    if (!result.rows.length) {
+      console.log("User not found for email:", email);
+      return res.status(400).json({ error: "Barua pepe haijapatikana kwenye mfumo wetu." });
+    }
+
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 3600000);
+
+    await db.query(
+      "UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE email = $3",
+      [token, expiry, email.toLowerCase()]
+    );
+
+    console.log(`[JAMII-AI] Password reset code for ${email}: ${token}`);
+    res.json({ success: true, message: "Code imetumwa kwenye barua pepe yako.", debug_token: token });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ error: "Hitilafu ya server" });
+  }
+});
+
+authRouter.post("/reset-password", async (req, res) => {
+  try {
+    const { email, token, password } = req.body;
+    const result = await db.query(
+      "SELECT id FROM users WHERE email = $1 AND reset_token = $2 AND reset_token_expiry > NOW()",
+      [email.toLowerCase(), token]
+    );
+
+    if (!result.rows.length) return res.status(400).json({ error: "Code si sahihi au imekwisha muda wake." });
+
+    const hash = await bcrypt.hash(password, 12);
+    await db.query(
+      "UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expiry = NULL WHERE email = $2",
+      [hash, email.toLowerCase()]
+    );
+
+    res.json({ success: true, message: "Nywila imebadilishwa kikamilifu." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Hitilafu ya server" });
+  }
+});
+
+authRouter.get("/me", auth, async (req, res) => {
   try {
     const result = await db.query(
       `SELECT u.*, 
@@ -119,19 +181,13 @@ app.get("/api/auth/me", auth, async (req, res) => {
   }
 });
 
-// PATCH /api/auth/onboard
-app.patch("/api/auth/onboard", auth, async (req, res) => {
+authRouter.patch("/onboard", auth, async (req, res) => {
   try {
     const { handle, role, city, bio, interests, notifications } = req.body;
-    
-    // Check handle uniqueness
     if (handle) {
-      const taken = await db.query(
-        "SELECT id FROM users WHERE handle = $1 AND id != $2", [handle, req.user.id]
-      );
+      const taken = await db.query("SELECT id FROM users WHERE handle = $1 AND id != $2", [handle, req.user.id]);
       if (taken.rows.length) return res.status(409).json({ error: "Handle tayari inatumika" });
     }
-
     await db.query(
       `UPDATE users SET handle=$1, role=$2, city=$3, bio=$4, interests=$5,
        notification_prefs=$6, onboarded=true, updated_at=NOW() WHERE id=$7`,
@@ -142,6 +198,8 @@ app.patch("/api/auth/onboard", auth, async (req, res) => {
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
+
+app.use("/api/auth", authRouter);
 
 // ════════════════════════════════════════════════════════════════════
 //  USER ROUTES
