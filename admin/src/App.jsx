@@ -79,6 +79,7 @@ const NAV = [
   { id:"changamoto",     icon:"🏆", label:"Changamoto"               },
   { id:"matukio",        icon:"🗓️", label:"Matukio"                  },
   { id:"rasilimali",     icon:"📚", label:"Rasilimali", badge:"2"    },
+  { id:"kazi",           icon:"💼", label:"Kazi",       badge:"4"    },
   { id:"habari",         icon:"📰", label:"Habari",     badge:"2"    },
   { id:"billing",        icon:"💰", label:"Billing"                  },
   { id:"analytics",      icon:"📊", label:"Analytics"               },
@@ -2002,6 +2003,459 @@ function SettingsPage() {
   );
 }
 
+// ── KAZI / JOBS ───────────────────────────────────────────────────
+const JOBS_INBOX = [
+  { id:"i1", title:"Senior ML Engineer", type:"full_time", company_name:"Vodacom Tanzania", location:"Dar es Salaam", is_remote:false, salary_min:3000000, salary_max:7000000, salary_currency:"TZS", salary_visible:true, description:"Tunatafuta ML Engineer mwenye uzoefu wa kujenga mifano ya AI kwa bidhaa zetu za mobile money na network optimization. Utafanya kazi na team ya data scientists.", requirements:"Python, TensorFlow, MLOps, miaka 3+, SQL na data pipelines", tags:["Python","TensorFlow","MLOps","SQL"], apply_internal:true, deadline:"2026-04-15", is_hot:true, is_featured:false, poster_name:"HR Vodacom", poster_email:"hr@vodacom.co.tz", source:"direct", created_at:"2026-03-06" },
+  { id:"i2", title:"NLP Research Assistant", type:"remote", company_name:"Sarufi NLP", location:"Remote", is_remote:true, salary_min:1500000, salary_max:3000000, salary_currency:"TZS", salary_visible:true, description:"Tunatengeneza NLP tools za Kiswahili. Tunatafuta mtu wa kutusaidia kukusanya data na ku-annotate datasets za lugha za Kiswahili na Kibongo.", requirements:"Python basics, Kiswahili fluent, makini kwenye annotation", tags:["Python","NLP","Kiswahili","Annotation"], apply_internal:true, deadline:"2026-04-20", is_hot:false, is_featured:false, poster_name:"Neema Osoro", poster_email:"neema@sarufi.io", source:"direct", created_at:"2026-03-05" },
+  { id:"i3", title:"Data Science Intern", type:"internship", company_name:"CRDB Bank", location:"Dar es Salaam", is_remote:false, salary_min:500000, salary_max:1000000, salary_currency:"TZS", salary_visible:true, description:"Internship ya miezi 3 kwenye team ya Data Science. Utajifunza Python, SQL, na jinsi ya kuchanganua data za benki za kweli.", requirements:"Mwanafunzi au aliyehitimu, Python au Excel, hamu ya kujifunza", tags:["Python","SQL","Excel","Power BI"], apply_internal:true, deadline:"2026-03-25", is_hot:false, is_featured:false, poster_name:"CRDB HR", poster_email:"careers@crdb.co.tz", source:"direct", created_at:"2026-03-04" },
+  { id:"i4", title:"AI Research Engineer — Kiswahili NLP", type:"full_time", company_name:"Google Research Africa", location:"Nairobi / Remote", is_remote:true, salary_min:8000000, salary_max:15000000, salary_currency:"KES", salary_visible:true, description:"Google Research Africa inatafuta AI Engineer wa kufanya kazi kwenye lugha za Kiafrika, hasa Kiswahili na Amharic.", requirements:"PhD au uzoefu sawa, NLP, PyTorch, publications", tags:["NLP","Research","Kiswahili","PyTorch"], apply_internal:false, apply_url:"https://careers.google.com", deadline:"2026-05-01", is_hot:true, is_featured:false, poster_name:"Google Careers", poster_email:"noreply@google.com", source:"linkedin", created_at:"2026-03-07" },
+];
+
+const JOBS_ACTIVE = [
+  { id:"a1", title:"AI Product Manager", type:"full_time", company_name:"Selcom Fintech", location:"Dar es Salaam", is_remote:false, salary_min:4000000, salary_max:8000000, salary_currency:"TZS", salary_visible:true, tags:["Product","AI Strategy","Agile"], is_featured:true, is_hot:true, views:201, applications_count:9, deadline:"2026-04-01", created_at:"2026-03-01" },
+  { id:"a2", title:"Computer Vision Engineer", type:"contract", company_name:"AfriSight Labs", location:"Arusha", is_remote:true, salary_min:2500000, salary_max:5000000, salary_currency:"TZS", salary_visible:true, tags:["OpenCV","PyTorch","YOLO"], is_featured:false, is_hot:false, views:67, applications_count:5, deadline:"2026-03-31", created_at:"2026-03-02" },
+  { id:"a3", title:"Data Engineer", type:"full_time", company_name:"Tanzania Revenue Authority", location:"Dodoma", is_remote:false, salary_min:2000000, salary_max:4500000, salary_currency:"TZS", salary_visible:true, tags:["Apache Spark","Airflow","PostgreSQL"], is_featured:false, is_hot:false, views:134, applications_count:23, deadline:"2026-04-10", created_at:"2026-02-28" },
+  { id:"a4", title:"Senior ML Engineer", type:"full_time", company_name:"Vodacom Tanzania", location:"Dar es Salaam", is_remote:false, salary_min:3000000, salary_max:7000000, salary_currency:"TZS", salary_visible:true, tags:["Python","TensorFlow","MLOps"], is_featured:true, is_hot:false, views:342, applications_count:18, deadline:"2026-04-15", created_at:"2026-03-01" },
+];
+
+const KAZI_TYPE_C = {
+  full_time:  { label:"Full-time",  color:"#4ADE80" },
+  internship: { label:"Internship", color:"#60A5FA" },
+  remote:     { label:"Remote",     color:"#F5A623" },
+  freelance:  { label:"Freelance",  color:"#C084FC" },
+  part_time:  { label:"Part-time",  color:"#FB923C" },
+  contract:   { label:"Contract",   color:"#94A3B8" },
+};
+
+const fmtSalary = (min, max, curr) => {
+  const f = n => n >= 1000000 ? `${(n/1000000).toFixed(1)}M` : `${(n/1000).toFixed(0)}K`;
+  if (!min && !max) return "Mazungumzo";
+  if (!max) return `${curr} ${f(min)}+`;
+  return `${curr} ${f(min)}–${f(max)}`;
+};
+
+const daysLeft = dl => {
+  if (!dl) return null;
+  const d = Math.ceil((new Date(dl) - new Date()) / 86400000);
+  if (d <= 0) return { text:"Imekwisha", urgent:true };
+  if (d <= 5) return { text:`Siku ${d}`, urgent:true };
+  return { text:`Siku ${d}`, urgent:false };
+};
+
+const CompanyBadge = ({ name, size=40 }) => {
+  const colors = ["#F5A623","#4ADE80","#60A5FA","#C084FC","#FB923C","#34D399"];
+  const c = colors[name.charCodeAt(0) % colors.length];
+  const initials = name.split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  return (
+    <div style={{ width:size, height:size, borderRadius:9, background:`${c}15`, border:`1.5px solid ${c}30`, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:size*0.3, color:c, fontFamily:MONO, flexShrink:0 }}>
+      {initials}
+    </div>
+  );
+};
+
+const TypeBadge = ({ type }) => {
+  const t = KAZI_TYPE_C[type] || { label:type, color:"#94A3B8" };
+  return (
+    <span style={{ fontSize:10, padding:"3px 8px", borderRadius:20, background:`${t.color}12`, color:t.color, fontWeight:800, border:`1px solid ${t.color}25`, fontFamily:MONO, whiteSpace:"nowrap" }}>
+      {t.label}
+    </span>
+  );
+};
+
+function JobDetailPanel({ job, isInbox, onClose, onApprove, onReject, onToggleFeature, onToggleHot, onClose2 }) {
+  const dl = daysLeft(job.deadline);
+  return (
+    <div style={{ position:"fixed", top:0, right:0, bottom:0, width:400, background:"#111113", borderLeft:"1px solid #232325", display:"flex", flexDirection:"column", zIndex:200, boxShadow:"-12px 0 40px rgba(0,0,0,0.5)" }}>
+      {/* Header */}
+      <div style={{ padding:"20px", borderBottom:"1px solid #1e1e20" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:12 }}>
+          <span style={{ fontSize:10, fontWeight:700, color:"rgba(242,242,245,0.3)", fontFamily:MONO, letterSpacing:"0.08em" }}>
+            {isInbox ? "📥 INASUBIRI REVIEW" : "✅ ACTIVE"}
+          </span>
+          <button onClick={onClose} style={{ background:"#232325", border:"none", borderRadius:7, width:26, height:26, color:"rgba(242,242,245,0.5)", cursor:"pointer", fontSize:13 }}>✕</button>
+        </div>
+        <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+          <CompanyBadge name={job.company_name} size={46} />
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:15, fontWeight:800, color:"#F2F2F5", lineHeight:1.3, marginBottom:4 }}>{job.title}</div>
+            <div style={{ fontSize:12, color:"rgba(242,242,245,0.4)" }}>{job.company_name} · {job.is_remote ? "Remote":job.location}</div>
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:8, marginTop:12, flexWrap:"wrap", alignItems:"center" }}>
+          <TypeBadge type={job.type} />
+          {job.salary_visible && <span style={{ fontSize:11, color:"#F5A623", fontWeight:700 }}>💰 {fmtSalary(job.salary_min, job.salary_max, job.salary_currency)}</span>}
+          {job.is_hot && <span style={{ fontSize:10, color:"#FB7185", fontWeight:700 }}>🔥 HOT</span>}
+          {job.is_featured && <span style={{ fontSize:10, color:"#F5A623", fontWeight:700 }}>⭐ FEATURED</span>}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex:1, overflowY:"auto", padding:"18px 20px" }}>
+        {/* Poster */}
+        <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:10, padding:"12px", marginBottom:16 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(242,242,245,0.3)", fontFamily:MONO, marginBottom:6 }}>ALIYEWASILISHA</div>
+          <div style={{ fontSize:13, fontWeight:700, color:"#F2F2F5" }}>{job.poster_name}</div>
+          <div style={{ fontSize:11, color:"rgba(242,242,245,0.4)", marginTop:2 }}>{job.poster_email}</div>
+          {job.source && job.source !== "direct" && (
+            <div style={{ marginTop:6, fontSize:10, padding:"2px 8px", borderRadius:20, background:"rgba(96,165,250,0.1)", color:"#60A5FA", border:"1px solid rgba(96,165,250,0.2)", display:"inline-block", fontWeight:700, fontFamily:MONO }}>via {job.source}</div>
+          )}
+        </div>
+
+        {/* Description */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(242,242,245,0.3)", fontFamily:MONO, marginBottom:8 }}>MAELEZO</div>
+          <p style={{ fontSize:13, color:"rgba(242,242,245,0.65)", lineHeight:1.75, margin:0 }}>{job.description}</p>
+        </div>
+
+        {/* Requirements */}
+        {job.requirements && (
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:10, fontWeight:700, color:"rgba(242,242,245,0.3)", fontFamily:MONO, marginBottom:8 }}>MAHITAJI</div>
+            <p style={{ fontSize:13, color:"rgba(242,242,245,0.65)", lineHeight:1.75, margin:0 }}>{job.requirements}</p>
+          </div>
+        )}
+
+        {/* Tags */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(242,242,245,0.3)", fontFamily:MONO, marginBottom:8 }}>SKILLS</div>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+            {(job.tags||[]).map(t => (
+              <span key={t} style={{ fontSize:11, padding:"3px 9px", borderRadius:6, background:"rgba(245,166,35,0.08)", color:"#F5A623", border:"1px solid rgba(245,166,35,0.18)", fontFamily:MONO }}>{t}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Apply method */}
+        <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:10, padding:"12px", marginBottom:16 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:"rgba(242,242,245,0.3)", fontFamily:MONO, marginBottom:6 }}>APPLY METHOD</div>
+          {job.apply_internal ? (
+            <div style={{ fontSize:12, color:"#4ADE80", fontWeight:600 }}>✓ JamiiAI internal applications</div>
+          ) : job.apply_url ? (
+            <div style={{ fontSize:12, color:"#60A5FA", fontWeight:600 }}>🔗 External — {job.apply_url}</div>
+          ) : (
+            <div style={{ fontSize:12, color:"rgba(242,242,245,0.4)" }}>📧 Email apply</div>
+          )}
+        </div>
+
+        {/* Deadline */}
+        {job.deadline && (
+          <div style={{ display:"flex", gap:8, alignItems:"center", padding:"10px 12px", background:"#161618", borderRadius:10, border:`1px solid ${dl?.urgent ? "rgba(251,113,133,0.2)" : "#232325"}` }}>
+            <span style={{ fontSize:13 }}>⏰</span>
+            <div>
+              <div style={{ fontSize:11, color:"rgba(242,242,245,0.35)", fontFamily:MONO }}>DEADLINE</div>
+              <div style={{ fontSize:12, fontWeight:700, color: dl?.urgent ? "#FB7185" : "#F2F2F5" }}>
+                {job.deadline} · {dl?.text}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div style={{ padding:"16px 20px", borderTop:"1px solid #1e1e20", display:"flex", gap:8 }}>
+        {isInbox ? (
+          <>
+            <button onClick={() => onApprove(job.id)} style={{ flex:1, padding:"11px", borderRadius:10, border:"none", background:"linear-gradient(135deg,#F5A623,#e8961a)", color:"#000", fontWeight:800, fontSize:13, cursor:"pointer" }}>
+              ✅ Chapisha Kazi
+            </button>
+            <button onClick={() => onReject(job.id)} style={{ flex:1, padding:"11px", borderRadius:10, border:"1px solid #2a2a2c", background:"transparent", color:"#FB7185", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+              🗑 Kataa
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => onToggleFeature(job.id)} style={{ flex:1, padding:"10px", borderRadius:10, border:`1px solid ${job.is_featured ? "rgba(245,166,35,0.4)" : "#2a2a2c"}`, background: job.is_featured ? "rgba(245,166,35,0.1)" : "transparent", color: job.is_featured ? "#F5A623" : "rgba(242,242,245,0.4)", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+              ⭐ {job.is_featured ? "Ondoa Featured" : "Mark Featured"}
+            </button>
+            <button onClick={() => onToggleHot(job.id)} style={{ flex:1, padding:"10px", borderRadius:10, border:`1px solid ${job.is_hot ? "rgba(251,113,133,0.3)" : "#2a2a2c"}`, background: job.is_hot ? "rgba(251,113,133,0.1)" : "transparent", color: job.is_hot ? "#FB7185" : "rgba(242,242,245,0.4)", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+              🔥 {job.is_hot ? "Ondoa Hot" : "Mark Hot"}
+            </button>
+            <button onClick={() => onClose2(job.id)} title="Funga kazi" style={{ width:40, padding:"10px", borderRadius:10, border:"1px solid #2a2a2c", background:"transparent", color:"rgba(242,242,245,0.25)", fontWeight:700, fontSize:13, cursor:"pointer" }}>🔒</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KaziPage() {
+  const [inbox,   setInbox]    = useState(JOBS_INBOX);
+  const [active,  setActive]   = useState(JOBS_ACTIVE);
+  const [tab,     setTab]      = useState("inbox");
+  const [selected,setSelected] = useState(null);
+  const [fetching,setFetching] = useState(false);
+  const [toast,   setToast]    = useState(null);
+
+  const notify = msg => { setToast(msg); setTimeout(() => setToast(null), 2800); };
+
+  const approveJob = id => {
+    const job = inbox.find(j => j.id === id);
+    if (!job) return;
+    setInbox(p => p.filter(j => j.id !== id));
+    setActive(p => [{ ...job, status:"active", views:0, applications_count:0 }, ...p]);
+    setSelected(null);
+    notify("✅ Kazi imechapishwa na inaonekana kwenye community!");
+  };
+
+  const rejectJob = id => {
+    setInbox(p => p.filter(j => j.id !== id));
+    setSelected(null);
+    notify("🗑 Kazi imekataliwa na kufutwa.");
+  };
+
+  const toggleFeature = id => {
+    setActive(p => p.map(j => j.id === id ? {...j, is_featured:!j.is_featured} : j));
+    if (selected?.id === id) setSelected(p => ({...p, is_featured:!p.is_featured}));
+    notify("⭐ Featured status imebadilishwa!");
+  };
+
+  const toggleHot = id => {
+    setActive(p => p.map(j => j.id === id ? {...j, is_hot:!j.is_hot} : j));
+    if (selected?.id === id) setSelected(p => ({...p, is_hot:!p.is_hot}));
+    notify("🔥 Hot status imebadilishwa!");
+  };
+
+  const closeJob = id => {
+    setActive(p => p.filter(j => j.id !== id));
+    setSelected(null);
+    notify("🔒 Kazi imefungwa.");
+  };
+
+  const fetchJobs = () => {
+    setFetching(true);
+    setTimeout(() => {
+      const newJob = {
+        id:`f_${Date.now()}`,
+        title:"ML Engineer — Fintech Africa",
+        type:"remote",
+        company_name:"Flutterwave",
+        location:"Remote / Lagos",
+        is_remote:true,
+        salary_min:6000000,
+        salary_max:12000000,
+        salary_currency:"NGN",
+        salary_visible:true,
+        description:"Flutterwave inatafuta ML Engineer wa kujenga mifumo ya fraud detection na credit scoring kwa masoko ya Afrika.",
+        requirements:"Python, Scikit-learn, XGBoost, experience ya fintech, miaka 3+",
+        tags:["Python","ML","Fraud Detection","FinTech"],
+        apply_internal:false,
+        apply_url:"https://flutterwave.com/careers",
+        deadline:"2026-05-10",
+        is_hot:true,
+        is_featured:false,
+        poster_name:"Flutterwave HR",
+        poster_email:"careers@flutterwave.com",
+        source:"linkedin",
+        created_at:new Date().toISOString().split("T")[0],
+      };
+      setInbox(p => [newJob, ...p]);
+      setFetching(false);
+      notify("✅ Kazi 1 mpya imepatikana — inasubiri review yako!");
+    }, 2000);
+  };
+
+  const totalViews = active.reduce((s,j) => s + (j.views||0), 0);
+  const totalApps  = active.reduce((s,j) => s + (j.applications_count||0), 0);
+  const isInboxSelected = selected && inbox.some(j => j.id === selected.id);
+
+  return (
+    <div style={{ position:"relative" }}>
+      <style>{`
+        @keyframes spin { to { transform:rotate(360deg); } }
+        @keyframes slideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes toastIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+      `}</style>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position:"fixed", bottom:24, right: selected ? 424 : 24, zIndex:999, background:"#F5A623", color:"#000", padding:"12px 20px", borderRadius:12, fontWeight:800, fontSize:13, boxShadow:"0 8px 32px rgba(245,166,35,0.3)", animation:"toastIn 0.25s ease" }}>
+          {toast}
+        </div>
+      )}
+
+      {/* Header / Stats area */}
+      <div style={{ display:"flex", flexDirection:"column" }}>
+          
+          {/* Top action bar */}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+            <SectionHead title="Kazi Board" sub="Simamia kazi na approve postings" />
+            <button
+              onClick={fetchJobs}
+              disabled={fetching}
+              style={{ display:"flex", alignItems:"center", gap:7, padding:"8px 14px", borderRadius:9, border:"1px solid rgba(245,166,35,0.3)", background: fetching ? "transparent" : "rgba(245,166,35,0.08)", color: fetching ? "rgba(242,242,245,0.25)" : "#F5A623", fontWeight:700, fontSize:12, cursor: fetching ? "default":"pointer", transition:"all 0.2s" }}
+            >
+              <span style={{ display:"inline-block", animation: fetching ? "spin 1s linear infinite":"none", fontSize:14 }}>⟳</span>
+              {fetching ? "Inatafuta..." : "Fetch Kazi Mpya"}
+            </button>
+          </div>
+
+          <div>
+
+            {/* Stats */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24 }}>
+              {[
+                { icon:"📥", label:"Inasubiri",   value:inbox.length,  color:"#F5A623" },
+                { icon:"✅", label:"Active",       value:active.length, color:"#4ADE80" },
+                { icon:"👁", label:"Total Views",  value:totalViews,    color:"#60A5FA" },
+                { icon:"📄", label:"Applications", value:totalApps,     color:"#C084FC" },
+              ].map(s => (
+                <div key={s.label} style={{ background:"#161618", border:`1px solid ${s.color}18`, borderRadius:12, padding:"14px 16px", animation:"slideIn 0.3s ease" }}>
+                  <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                    <div style={{ width:36, height:36, borderRadius:9, background:`${s.color}12`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>{s.icon}</div>
+                    <div>
+                      <div style={{ fontSize:22, fontWeight:900, color:"#F2F2F5", lineHeight:1 }}>{s.value}</div>
+                      <div style={{ fontSize:10, color:"rgba(242,242,245,0.35)", fontFamily:MONO, marginTop:2 }}>{s.label}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pipeline strip */}
+            <div style={{ background:"linear-gradient(135deg,rgba(74,222,128,0.05),rgba(15,26,26,0.8))", border:"1px solid rgba(74,222,128,0.12)", borderRadius:10, padding:"12px 16px", marginBottom:24, display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
+              <span style={{ fontSize:10, fontWeight:700, color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>PIPELINE:</span>
+              {[["Kaggle","#60A5FA"],["AIcrowd","#C084FC"],["Zindi Africa","#4ADE80"],["Devpost","#60A5FA"]].map(([s,c],i,arr)=>(
+                <span key={s} style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:c, fontFamily:MONO }}>{s}</span>
+                  {i < arr.length-1 && <span style={{ color:"#2a2a2c", fontSize:12 }}>→</span>}
+                </span>
+              ))}
+              <span style={{ color:"#2a2a2c" }}>→</span>
+              <span style={{ fontSize:11, fontWeight:700, color:"#F5A623", fontFamily:MONO }}>Inbox</span>
+              <span style={{ color:"#2a2a2c" }}>→</span>
+              <span style={{ fontSize:11, fontWeight:700, color:"#4ADE80", fontFamily:MONO }}>Community</span>
+              <span style={{ marginLeft:"auto", fontSize:10, color:"rgba(242,242,245,0.25)", fontFamily:MONO }}>⏰ kila siku saa 6 asubuhi</span>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display:"flex", gap:0, borderBottom:"1px solid #1a1a1c", marginBottom:20 }}>
+              {[
+                { id:"inbox",  label:"📥 Inbox",        count:inbox.length  },
+                { id:"active", label:"✅ Active",        count:active.length },
+                { id:"closed", label:"🔒 Zilizofungwa",  count:0             },
+              ].map(t => (
+                <button key={t.id} onClick={() => { setTab(t.id); setSelected(null); }} style={{ padding:"10px 18px", background:"none", border:"none", cursor:"pointer", fontSize:13, fontWeight:700, color: tab===t.id ? "#F5A623" : "rgba(242,242,245,0.35)", borderBottom:`2px solid ${tab===t.id ? "#F5A623":"transparent"}`, transition:"all 0.15s", display:"flex", alignItems:"center", gap:7 }}>
+                  {t.label}
+                  {t.count > 0 && (
+                    <span style={{ background: tab===t.id ? "#F5A623":"#232325", color: tab===t.id ? "#000":"rgba(242,242,245,0.4)", borderRadius:10, padding:"1px 7px", fontSize:10, fontWeight:900, fontFamily:MONO }}>
+                      {t.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* ── INBOX ── */}
+            {tab === "inbox" && (
+              <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {inbox.length === 0 ? (
+                  <div style={{ textAlign:"center", padding:"60px 0", color:"rgba(242,242,245,0.15)" }}>
+                    <div style={{ fontSize:44, marginBottom:12 }}>📥</div>
+                    <div style={{ fontSize:15, fontWeight:700 }}>Inbox iko tupu</div>
+                    <div style={{ fontSize:12, marginTop:8 }}>Bonyeza "Fetch Kazi Mpya" hapo juu</div>
+                  </div>
+                ) : inbox.map(job => (
+                  <div
+                    key={job.id}
+                    onClick={() => setSelected(job)}
+                    style={{ background: selected?.id===job.id ? "#1a1a1c":"#161618", border:`1px solid ${selected?.id===job.id ? "#F5A623":"#232325"}`, borderRadius:12, padding:"16px 18px", cursor:"pointer", display:"flex", gap:12, alignItems:"center", transition:"all 0.15s", animation:"slideIn 0.25s ease" }}
+                  >
+                    <CompanyBadge name={job.company_name} size={42} />
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:3 }}>
+                        <span style={{ fontSize:13, fontWeight:700, color:"#F2F2F5" }}>{job.title}</span>
+                        {job.is_hot && <span style={{ fontSize:10, color:"#FB7185", fontWeight:700 }}>🔥</span>}
+                        {job.source && job.source !== "direct" && (
+                          <span style={{ fontSize:9, padding:"2px 6px", borderRadius:10, background:"rgba(96,165,250,0.1)", color:"#60A5FA", fontWeight:700, fontFamily:MONO }}>via {job.source}</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize:11, color:"rgba(242,242,245,0.4)" }}>{job.company_name} · {job.is_remote ? "Remote":job.location} · {job.created_at}</div>
+                    </div>
+                    <TypeBadge type={job.type} />
+                    {job.salary_visible && (
+                      <span style={{ fontSize:11, color:"#F5A623", fontWeight:700, flexShrink:0, fontFamily:MONO }}>{fmtSalary(job.salary_min, job.salary_max, job.salary_currency)}</span>
+                    )}
+                    <div style={{ display:"flex", gap:6, flexShrink:0 }} onClick={e=>e.stopPropagation()}>
+                      <button onClick={()=>approveJob(job.id)} style={{ padding:"6px 12px", borderRadius:8, border:"none", background:"rgba(74,222,128,0.12)", color:"#4ADE80", fontWeight:800, fontSize:11, cursor:"pointer", transition:"all 0.15s" }}>✅ Chapisha</button>
+                      <button onClick={()=>rejectJob(job.id)} style={{ padding:"6px 10px", borderRadius:8, border:"1px solid #2a2a2c", background:"transparent", color:"#FB7185", fontWeight:700, fontSize:11, cursor:"pointer" }}>🗑</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── ACTIVE ── */}
+            {tab === "active" && (
+              <div>
+                {/* Table head */}
+                <div style={{ display:"grid", gridTemplateColumns:"2.5fr 1fr 1.2fr 1fr 80px 120px", gap:12, padding:"8px 16px", fontSize:9, fontWeight:700, color:"rgba(242,242,245,0.25)", fontFamily:MONO, letterSpacing:"0.06em", borderBottom:"1px solid #1a1a1c", marginBottom:4 }}>
+                  <span>KAZI</span><span>AINA</span><span>MSHAHARA</span><span>STATS</span><span>DEADLINE</span><span>VITENDO</span>
+                </div>
+                {active.map(job => {
+                  const dl = daysLeft(job.deadline);
+                  return (
+                    <div
+                      key={job.id}
+                      onClick={() => setSelected(job)}
+                      style={{ display:"grid", gridTemplateColumns:"2.5fr 1fr 1.2fr 1fr 80px 120px", gap:12, padding:"14px 16px", cursor:"pointer", borderBottom:"1px solid #141416", alignItems:"center", background: selected?.id===job.id ? "#161618":"transparent", transition:"background 0.1s" }}
+                    >
+                      <div>
+                        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                          <span style={{ fontSize:13, fontWeight:700, color:"#F2F2F5" }}>{job.title}</span>
+                          {job.is_featured && <span style={{ fontSize:10 }}>⭐</span>}
+                          {job.is_hot && <span style={{ fontSize:10 }}>🔥</span>}
+                        </div>
+                        <div style={{ fontSize:11, color:"rgba(242,242,245,0.35)", marginTop:2 }}>{job.company_name}</div>
+                      </div>
+                      <TypeBadge type={job.type} />
+                      <span style={{ fontSize:11, color:"#F5A623", fontWeight:700, fontFamily:MONO }}>{job.salary_visible ? fmtSalary(job.salary_min, job.salary_max, job.salary_currency) : "—"}</span>
+                      <div style={{ fontSize:11, color:"rgba(242,242,245,0.35)", fontFamily:MONO, lineHeight:1.6 }}>
+                        <div>👁 {job.views}</div>
+                        <div>📄 {job.applications_count}</div>
+                      </div>
+                      <span style={{ fontSize:11, fontFamily:MONO, color: dl?.urgent ? "#FB7185":"rgba(242,242,245,0.35)", fontWeight: dl?.urgent ? 700:400 }}>{dl?.text||"—"}</span>
+                      <div style={{ display:"flex", gap:4 }} onClick={e=>e.stopPropagation()}>
+                        <button onClick={()=>toggleFeature(job.id)} title="Featured" style={{ width:28, height:28, borderRadius:7, border:`1px solid ${job.is_featured ? "rgba(245,166,35,0.4)":"#2a2a2c"}`, background: job.is_featured ? "rgba(245,166,35,0.12)":"transparent", color: job.is_featured ? "#F5A623":"rgba(242,242,245,0.25)", cursor:"pointer", fontSize:13 }}>⭐</button>
+                        <button onClick={()=>toggleHot(job.id)} title="Hot" style={{ width:28, height:28, borderRadius:7, border:`1px solid ${job.is_hot ? "rgba(251,113,133,0.3)":"#2a2a2c"}`, background: job.is_hot ? "rgba(251,113,133,0.1)":"transparent", color: job.is_hot ? "#FB7185":"rgba(242,242,245,0.25)", cursor:"pointer", fontSize:13 }}>🔥</button>
+                        <button onClick={()=>closeJob(job.id)} title="Funga" style={{ width:28, height:28, borderRadius:7, border:"1px solid #2a2a2c", background:"transparent", color:"rgba(242,242,245,0.2)", cursor:"pointer", fontSize:12 }}>🔒</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── CLOSED ── */}
+            {tab === "closed" && (
+              <div style={{ textAlign:"center", padding:"70px 0", color:"rgba(242,242,245,0.15)" }}>
+                <div style={{ fontSize:44, marginBottom:12 }}>🔒</div>
+                <div style={{ fontSize:15, fontWeight:700 }}>Hakuna kazi zilizofungwa</div>
+              </div>
+            )}
+
+          </div>
+
+          {/* Detail Panel */}
+          {selected && (
+            <>
+              <div onClick={() => setSelected(null)} style={{ position:"fixed", inset:0, zIndex:199 }} />
+              <JobDetailPanel
+                job={selected}
+                isInbox={isInboxSelected}
+                onClose={() => setSelected(null)}
+                onApprove={approveJob}
+                onReject={rejectJob}
+                onToggleFeature={toggleFeature}
+                onToggleHot={toggleHot}
+                onClose2={closeJob}
+              />
+            </>
+          )}
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN APP ──────────────────────────────────────────────────────
 export default function AdminPanel() {
   const [page, setPage] = useState("dashboard");
@@ -2014,6 +2468,7 @@ export default function AdminPanel() {
     changamoto:    <ChangamotoPage />,
     matukio:       <MatukioPage />,
     rasilimali:    <RasilimaliPage />,
+    kazi:          <KaziPage />,
     habari:        <HabariPage />,
     billing:       <BillingPage />,
     analytics:     <AnalyticsPage />,
@@ -2024,7 +2479,7 @@ export default function AdminPanel() {
   const PAGE_TITLE = {
     dashboard:"Dashboard", users:"Watumiaji", content:"Moderation",
     roles:"Roles & Permissions", changamoto:"Changamoto", matukio:"Matukio",
-    rasilimali:"Rasilimali", habari:"Habari", billing:"Billing & Subscriptions",
+    rasilimali:"Rasilimali", kazi:"Kazi Board", habari:"Habari", billing:"Billing & Subscriptions",
     analytics:"Analytics", announcements:"Matangazo", settings:"Settings ⚙",
   };
 
