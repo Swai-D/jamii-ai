@@ -1022,8 +1022,12 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
   const [activeFilter, setActiveFilter]   = useState("all");
   const [startupFilter, setStartupFilter] = useState("Zote");
   const [instFilter, setInstFilter]       = useState("Zote");
+  const [instPage, setInstPage]           = useState(1);
   const [resFilter, setResFilter]         = useState("Zote");
+
+  const [resPage, setResPage]             = useState(1);
   const [showResForm, setShowResForm]     = useState(false);
+
   const [resSubmitted, setResSubmitted]   = useState(false);
   const [resForm, setResForm]             = useState({ title: "", type: "Dataset", link: "", tags: "", desc: "" });
 
@@ -1375,11 +1379,44 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
                 </div>
                 <div style={{ display: "flex", gap: 5, marginBottom: 20, flexWrap: "wrap" }}>
                   {["Zote", "University", "Research Institute", "Government Body", "NGO / Training"].map(t => (
-                    <button key={t} onClick={() => setInstFilter(t)} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${instFilter === t ? "#60A5FA" : "rgba(255,255,255,0.1)"}`, background: instFilter === t ? "rgba(96,165,250,0.12)" : "transparent", color: instFilter === t ? "#60A5FA" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{t}</button>
+                    <button key={t} onClick={() => { setInstFilter(t); setInstPage(1); }} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${instFilter === t ? "#60A5FA" : "rgba(255,255,255,0.1)"}`, background: instFilter === t ? "rgba(96,165,250,0.12)" : "transparent", color: instFilter === t ? "#60A5FA" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{t}</button>
                   ))}
                 </div>
                 <div className="responsive-grid">
-                  {loading ? t.inapakia : dataList.filter(ins => instFilter === "Zote" || ins.type === instFilter).map(ins => <InstitutionCard key={ins.id} ins={ins} t={t} />)}
+                  {loading ? t.inapakia : (() => {
+                    const filtered = dataList.filter(ins => instFilter === "Zote" || ins.type === instFilter);
+                    const startIndex = (instPage - 1) * itemsPerPage;
+                    const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+                    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+                    if (filtered.length === 0) return <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 40, opacity: 0.4 }}>Hakuna taasisi iliyopatikana</div>;
+
+                    return (
+                      <>
+                        {paginated.map(ins => <InstitutionCard key={ins.id} ins={ins} t={t} />)}
+                        
+                        {totalPages > 1 && (
+                          <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", gap: 10, marginTop: 20, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                            <button 
+                              disabled={instPage === 1} 
+                              onClick={() => setInstPage(p => p - 1)}
+                              style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "none", color: "#FFF", cursor: instPage === 1 ? "default" : "pointer", opacity: instPage === 1 ? 0.2 : 1 }}
+                            >
+                              ← {t.nyuma || "Nyuma"}
+                            </button>
+                            <span style={{ display: "flex", alignItems: "center", fontSize: 13, opacity: 0.5 }}>{instPage} / {totalPages}</span>
+                            <button 
+                              disabled={instPage === totalPages} 
+                              onClick={() => setInstPage(p => p + 1)}
+                              style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "none", color: "#FFF", cursor: instPage === totalPages ? "default" : "pointer", opacity: instPage === totalPages ? 0.2 : 1 }}
+                            >
+                              {t.mbele || "Mbele"} →
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -1463,41 +1500,74 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
 
                 <div style={{ display: "flex", gap: 5, marginBottom: 20, flexWrap: "wrap" }}>
                   {["Zote", "Dataset", "Tutorial", "Guide", "Research Paper"].map(t => (
-                    <button key={t} onClick={() => setResFilter(t)} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${resFilter === t ? "#34D399" : "rgba(255,255,255,0.1)"}`, background: resFilter === t ? "rgba(52,211,153,0.12)" : "transparent", color: resFilter === t ? "#34D399" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{t}</button>
+                    <button key={t} onClick={() => { setResFilter(t); setResPage(1); }} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${resFilter === t ? "#34D399" : "rgba(255,255,255,0.1)"}`, background: resFilter === t ? "rgba(52,211,153,0.12)" : "transparent", color: resFilter === t ? "#34D399" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{t}</button>
                   ))}
                 </div>
                 <div className="responsive-grid">
-                  {loading ? t.inapakia : dataList.filter(r => resFilter === "Zote" || r.type === resFilter).map(r => {
-                    const typeColor = { Dataset: "#4ECDC4", Tutorial: "#F5A623", Guide: "#34D399", "Research Paper": "#A78BFA" };
-                    const tc = typeColor[r.type] || "#F5A623";
-                    const tags = Array.isArray(r.tags) ? r.tags : (typeof r.tags === 'string' ? JSON.parse(r.tags || "[]") : []);
-                    const isPending = r.status === "pending";
+                  {loading ? t.inapakia : (() => {
+                    const filtered = dataList.filter(r => resFilter === "Zote" || r.type === resFilter);
+                    const startIndex = (resPage - 1) * itemsPerPage;
+                    const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
+                    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+                    if (filtered.length === 0) return <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 40, opacity: 0.4 }}>Hakuna rasilimali iliyopatikana</div>;
+
                     return (
-                      <div key={r.id} style={{ background: "rgba(255,255,255,0.025)", border: `1px solid ${isPending ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", cursor: "pointer", transition: "all 0.2s", opacity: isPending ? 0.8 : 1 }} className="post-card">
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            <Pill label={r.type} bg={`${tc}18`} color={tc} />
-                            {isPending && <Pill label="⏳ INASUBIRI" bg="rgba(245,166,35,0.1)" color="#F5A623" />}
+                      <>
+                        {paginated.map(r => {
+                          const typeColor = { Dataset: "#4ECDC4", Tutorial: "#F5A623", Guide: "#34D399", "Research Paper": "#A78BFA" };
+                          const tc = typeColor[r.type] || "#F5A623";
+                          const tags = Array.isArray(r.tags) ? r.tags : (typeof r.tags === 'string' ? JSON.parse(r.tags || "[]") : []);
+                          const isPending = r.status === "pending";
+                          return (
+                            <div key={r.id} style={{ background: "rgba(255,255,255,0.025)", border: `1px solid ${isPending ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", cursor: "pointer", transition: "all 0.2s", opacity: isPending ? 0.8 : 1 }} className="post-card">
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                  <Pill label={r.type} bg={`${tc}18`} color={tc} />
+                                  {isPending && <Pill label="⏳ INASUBIRI" bg="rgba(245,166,35,0.1)" color="#F5A623" />}
+                                </div>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F5A623" }}>⭐ {r.stars}</span>}
+                                  {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.35)" }}>↓ {r.downloads?.toLocaleString()}</span>}
+                                </div>
+                              </div>
+                              <h3 style={{ fontWeight: 800, fontSize: 14, letterSpacing: "-0.01em", marginBottom: 5, lineHeight: 1.3, flex: 1 }}>{r.title}</h3>
+                              <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.3)", marginBottom: 8 }}>by {r.author_name || 'JamiiAI Team'}</div>
+                              <p style={{ fontSize: 12, color: "rgba(220,230,240,0.52)", lineHeight: 1.6, marginBottom: 12, height: 38, overflow: "hidden" }}>{r.description}</p>
+                              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
+                                {tags.slice(0, 3).map(t => <SkillTag key={t} label={t} />)}
+                              </div>
+                              {isPending ? (
+                                <div style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.15)", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "rgba(245,166,35,0.6)", textAlign: "center", fontWeight: 700 }}>MAPITIO YA ADMIN...</div>
+                              ) : (
+                                <button style={{ background: tc, color: "#0A0F1C", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',sans-serif", fontWeight: 800, fontSize: 12, marginTop: "auto" }}>Pakua / Angalia →</button>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {totalPages > 1 && (
+                          <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", gap: 10, marginTop: 20, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                            <button 
+                              disabled={resPage === 1} 
+                              onClick={() => setResPage(p => p - 1)}
+                              style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "none", color: "#FFF", cursor: resPage === 1 ? "default" : "pointer", opacity: resPage === 1 ? 0.2 : 1 }}
+                            >
+                              ← {t.nyuma || "Nyuma"}
+                            </button>
+                            <span style={{ display: "flex", alignItems: "center", fontSize: 13, opacity: 0.5 }}>{resPage} / {totalPages}</span>
+                            <button 
+                              disabled={resPage === totalPages} 
+                              onClick={() => setResPage(p => p + 1)}
+                              style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "none", color: "#FFF", cursor: resPage === totalPages ? "default" : "pointer", opacity: resPage === totalPages ? 0.2 : 1 }}
+                            >
+                              {t.mbele || "Mbele"} →
+                            </button>
                           </div>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F5A623" }}>⭐ {r.stars}</span>}
-                            {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.35)" }}>↓ {r.downloads?.toLocaleString()}</span>}
-                          </div>
-                        </div>
-                        <h3 style={{ fontWeight: 800, fontSize: 14, letterSpacing: "-0.01em", marginBottom: 5, lineHeight: 1.3, flex: 1 }}>{r.title}</h3>
-                        <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.3)", marginBottom: 8 }}>by {r.author_name || 'JamiiAI Team'}</div>
-                        <p style={{ fontSize: 12, color: "rgba(220,230,240,0.52)", lineHeight: 1.6, marginBottom: 12, height: 38, overflow: "hidden" }}>{r.description}</p>
-                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
-                          {tags.slice(0, 3).map(t => <SkillTag key={t} label={t} />)}
-                        </div>
-                        {isPending ? (
-                          <div style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.15)", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "rgba(245,166,35,0.6)", textAlign: "center", fontWeight: 700 }}>MAPITIO YA ADMIN...</div>
-                        ) : (
-                          <button style={{ background: tc, color: "#0A0F1C", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',sans-serif", fontWeight: 800, fontSize: 12, marginTop: "auto" }}>Pakua / Angalia →</button>
                         )}
-                      </div>
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
             )}
