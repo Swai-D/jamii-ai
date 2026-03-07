@@ -24,7 +24,21 @@ require("dotenv").config();
 const app  = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
+const allowedOrigins = [
+  process.env.CLIENT_URL || "http://localhost:5173",
+  process.env.ADMIN_URL || "http://localhost:5174"
+];
+
+app.use(cors({ 
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }, 
+  credentials: true 
+}));
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
@@ -224,7 +238,7 @@ const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server, {
-  cors: { origin: [process.env.CLIENT_URL, process.env.ADMIN_URL, "http://localhost:3000","http://localhost:3001","http://localhost:5173"], credentials:true }
+  cors: { origin: allowedOrigins, credentials:true }
 });
 global.io = io;
 
