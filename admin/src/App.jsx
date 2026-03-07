@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
 import { authAPI } from "./lib/api";
+import { LogOut, Globe, Shield, Activity, Users, Settings, Bell, Briefcase, FileText, BarChart3, Star, Layers, Zap } from "lucide-react";
 
 const MONO = "'Roboto Mono', monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+
+function Av({ i, c, s = 32 }) {
+  return (
+    <div style={{ width: s, height: s, borderRadius: "50%", background: c || "#F5A623", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO, fontWeight: 700, fontSize: s * 0.35, color: "#0A0F1C", flexShrink: 0 }}>
+      {i}
+    </div>
+  );
+}
 
 // ─── HELPERS (Matching Community Design) ──────────────────────────────────
 function FloatLabel({ label, children, error }) {
@@ -220,12 +229,6 @@ const NAV = [
 ];
 
 // ── HELPERS ───────────────────────────────────────────────────────
-function Av({ i, c, s = 34 }) {
-  return (
-    <div style={{ width:s, height:s, borderRadius:"50%", background:c, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:MONO, fontWeight:700, fontSize:s*.3, color:"#0C0C0E", flexShrink:0 }}>{i}</div>
-  );
-}
-
 function Badge({ label, color }) {
   return <span style={{ fontFamily:MONO, fontSize:10, fontWeight:700, padding:"2px 8px", borderRadius:20, background:`${color}18`, color, whiteSpace:"nowrap" }}>{label}</span>;
 }
@@ -2688,14 +2691,15 @@ export default function AdminPanel() {
         <div style={{ flex:1 }} />
 
         {/* Admin user */}
-        <div style={{ borderTop:"1px solid #1E1E20", paddingTop:14 }}>
-          <div style={{ display:"flex", gap:9, alignItems:"center", padding:"8px 6px", borderRadius:9 }}>
+        <div style={{ borderTop:"1px solid #1E1E20", paddingTop:14, marginTop: "auto" }}>
+          <div onClick={handleLogout} style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, cursor: "pointer", opacity: 0.4, padding: "4px 8px", fontFamily: MONO }}><LogOut size={14} /> Toka (Logout)</div>
+          
+          <div style={{ display: "flex", gap: 10, alignItems: "center", background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: 12, border: "1px solid transparent" }}>
             <Av i={adminUser.name?.[0]||"A"} c="#F5A623" s={30} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight:600, fontSize:12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{adminUser.name}</div>
+              <div style={{ fontWeight:600, fontSize:11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{adminUser.name}</div>
               <div style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.3)" }}>{adminUser.role_name || "Admin"}</div>
             </div>
-            <button onClick={handleLogout} style={{ background: "transparent", border: "none", color: "rgba(242,242,245,0.3)", cursor: "pointer", fontSize: 14 }}>🚪</button>
           </div>
         </div>
       </aside>
