@@ -1229,13 +1229,9 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
 
         {/* MAIN — SCROLLABLE */}
         <main style={{ flex: 1, minWidth: 0, borderRight: "1px solid rgba(255,255,255,0.06)", overflowY: "auto", height: "100vh", scrollBehavior: "smooth" }}>
-          <div style={{ position: "sticky", top: 0, background: "rgba(10,15,28,0.93)", backdropFilter: "blur(20px)", padding: "12px 22px", borderBottom: "1px solid rgba(255,255,255,0.06)", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
+          <div style={{ position: "sticky", top: 0, background: "rgba(10,15,28,0.93)", backdropFilter: "blur(20px)", padding: "12px 22px", borderBottom: "1px solid rgba(255,255,255,0.06)", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <h1 style={{ fontWeight: 800, fontSize: 18, whiteSpace: "nowrap" }}>{t['kichwa_' + activeNav] || PAGE_TITLE[activeNav]}</h1>
             
-            <div style={{ flex: 1, display: "flex", justifyContent: "center", maxWidth: "500px" }}>
-              <SearchBar onNavigate={(v, p) => { if(v==='search') onSearch(p.q); else setActiveNav(v); }} />
-            </div>
-
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <NotificationBell socket={socket} />
               <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
@@ -1731,13 +1727,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
             
             {/* Search */}
             <div style={{ position: "relative", flexShrink: 0 }}>
-              <input 
-                placeholder="Tafuta JamiiAI..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px 10px 34px", color: "#F2F2F5", fontFamily: "'Roboto Mono',monospace", fontSize: 13, outline: "none" }} 
-              />
-              <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: "rgba(220,230,240,0.28)", fontSize: 13 }}><Search size={14} /></span>
+              <SearchBar onNavigate={(v, p) => { if(v==='search') onSearch(p.q); else setActiveNav(v); }} />
             </div>
 
             <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 18, paddingRight: 4 }}>
