@@ -3,6 +3,45 @@ import { authAPI } from "./lib/api";
 
 const MONO = "'Roboto Mono', monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
 
+// ─── HELPERS (Matching Community Design) ──────────────────────────────────
+function FloatLabel({ label, children, error }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <label style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, letterSpacing: "0.12em", color: error ? "#F87171" : "rgba(220,230,240,0.45)", textTransform: "uppercase" }}>{label}</label>
+      {children}
+      {error && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F87171" }}>{error}</span>}
+    </div>
+  );
+}
+
+function Input({ value, onChange, placeholder, type = "text", error }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <input
+      type={type} value={value} onChange={onChange} placeholder={placeholder}
+      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+      style={{
+        background: "rgba(255,255,255,0.04)", border: `1px solid ${error ? "#F87171" : focused ? "#F5A623" : "rgba(255,255,255,0.1)"}`,
+        borderRadius: 10, padding: "13px 16px", color: "#DCE6F0", fontFamily: "'Roboto Mono',monospace",
+        fontSize: 15, outline: "none", transition: "border-color 0.2s", width: "100%",
+      }}
+    />
+  );
+}
+
+function Btn({ children, onClick, variant = "primary", disabled, full }) {
+  const styles = {
+    primary: { background: disabled ? "rgba(245,166,35,0.3)" : "#F5A623", color: "#0A0F1C" },
+    ghost:   { background: "transparent", color: "rgba(220,230,240,0.6)", border: "1px solid rgba(255,255,255,0.12)" },
+    danger:  { background: "rgba(248,113,113,0.12)", color: "#F87171", border: "1px solid rgba(248,113,113,0.25)" },
+  };
+  return (
+    <button onClick={disabled ? undefined : onClick} style={{ ...styles[variant], padding: "13px 28px", borderRadius: 10, cursor: disabled ? "default" : "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14, border: styles[variant].border || "none", transition: "all 0.2s", width: full ? "100%" : "auto", letterSpacing: "0.01em", ...(variant === "primary" && !disabled ? { boxShadow: "0 8px 24px rgba(245,166,35,0.2)" } : {}) }}>
+      {children}
+    </button>
+  );
+}
+
 function AdminAuth({ onLogin }) {
   const [email, setEmail] = useState("admin@jamii.ai.com");
   const [password, setPassword] = useState("davyswai@jamii.ai.2026");
@@ -28,49 +67,68 @@ function AdminAuth({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#080C14", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ width: "100%", maxWidth: 400, background: "#161618", border: "1px solid #232325", borderRadius: 20, padding: 40 }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ fontSize: 40, marginBottom: 16 }}>🇹🇿</div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, letterSpacing: "-0.03em", color: "#F5A623" }}>JamiiAI Admin</h1>
-          <p style={{ fontSize: 14, color: "rgba(242,242,245,0.4)", marginTop: 8 }}>Ingia kusimamia community</p>
+    <div style={{ fontFamily: "'Roboto Mono',monospace", background: "#0A0F1C", color: "#DCE6F0", minHeight: "100vh", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
+        * { margin:0; padding:0; box-sizing:border-box; }
+        @keyframes panelIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        .panel-in { animation: panelIn 0.35s ease forwards; }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+        .float { animation: float 6s ease-in-out infinite; }
+      `}</style>
+
+      {/* ── LEFT — BRANDING PANEL ── */}
+      <div style={{ background: "linear-gradient(160deg, #0D1322 0%, #0A0F1C 100%)", borderRight: "1px solid rgba(255,255,255,0.06)", padding: "48px 56px", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(245,166,35,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.04) 1px,transparent 1px)", backgroundSize: "50px 50px", pointerEvents: "none" }} />
+        
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "auto", position: "relative", zIndex: 1 }}>
+          <div style={{ width: 36, height: 36, background: "#F5A623", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🌍</div>
+          <span style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.03em" }}>Jamii<span style={{ color: "#F5A623" }}>AI</span></span>
         </div>
 
-        {error && (
-          <div style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10, padding: "12px 16px", color: "#F87171", fontSize: 13, marginBottom: 24, textAlign: "center", fontFamily: MONO }}>
-            {error}
-          </div>
-        )}
+        <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div className="float" style={{ fontSize: 72, marginBottom: 28, textAlign: "center" }}>🛡️</div>
+          <h1 style={{ fontSize: "clamp(28px,3vw,44px)", fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.1, marginBottom: 20 }}>
+            JamiiAI<br /><span style={{ color: "#F5A623" }}>Admin Control</span>
+          </h1>
+          <p style={{ color: "rgba(220,230,240,0.5)", fontSize: 15, lineHeight: 1.75, marginBottom: 40, maxWidth: 380 }}>
+            Mfumo wa usimamizi wa community ya AI Tanzania. Simamia watumiaji, maudhui, na mipangilio ya platform.
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ fontFamily: MONO, fontSize: 10, color: "rgba(242,242,245,0.38)", letterSpacing: "0.04em", display: "block", marginBottom: 8 }}>EMAIL ADDRESS</label>
-            <input 
-              type="email" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)}
-              style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid #2C2C2E", borderRadius: 10, padding: "12px 16px", color: "#F2F2F5", fontFamily: MONO, fontSize: 14, outline: "none" }}
-              required 
-            />
-          </div>
-          <div style={{ marginBottom: 32 }}>
-            <label style={{ fontFamily: MONO, fontSize: 10, color: "rgba(242,242,245,0.38)", letterSpacing: "0.04em", display: "block", marginBottom: 8 }}>PASSWORD</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)}
-              style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid #2C2C2E", borderRadius: 10, padding: "12px 16px", color: "#F2F2F5", fontFamily: MONO, fontSize: 14, outline: "none" }}
-              required 
-            />
+        <div style={{ position: "relative", zIndex: 1, marginTop: "auto", paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.25)" }}>© 2025 JamiiAI Admin</span>
+          <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.25)" }}>Systems Control 🇹🇿</span>
+        </div>
+      </div>
+
+      {/* ── RIGHT — LOGIN FORM ── */}
+      <div style={{ padding: "48px 56px", display: "flex", flexDirection: "column", justifyContent: "center", overflowY: "auto" }}>
+        <div className="panel-in" style={{ maxWidth: 420, width: "100%", margin: "0 auto" }}>
+          <div style={{ marginBottom: 36 }}>
+            <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 8 }}>Admin Login</h2>
+            <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 14, lineHeight: 1.6 }}>Ingia kusimamia community ya JamiiAI</p>
           </div>
 
-          <button 
-            disabled={loading}
-            style={{ width: "100%", background: "#F5A623", color: "#0C0C0E", border: "none", padding: 14, borderRadius: 12, cursor: loading ? "default" : "pointer", fontFamily: MONO, fontWeight: 800, fontSize: 14, opacity: loading ? 0.7 : 1 }}
-          >
-            {loading ? "Inahakiki..." : "INGIA KWENYE PANEL →"}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <FloatLabel label="Barua Pepe">
+              <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@jamii.ai.com" type="email" />
+            </FloatLabel>
+            <FloatLabel label="Nywila">
+              <Input value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" type="password" />
+            </FloatLabel>
+
+            {error && (
+              <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: "10px 14px", fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F87171" }}>
+                {error}
+              </div>
+            )}
+
+            <Btn disabled={loading} full onClick={handleSubmit}>
+              {loading ? "Inahakiki..." : "Ingia kwenye Panel →"}
+            </Btn>
+          </form>
+        </div>
       </div>
     </div>
   );
