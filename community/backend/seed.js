@@ -2,7 +2,8 @@ const { Pool } = require("pg");
 const { faker } = require("@faker-js/faker");
 const bcrypt = require("bcryptjs");
 const { v4: uuid } = require("uuid");
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 
 const db = new Pool({
   connectionString: process.env.DATABASE_URL
@@ -29,9 +30,9 @@ async function seed() {
     // 0. Test User
     const testUserId = uuid();
     await db.query(
-      `INSERT INTO users (id, name, email, password_hash, handle, role, city, bio, skills, onboarded, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, NOW())`,
-      [testUserId, "Mjaribu JamiiAI", "test@jamii.ai", passwordHash, "test_user", "AI Developer", "Dar es Salaam", "Mimi ni mtumiaji wa majaribio wa JamiiAI.", JSON.stringify(["Python", "React", "AI"]), ]
+      `INSERT INTO users (id, name, email, password_hash, handle, role, city, bio, skills, onboarded, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, NOW(), NOW())`,
+      [testUserId, "Mjaribu JamiiAI", "test@jamii.ai", passwordHash, "test_user", "AI Developer", "Dar es Salaam", "Mimi ni mtumiaji wa majaribio wa JamiiAI.", JSON.stringify(["Python", "React", "AI"])]
     );
     userIds.push(testUserId);
 
@@ -44,8 +45,8 @@ async function seed() {
       const skills = faker.helpers.arrayElements(SKILLS_LIST, { min: 2, max: 5 });
       
       await db.query(
-        `INSERT INTO users (id, name, email, password_hash, handle, role, city, bio, skills, hourly_rate, rating, project_count, available, onboarded, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true, NOW())`,
+        `INSERT INTO users (id, name, email, password_hash, handle, role, city, bio, skills, hourly_rate, rating, project_count, available, onboarded, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true, NOW(), NOW())`,
         [
           id, name, email, passwordHash, handle, 
           faker.helpers.arrayElement(ROLES), 

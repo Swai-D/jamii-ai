@@ -1,6 +1,9 @@
 -- ─────────────────────────────────────────────────────────────────
---  JamiiAI Core Tables (Minimal required for SEHEMU A to run)
+--  JamiiAI Core Tables
 -- ─────────────────────────────────────────────────────────────────
+
+-- Enable extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS users (
   id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -12,10 +15,22 @@ CREATE TABLE IF NOT EXISTS users (
   role              VARCHAR(100),
   city              VARCHAR(100),
   bio               TEXT,
+  interests         JSONB DEFAULT '[]',
+  skills            JSONB DEFAULT '[]',
+  notification_prefs JSONB DEFAULT '{}',
+  hourly_rate       VARCHAR(50),
+  rating            DECIMAL(3,2) DEFAULT 0.0,
+  project_count     INTEGER DEFAULT 0,
+  available         BOOLEAN DEFAULT true,
+  github_url        TEXT,
+  linkedin_url      TEXT,
+  website_url       TEXT,
   onboarded         BOOLEAN DEFAULT false,
   is_verified       BOOLEAN DEFAULT false,
   is_admin          BOOLEAN DEFAULT false,
   status            VARCHAR(20) DEFAULT 'active',
+  reset_token       VARCHAR(255),
+  reset_token_expiry TIMESTAMPTZ,
   created_at        TIMESTAMPTZ DEFAULT NOW(),
   updated_at        TIMESTAMPTZ DEFAULT NOW()
 );
@@ -24,29 +39,116 @@ CREATE TABLE IF NOT EXISTS posts (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
   content     TEXT,
+  image_url   TEXT,
+  category    VARCHAR(50) DEFAULT 'swali',
   created_at  TIMESTAMPTZ DEFAULT NOW(),
   is_deleted  BOOLEAN DEFAULT false,
   is_flagged  BOOLEAN DEFAULT false
 );
 
+CREATE TABLE IF NOT EXISTS comments (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id     UUID REFERENCES posts(id) ON DELETE CASCADE,
+  user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+  text        TEXT,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS post_likes (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id     UUID REFERENCES posts(id) ON DELETE CASCADE,
+  user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id     UUID REFERENCES posts(id) ON DELETE CASCADE,
+  user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(post_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS follows (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  follower_id   UUID REFERENCES users(id) ON DELETE CASCADE,
+  following_id  UUID REFERENCES users(id) ON DELETE CASCADE,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(follower_id, following_id)
+);
+
 CREATE TABLE IF NOT EXISTS news (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title        VARCHAR(500),
+  summary      TEXT,
+  category     VARCHAR(50),
+  source       VARCHAR(100),
+  source_url   TEXT,
+  raw_summary  TEXT,
+  ai_summary   TEXT,
+  scraped_at   TIMESTAMPTZ,
+  published_at TIMESTAMPTZ DEFAULT NOW(),
+  status       VARCHAR(20) DEFAULT 'published',
+  is_hot       BOOLEAN DEFAULT false,
+  read_count   INTEGER DEFAULT 0,
+  region       VARCHAR(50) DEFAULT 'Global',
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS challenges (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title        VARCHAR(255),
+  org          VARCHAR(255),
+  prize        VARCHAR(100),
+  prize_usd    INTEGER DEFAULT 0,
+  prize_display VARCHAR(100),
+  deadline     TIMESTAMPTZ,
+  category     VARCHAR(100),
+  difficulty   VARCHAR(50),
+  status       VARCHAR(20) DEFAULT 'open',
+  source       VARCHAR(50) DEFAULT 'manual',
+  source_url   TEXT,
+  external_id  VARCHAR(200),
+  description  TEXT,
+  raw_desc     TEXT,
+  ai_summary   TEXT,
+  tags         JSONB DEFAULT '[]',
+  color        VARCHAR(20),
+  region       VARCHAR(100) DEFAULT 'Global',
+  is_hot       BOOLEAN DEFAULT false,
+  participants INTEGER DEFAULT 0,
+  scraped_at   TIMESTAMPTZ,
+  reviewed_by  UUID REFERENCES users(id),
+  reviewed_at  TIMESTAMPTZ,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS challenge_registrations (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  challenge_id  UUID REFERENCES challenges(id) ON DELETE CASCADE,
+  user_id       UUID REFERENCES users(id) ON DELETE CASCADE,
+  registered_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(challenge_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS resources (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title       VARCHAR(255),
-  description TEXT,
-  tags        JSONB DEFAULT '[]',
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title         VARCHAR(255),
+  type          VARCHAR(50),
+  author_name   VARCHAR(255),
+  description   TEXT,
+  link          TEXT,
+  tags          JSONB DEFAULT '[]',
+  color         VARCHAR(20),
+  stars         INTEGER DEFAULT 0,
+  downloads     INTEGER DEFAULT 0,
+  status        VARCHAR(20) DEFAULT 'approved',
+  user_id       UUID REFERENCES users(id),
+  submitted_by  UUID REFERENCES users(id),
+  reviewed_by   UUID REFERENCES users(id),
+  reviewed_at   TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -54,23 +156,85 @@ CREATE TABLE IF NOT EXISTS messages (
   sender_id   UUID REFERENCES users(id) ON DELETE CASCADE,
   receiver_id UUID REFERENCES users(id) ON DELETE CASCADE,
   text        TEXT,
+  image_url   TEXT,
+  is_read     BOOLEAN DEFAULT false,
+  deleted_at  TIMESTAMPTZ,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS notifications (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id       UUID REFERENCES users(id) ON DELETE CASCADE,
+  type          VARCHAR(50) DEFAULT 'general',
+  type_str      VARCHAR(50), -- Used in some server routes
+  title         TEXT,
+  actor_id      UUID REFERENCES users(id),
+  actor_name    VARCHAR(200),
+  actor_handle  VARCHAR(100),
+  actor_avatar  TEXT,
+  is_read       BOOLEAN DEFAULT false,
+  link          TEXT,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS events (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+  name        VARCHAR(255),
+  type        VARCHAR(100),
+  date        TIMESTAMPTZ,
+  location    VARCHAR(255),
+  is_online   BOOLEAN DEFAULT false,
+  color       VARCHAR(20),
+  description TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS event_registrations (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_id    UUID REFERENCES events(id) ON DELETE CASCADE,
+  user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS startups (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name        VARCHAR(255),
+  logo        TEXT,
+  color       VARCHAR(20),
+  sector      VARCHAR(100),
+  stage       VARCHAR(50),
+  location    VARCHAR(100),
+  founded     INTEGER,
+  team_size   INTEGER,
+  description TEXT,
+  tech_stack  JSONB DEFAULT '[]',
+  funding     VARCHAR(100),
+  is_hiring   BOOLEAN DEFAULT false,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS institutions (
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name             VARCHAR(255),
+  short_name       VARCHAR(50),
+  logo             TEXT,
+  color            VARCHAR(20),
+  type             VARCHAR(100),
+  location         VARCHAR(100),
+  department       VARCHAR(255),
+  focus_areas      JSONB DEFAULT '[]',
+  description      TEXT,
+  student_count    INTEGER,
+  researcher_count INTEGER,
+  website          TEXT,
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ═══════════════════════════════════════════════════
--- SEHEMU A — DATABASE (schema.sql)
+-- PLATFORM SETTINGS
 -- ═══════════════════════════════════════════════════
 
--- Enable extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- A1 — Platform Settings Table
 CREATE TABLE IF NOT EXISTS platform_settings (
   id         SERIAL PRIMARY KEY,
   key        VARCHAR(100) UNIQUE NOT NULL,
@@ -108,7 +272,10 @@ INSERT INTO platform_settings (key, value) VALUES
   ('jobs_default_deadline_days',    '30')
 ON CONFLICT (key) DO NOTHING;
 
--- A2 — Roles & Permissions
+-- ═══════════════════════════════════════════════════
+-- ROLES & PERMISSIONS
+-- ═══════════════════════════════════════════════════
+
 CREATE TABLE IF NOT EXISTS roles (
   id          SERIAL PRIMARY KEY,
   name        VARCHAR(50) UNIQUE NOT NULL,
@@ -133,7 +300,10 @@ INSERT INTO roles (name, permissions, color) VALUES
   ('analyst',     '["analytics","billing.view"]',                    '#94A3B8')
 ON CONFLICT (name) DO NOTHING;
 
--- A3 — Billing & Subscriptions
+-- ═══════════════════════════════════════════════════
+-- BILLING & SUBSCRIPTIONS
+-- ═══════════════════════════════════════════════════
+
 CREATE TABLE IF NOT EXISTS subscriptions (
   id            SERIAL PRIMARY KEY,
   user_id       UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -157,7 +327,10 @@ CREATE TABLE IF NOT EXISTS invoices (
   created_at      TIMESTAMP DEFAULT NOW()
 );
 
--- A4 — Announcements
+-- ═══════════════════════════════════════════════════
+-- ANNOUNCEMENTS
+-- ═══════════════════════════════════════════════════
+
 CREATE TABLE IF NOT EXISTS announcements (
   id           SERIAL PRIMARY KEY,
   title        TEXT NOT NULL,
@@ -172,7 +345,10 @@ CREATE TABLE IF NOT EXISTS announcements (
   created_at   TIMESTAMP DEFAULT NOW()
 );
 
--- A5 — Jobs (Kazi Board)
+-- ═══════════════════════════════════════════════════
+-- JOBS (Kazi Board)
+-- ═══════════════════════════════════════════════════
+
 DO $$ 
 BEGIN 
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'job_type') THEN
@@ -243,6 +419,10 @@ CREATE TABLE IF NOT EXISTS saved_jobs (
   PRIMARY KEY (user_id, job_id)
 );
 
+-- ═══════════════════════════════════════════════════
+-- INDEXES
+-- ═══════════════════════════════════════════════════
+
 CREATE INDEX IF NOT EXISTS idx_jobs_status    ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_jobs_type      ON jobs(type);
 CREATE INDEX IF NOT EXISTS idx_jobs_country   ON jobs(country);
@@ -252,71 +432,6 @@ CREATE INDEX IF NOT EXISTS idx_jobs_created   ON jobs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_apps_job       ON job_applications(job_id);
 CREATE INDEX IF NOT EXISTS idx_apps_applicant ON job_applications(applicant_id);
 
--- A6 — Alter existing tables
-
--- posts — image uploads
-ALTER TABLE posts
-  ADD COLUMN IF NOT EXISTS image_url TEXT;
-
--- resources — community submissions
-ALTER TABLE resources
-  ADD COLUMN IF NOT EXISTS status       VARCHAR(20) DEFAULT 'approved',
-  ADD COLUMN IF NOT EXISTS link         TEXT,
-  ADD COLUMN IF NOT EXISTS submitted_by UUID REFERENCES users(id),
-  ADD COLUMN IF NOT EXISTS reviewed_by  UUID REFERENCES users(id),
-  ADD COLUMN IF NOT EXISTS reviewed_at  TIMESTAMP;
-
--- news — Apify scraping fields
-ALTER TABLE news
-  ADD COLUMN IF NOT EXISTS source      VARCHAR(100),
-  ADD COLUMN IF NOT EXISTS source_url  TEXT,
-  ADD COLUMN IF NOT EXISTS raw_summary TEXT,
-  ADD COLUMN IF NOT EXISTS ai_summary  TEXT,
-  ADD COLUMN IF NOT EXISTS scraped_at  TIMESTAMP,
-  ADD COLUMN IF NOT EXISTS status      VARCHAR(20) DEFAULT 'published',
-  ADD COLUMN IF NOT EXISTS is_hot      BOOLEAN DEFAULT false,
-  ADD COLUMN IF NOT EXISTS region      VARCHAR(50) DEFAULT 'Global';
-
--- challenges — external sources
-ALTER TABLE challenges
-  ADD COLUMN IF NOT EXISTS status         VARCHAR(20) DEFAULT 'open',
-  ADD COLUMN IF NOT EXISTS source         VARCHAR(50) DEFAULT 'manual',
-  ADD COLUMN IF NOT EXISTS source_url     TEXT,
-  ADD COLUMN IF NOT EXISTS external_id    VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS prize_usd      INTEGER DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS prize_display  VARCHAR(100),
-  ADD COLUMN IF NOT EXISTS deadline       TIMESTAMP,
-  ADD COLUMN IF NOT EXISTS difficulty     VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS region         VARCHAR(100) DEFAULT 'Global',
-  ADD COLUMN IF NOT EXISTS ai_summary     TEXT,
-  ADD COLUMN IF NOT EXISTS raw_desc       TEXT,
-  ADD COLUMN IF NOT EXISTS is_hot         BOOLEAN DEFAULT false,
-  ADD COLUMN IF NOT EXISTS participants   INTEGER DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS scraped_at     TIMESTAMP,
-  ADD COLUMN IF NOT EXISTS reviewed_by    UUID REFERENCES users(id),
-  ADD COLUMN IF NOT EXISTS reviewed_at    TIMESTAMP;
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_challenges_external
-  ON challenges(source, external_id)
-  WHERE external_id IS NOT NULL;
-
--- messages — DM additional fields
-ALTER TABLE messages
-  ADD COLUMN IF NOT EXISTS image_url  TEXT,
-  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
-
--- notifications — full fields
-ALTER TABLE notifications
-  ADD COLUMN IF NOT EXISTS type         VARCHAR(50) DEFAULT 'general',
-  ADD COLUMN IF NOT EXISTS title        TEXT,
-  ADD COLUMN IF NOT EXISTS actor_id     UUID REFERENCES users(id),
-  ADD COLUMN IF NOT EXISTS actor_name   VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS actor_handle VARCHAR(100),
-  ADD COLUMN IF NOT EXISTS actor_avatar TEXT,
-  ADD COLUMN IF NOT EXISTS is_read      BOOLEAN DEFAULT false,
-  ADD COLUMN IF NOT EXISTS link         TEXT;
-
--- A7 — Full-text Search Indexes
 CREATE INDEX IF NOT EXISTS idx_users_search ON users USING gin(
   to_tsvector('english',
     coalesce(name,'') || ' ' || coalesce(handle,'') || ' ' ||

@@ -51,11 +51,81 @@ const db = new Pool({
 db.connect()
   .then(async () => {
     console.log("✅ Database imeunganishwa");
-    // Auto-migration: Hakikisha column za reset password zipo
+    // Auto-migration: Hakikisha column na table zote zipo
     try {
       await db.query(`
+        -- Users table enhancements
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS handle VARCHAR(50) UNIQUE;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(100);
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS city VARCHAR(100);
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS interests JSONB DEFAULT '[]';
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS skills JSONB DEFAULT '[]';
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_prefs JSONB DEFAULT '{}';
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS hourly_rate VARCHAR(50);
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS rating DECIMAL(3,2) DEFAULT 0.0;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS project_count INTEGER DEFAULT 0;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS available BOOLEAN DEFAULT true;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarded BOOLEAN DEFAULT false;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS github_url TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS linkedin_url TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS website_url TEXT;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);
         ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMPTZ;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+        -- Posts table enhancements
+        ALTER TABLE posts ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'swali';
+        ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+        -- Missing tables
+        CREATE TABLE IF NOT EXISTS follows (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          follower_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          following_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(follower_id, following_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS post_likes (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(post_id, user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS bookmarks (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(post_id, user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS comments (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          text TEXT,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS event_registrations (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(event_id, user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS challenge_registrations (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          challenge_id UUID REFERENCES challenges(id) ON DELETE CASCADE,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          registered_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(challenge_id, user_id)
+        );
       `);
       console.log("✅ Database migration imekamilika");
     } catch (err) {
@@ -280,7 +350,7 @@ authRouter.post("/register", async (req, res) => {
     const user = result.rows[0];
     res.status(201).json({ token: signToken(user), user });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Register error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
@@ -302,6 +372,7 @@ authRouter.post("/login", async (req, res) => {
     const { password_hash, ...safe } = user;
     res.json({ token: signToken(user), user: safe });
   } catch (err) {
+    console.error("❌ Login error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
@@ -392,6 +463,7 @@ authRouter.patch("/onboard", auth, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
+    console.error("❌ Onboard error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
