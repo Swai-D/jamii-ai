@@ -288,7 +288,13 @@ authRouter.post("/register", async (req, res) => {
 authRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const result = await db.query("SELECT * FROM users WHERE email = $1", [email?.toLowerCase()]);
+    const result = await db.query(
+      `SELECT u.*, r.name as role_name 
+       FROM users u
+       LEFT JOIN user_roles ur ON u.id = ur.user_id
+       LEFT JOIN roles r ON ur.role_id = r.id
+       WHERE u.email = $1`, [email?.toLowerCase()]
+    );
     const user = result.rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash)))
       return res.status(401).json({ error: "Barua pepe au nywila si sahihi" });
@@ -355,11 +361,14 @@ authRouter.post("/reset-password", async (req, res) => {
 authRouter.get("/me", auth, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT u.*, 
+      `SELECT u.*, r.name as role_name,
         (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS post_count,
         (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
         (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following
-       FROM users u WHERE u.id = $1`,
+       FROM users u
+       LEFT JOIN user_roles ur ON u.id = ur.user_id
+       LEFT JOIN roles r ON ur.role_id = r.id
+       WHERE u.id = $1`,
       [req.user.id]
     );
     const { password_hash, ...user } = result.rows[0];
