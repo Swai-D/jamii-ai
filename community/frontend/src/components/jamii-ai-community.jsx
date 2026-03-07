@@ -3,6 +3,11 @@ import axios from "axios";
 import { Heart, MessageSquare, Bookmark, Share2, Send, Languages, Star, Users, MapPin, Briefcase, ExternalLink, Zap, Github, Linkedin, Twitter, Mail, Phone, CheckCircle2, Trophy, Calendar, Globe, Clock, Search, ChevronRight, LogOut } from "lucide-react";
 import { translations } from "../translations";
 import ProfilePage from "./jamii-ai-profile";
+import SearchBar from "./SearchBar";
+import NotificationBell from "./NotificationBell";
+import DirectMessages from "./DirectMessages";
+
+// ... (existing constants)
 
 const API_URL = "http://localhost:4000/api";
 
@@ -1001,8 +1006,9 @@ function PostCard({ post, onLike, onBookmark, me, t }) {
 
 // ─── MAIN COMMUNITY ──────────────────────────────────────────────────────────
 
-export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLang }) {
+export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLang, socket, onSearch }) {
   const t = translations[lang];
+// ... (rest of the component)
   const ME = { 
     id: user?.id,
     name: user?.name || "Mgeni", 
@@ -1223,8 +1229,20 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
 
         {/* MAIN — SCROLLABLE */}
         <main style={{ flex: 1, minWidth: 0, borderRight: "1px solid rgba(255,255,255,0.06)", overflowY: "auto", height: "100vh", scrollBehavior: "smooth" }}>
-          <div style={{ position: "sticky", top: 0, background: "rgba(10,15,28,0.93)", backdropFilter: "blur(20px)", padding: "15px 22px", borderBottom: "1px solid rgba(255,255,255,0.06)", zIndex: 10 }}>
-            <h1 style={{ fontWeight: 700, fontSize: 17 }}>{activeNav === 'profile' ? (lang === 'sw' ? 'Profile Yako 👤' : 'Your Profile 👤') : (t['kichwa_' + activeNav] || PAGE_TITLE[activeNav])}</h1>
+          <div style={{ position: "sticky", top: 0, background: "rgba(10,15,28,0.93)", backdropFilter: "blur(20px)", padding: "12px 22px", borderBottom: "1px solid rgba(255,255,255,0.06)", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
+            <h1 style={{ fontWeight: 800, fontSize: 18, whiteSpace: "nowrap" }}>{t['kichwa_' + activeNav] || PAGE_TITLE[activeNav]}</h1>
+            
+            <div style={{ flex: 1, display: "flex", justifyContent: "center", maxWidth: "500px" }}>
+              <SearchBar onNavigate={(v, p) => { if(v==='search') onSearch(p.q); else setActiveNav(v); }} />
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <NotificationBell socket={socket} />
+              <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
+              <div onClick={() => setActiveNav("profile")} style={{ cursor: "pointer" }}>
+                <Av initials={ME.avatar} size={32} color="#F5A623" />
+              </div>
+            </div>
           </div>
           <div style={{ padding: "18px 22px", maxWidth: (activeNav === "ujumbe" || activeNav === "profile" || activeNav === "wataalamu" || activeNav === "startups") ? "1100px" : "800px", margin: "0 auto" }}>
             
@@ -1703,7 +1721,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
               </div>
             )}
 
-            {activeNav === "ujumbe" && <MessagingUI user={ME} t={t} />}
+            {activeNav === "ujumbe" && <DirectMessages user={ME} socket={socket} t={t} />}
           </div>
         </main>
 

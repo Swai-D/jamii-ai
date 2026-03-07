@@ -1,26 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { io } from 'socket.io-client';
 import { Toaster, toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 
+import { authAPI, searchAPI } from './lib/api';
 import LandingPageV2 from './components/jamii-ai-landing-v2';
 import AuthPage from './components/jamii-ai-auth';
 import JamiiAICommunity from './components/jamii-ai-community';
 import { translations } from './translations';
 
-// ── AXIOS SETUP ───────────────────────────────────────────────────
-const API_URL = "http://localhost:4000";
-axios.defaults.baseURL = API_URL;
-axios.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
 // ── SOCKET SETUP ──────────────────────────────────────────────────
-const socket = io(API_URL, { autoConnect: false });
+const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const socket = io(SOCKET_URL, { autoConnect: false });
 
 function App() {
   const [user, setUser] = useState(null);
@@ -35,7 +27,7 @@ function App() {
   // ── AUTH PERSISTENCE ──────────────────────────────────────────────
   useEffect(() => {
     if (token) {
-      axios.get("/api/auth/me")
+      authAPI.me()
         .then(res => {
           setUser(res.data);
           socket.connect();
@@ -79,7 +71,7 @@ function App() {
     if (!query || query.length < 2) return;
     setSearchQuery(query);
     try {
-      const { data } = await axios.get(`/api/search?q=${query}`);
+      const { data } = await searchAPI.search(query);
       setSearchResults(data.results);
     } catch (err) { toast.error("Search imefeli"); }
   };
