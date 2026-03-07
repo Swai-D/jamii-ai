@@ -2,7 +2,7 @@ const { Pool } = require("pg");
 require("dotenv").config();
 
 const db = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:davyswai1995@localhost:5432/jamii_ai'
+  connectionString: process.env.DATABASE_URL
 });
 
 async function verifyUsers() {
