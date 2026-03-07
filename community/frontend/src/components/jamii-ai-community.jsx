@@ -1027,7 +1027,8 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
   const [resSubmitted, setResSubmitted]   = useState(false);
   const [resForm, setResForm]             = useState({ title: "", type: "Dataset", link: "", tags: "", desc: "" });
 
-  const [jobs, setJobs]                   = useState(JOBS);
+  const [jobs, setJobs]                   = useState([]);
+  const [jobsLoading, setJobsLoading]     = useState(false);
   const [selectedJob, setSelectedJob]     = useState(null);
   const [jobSearch, setJobSearch]         = useState("");
   const [jobType, setJobType]             = useState("all");
@@ -1035,34 +1036,27 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
   const [showJobForm, setShowJobForm]     = useState(false);
   const [jobForm, setJobForm]             = useState({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
 
-  const handleJobSubmit = () => {
+  const handleJobSubmit = async () => {
     if (!jobForm.title.trim() || !jobForm.company.trim()) return;
-    const newJob = {
-      id: Date.now().toString(),
-      title: jobForm.title,
-      company_name: jobForm.company,
-      type: jobForm.type,
-      location: jobForm.location || "Remote",
-      is_remote: !jobForm.location,
-      description: jobForm.desc,
-      requirements: jobForm.requirements,
-      salary_visible: !!jobForm.salary,
-      salary_min: jobForm.salary ? parseInt(jobForm.salary) : 0,
-      salary_currency: "TZS",
-      tags: ["AI", "New"],
-      views: 0,
-      applications_count: 0,
-      deadline: "2026-12-31",
-      created_at: new Date().toISOString(),
-      is_saved: false,
-      has_applied: false
-    };
-    setJobs([newJob, ...jobs]);
-    setShowJobForm(false);
-    setJobForm({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
-    notify("✓ Kazi imechapishwa!");
+    try {
+      const token = localStorage.getItem("token");
+      const payload = {
+        title: jobForm.title, company_name: jobForm.company,
+        type: jobForm.type, location: jobForm.location,
+        description: jobForm.desc, requirements: jobForm.requirements,
+        is_remote: jobForm.type === "remote",
+        poster_name: ME.name, poster_email: "",
+        tags: jobForm.salary ? [jobForm.salary] : [],
+      };
+      const res = await axios.post(`${API_URL}/jobs`, payload, { headers: { Authorization: `Bearer ${token}` } });
+      setJobs([res.data, ...jobs]);
+      setShowJobForm(false);
+      setJobForm({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
+      notify("✓ Kazi imetumwa kwa review!");
+    } catch {
+      notify("Hitilafu — ingia kwanza!");
+    }
   };
-
   const handleResSubmit = () => {
     if (!resForm.title.trim() || !resForm.link.trim()) return;
 
@@ -1119,6 +1113,15 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
       if (activeNav === "nyumbani" || activeNav === "gundua") {
         const res = await axios.get(`${API_URL}/posts?category=${activeFilter}`, { headers });
         setPosts(res.data.posts);
+      } else if (activeNav === "kazi") {
+        setJobsLoading(true);
+        const params = new URLSearchParams({ page: 1, limit: 30 });
+        if (jobType !== "all") params.append("type", jobType);
+        if (jobLoc !== "all") params.append("location", jobLoc);
+        if (jobSearch) params.append("search", jobSearch);
+        const res = await axios.get(`${API_URL}/jobs?${params}`, { headers });
+        setJobs(res.data.jobs || []);
+        setJobsLoading(false);
       } else {
         const endpointMap = { startups: "startups", rasilimali: "resources", changamoto: "challenges", habari: "news", wataalamu: "users", vyuo: "institutions", matukio: "events" };
         const res = await axios.get(`${API_URL}/${endpointMap[activeNav]}`);

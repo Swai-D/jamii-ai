@@ -73,6 +73,116 @@ db.connect()
         ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);
         ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMPTZ;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false;
+
+        -- Notifications table
+        CREATE TABLE IF NOT EXISTS notifications (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          type_str VARCHAR(50),
+          title TEXT,
+          body TEXT,
+          actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          actor_handle VARCHAR(50),
+          is_read BOOLEAN DEFAULT false,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        -- Platform settings
+        CREATE TABLE IF NOT EXISTS platform_settings (
+          key VARCHAR(100) PRIMARY KEY,
+          value TEXT,
+          updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        -- Roles
+        CREATE TABLE IF NOT EXISTS roles (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          name VARCHAR(50) UNIQUE NOT NULL,
+          permissions JSONB DEFAULT '{}'
+        );
+        CREATE TABLE IF NOT EXISTS user_roles (
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
+          PRIMARY KEY (user_id, role_id)
+        );
+
+        -- Announcements
+        CREATE TABLE IF NOT EXISTS announcements (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          title TEXT,
+          message TEXT,
+          type VARCHAR(20) DEFAULT 'info',
+          created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        -- Jobs tables
+        CREATE TABLE IF NOT EXISTS jobs (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          posted_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          title VARCHAR(200) NOT NULL,
+          type VARCHAR(50) DEFAULT 'full_time',
+          company_name VARCHAR(200),
+          company_logo TEXT,
+          description TEXT,
+          requirements TEXT,
+          benefits TEXT,
+          location VARCHAR(100),
+          country VARCHAR(100) DEFAULT 'Tanzania',
+          is_remote BOOLEAN DEFAULT false,
+          salary_min BIGINT,
+          salary_max BIGINT,
+          salary_currency VARCHAR(10) DEFAULT 'TZS',
+          salary_visible BOOLEAN DEFAULT true,
+          apply_url TEXT,
+          apply_email VARCHAR(200),
+          apply_internal BOOLEAN DEFAULT false,
+          tags JSONB DEFAULT '[]',
+          deadline TIMESTAMPTZ,
+          status VARCHAR(20) DEFAULT 'inbox',
+          is_featured BOOLEAN DEFAULT false,
+          is_hot BOOLEAN DEFAULT false,
+          views INTEGER DEFAULT 0,
+          poster_name VARCHAR(200),
+          poster_email VARCHAR(200),
+          reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          reviewed_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS job_applications (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+          applicant_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          cover_letter TEXT,
+          cv_url TEXT,
+          linkedin_url TEXT,
+          portfolio_url TEXT,
+          status VARCHAR(20) DEFAULT 'pending',
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(job_id, applicant_id)
+        );
+        CREATE TABLE IF NOT EXISTS saved_jobs (
+          job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          saved_at TIMESTAMPTZ DEFAULT NOW(),
+          PRIMARY KEY(job_id, user_id)
+        );
+
+        -- Messages enhancement
+        ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_url TEXT;
+        ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+        ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false;
+
+        -- News enhancements
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS source VARCHAR(200);
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS source_url TEXT;
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS ai_summary TEXT;
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'inbox';
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS is_hot BOOLEAN DEFAULT false;
+        ALTER TABLE news ADD COLUMN IF NOT EXISTS reads INTEGER DEFAULT 0;
 
         -- Posts table enhancements
         ALTER TABLE posts ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'swali';
@@ -1375,6 +1485,120 @@ app.patch("/api/admin/settings", adminAuth, async (req, res) => {
     }
     res.json({ success:true });
   } catch (err) { res.status(500).json({ error:err.message }); }
+});
+
+// ── ADMIN USERS ──────────────────────────────────────────────────
+app.get("/api/admin/users", adminAuth, async (req, res) => {
+  try {
+    const { q, status, page=1, limit=20 } = req.query;
+    const off = (page-1)*parseInt(limit);
+    const conditions = [];
+    const params = [];
+    let pi = 1;
+    if (q) { conditions.push(`(u.name ILIKE $${pi} OR u.handle ILIKE $${pi} OR u.email ILIKE $${pi})`); params.push(`%${q}%`); pi++; }
+    if (status === "Verified") { conditions.push("u.is_verified=true"); }
+    else if (status === "Banned") { conditions.push("u.is_banned=true"); }
+    else if (status === "Active") { conditions.push("(u.is_banned=false OR u.is_banned IS NULL)"); }
+    const where = conditions.length ? "WHERE " + conditions.join(" AND ") : "";
+    const { rows } = await db.query(
+      `SELECT u.id, u.name, u.handle, u.email, u.role, u.city, u.is_verified,
+              u.is_banned, u.onboarded, u.created_at, r.name AS role_name,
+              (SELECT COUNT(*) FROM posts WHERE user_id=u.id) AS post_count
+       FROM users u
+       LEFT JOIN user_roles ur ON u.id=ur.user_id
+       LEFT JOIN roles r ON ur.role_id=r.id
+       ${where}
+       ORDER BY u.created_at DESC
+       LIMIT $${pi} OFFSET $${pi+1}`,
+      [...params, parseInt(limit), off]
+    );
+    const { rows:[{count}] } = await db.query(`SELECT COUNT(*) FROM users u ${where}`, params);
+    res.json({ users: rows, total: parseInt(count) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/users/:id/ban", adminAuth, async (req, res) => {
+  try {
+    const { rows:[u] } = await db.query("SELECT id, is_banned FROM users WHERE id=$1", [req.params.id]);
+    if (!u) return res.status(404).json({ error: "User hapatikani" });
+    await db.query("UPDATE users SET is_banned=$1, updated_at=NOW() WHERE id=$2", [!u.is_banned, req.params.id]);
+    res.json({ success: true, is_banned: !u.is_banned });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/users/:id/verify", adminAuth, async (req, res) => {
+  try {
+    const { rows:[u] } = await db.query("SELECT id, is_verified FROM users WHERE id=$1", [req.params.id]);
+    if (!u) return res.status(404).json({ error: "User hapatikani" });
+    await db.query("UPDATE users SET is_verified=$1, updated_at=NOW() WHERE id=$2", [!u.is_verified, req.params.id]);
+    res.json({ success: true, is_verified: !u.is_verified });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── ADMIN NEWS ────────────────────────────────────────────────────
+app.get("/api/admin/news", adminAuth, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const where = status ? "WHERE status=$1" : "";
+    const params = status ? [status] : [];
+    const { rows } = await db.query(`SELECT * FROM news ${where} ORDER BY published_at DESC LIMIT 100`, params);
+    res.json({ news: rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/admin/news", adminAuth, async (req, res) => {
+  try {
+    const { title, category="Tanzania", ai_summary, source, source_url, is_hot=false } = req.body;
+    if (!title) return res.status(400).json({ error: "Title inahitajika" });
+    const { rows:[news] } = await db.query(
+      `INSERT INTO news (id,title,category,ai_summary,source,source_url,is_hot,status,published_at)
+       VALUES($1,$2,$3,$4,$5,$6,$7,'inbox',NOW()) RETURNING *`,
+      [uuid(), title, category, ai_summary, source, source_url, is_hot]
+    );
+    res.status(201).json(news);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/news/:id/publish", adminAuth, async (req, res) => {
+  try {
+    const { ai_summary } = req.body;
+    if (ai_summary) {
+      await db.query("UPDATE news SET status='published', ai_summary=$1, published_at=NOW() WHERE id=$2", [ai_summary, req.params.id]);
+    } else {
+      await db.query("UPDATE news SET status='published', published_at=NOW() WHERE id=$1", [req.params.id]);
+    }
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete("/api/admin/news/:id", adminAuth, async (req, res) => {
+  try {
+    await db.query("DELETE FROM news WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── ANNOUNCEMENTS ─────────────────────────────────────────────────
+app.post("/api/admin/announcements", adminAuth, async (req, res) => {
+  try {
+    const { title, message, type="info" } = req.body;
+    if (!title || !message) return res.status(400).json({ error: "Title na message zinahitajika" });
+    const { rows:[ann] } = await db.query(
+      `INSERT INTO announcements (id,title,message,type,created_by,created_at)
+       VALUES($1,$2,$3,$4,$5,NOW()) RETURNING *`,
+      [uuid(), title, message, type, req.user.id]
+    );
+    io.emit("announcement", ann);
+    res.status(201).json(ann);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── APIFY TRIGGER ─────────────────────────────────────────────────
+app.post("/api/admin/apify/run", adminAuth, async (req, res) => {
+  try {
+    fetchLatestNews(); // async, no await
+    res.json({ success: true, message: "Apify imewashwa — habari zitaonekana hivi karibuni" });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ── AUTOMATION (Apify & Kaggle) ───────────────────────────────────

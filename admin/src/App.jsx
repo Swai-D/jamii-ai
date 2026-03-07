@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { authAPI } from "./lib/api";
+import api, { authAPI, adminAPI } from "./lib/api";
 import { LogOut, Globe, Shield, Activity, Users, Settings, Bell, Briefcase, FileText, BarChart3, Star, Layers, Zap } from "lucide-react";
 
 const MONO = "'Roboto Mono', monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
@@ -331,13 +331,24 @@ function FormField({ label, value, onChange, type="text", multiline, options }) 
 
 // ── DASHBOARD ─────────────────────────────────────────────────────
 function DashboardPage() {
+  const [stats, setStats] = useState(null);
+  const [recentUsers, setRecentUsers] = useState([]);
+
+  useEffect(() => {
+    adminAPI.stats().then(r => {
+      setStats(r.data.counts);
+      setRecentUsers(r.data.recentUsers || []);
+    }).catch(() => {});
+  }, []);
+
   return (
     <div>
       <SectionHead title="Dashboard" sub="JamiiAI Community — Overview ya leo" />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:20 }}>
-        <StatCard icon="👥" label="Total Members"    value="1,247"   sub="+23 leo"        color="#F5A623"  delta={8}  />
-        <StatCard icon="📝" label="Posts Leo"        value="147"     sub="8,932 total"    color="#4ECDC4"  delta={12} />
-        <StatCard icon="🚩" label="Flagged Content"  value="12"      sub="Zinahitaji review" color="#F87171" />
+        <StatCard icon="👥" label="Total Members"    value={stats ? Number(stats.users).toLocaleString() : "—"}   sub="Wanachama wote"      color="#F5A623"  delta={8}  />
+        <StatCard icon="📝" label="Posts Zote"       value={stats ? Number(stats.posts).toLocaleString() : "—"}   sub="Jumla ya machapisho" color="#4ECDC4"  delta={12} />
+        <StatCard icon="💼" label="Kazi Active"      value={stats ? Number(stats.jobs).toLocaleString()  : "—"}   sub="Jobs zinazosubiri"   color="#A78BFA"  />
+        <StatCard icon="🏆" label="Challenges Wazi"  value={stats ? Number(stats.challenges).toLocaleString():"—"} sub="Zinazoendelea"      color="#34D399"  delta={5}  />
         <StatCard icon="💰" label="MRR"              value="850K"    sub="TZS / mwezi"   color="#34D399"  delta={5}  />
       </div>
 
@@ -353,10 +364,10 @@ function DashboardPage() {
         <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, padding:18 }}>
           <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.38)", letterSpacing:"0.04em", marginBottom:14 }}>PLATFORM STATS</div>
           {[
-            ["Challenges Wazi","3","#F5A623"],
-            ["Events Yanayokuja","5","#4ECDC4"],
-            ["Rasilimali","38","#A78BFA"],
-            ["Pending Approval","4","#F87171"],
+            ["Total Members", stats ? stats.users : "—", "#F5A623"],
+            ["Total Posts",   stats ? stats.posts : "—", "#4ECDC4"],
+            ["Kazi Active",   stats ? stats.jobs  : "—", "#A78BFA"],
+            ["Messages Zote", stats ? stats.messages:"—","#34D399"],
           ].map(([l,v,c])=>(
             <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"8px 0", borderBottom:"1px solid #1A1A1C" }}>
               <span style={{ fontSize:13, color:"rgba(242,242,245,0.55)" }}>{l}</span>
@@ -366,21 +377,15 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent activity */}
+      {/* Recent Users */}
       <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, padding:18 }}>
-        <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.38)", letterSpacing:"0.04em", marginBottom:14 }}>ACTIVITY YA HIVI KARIBUNI</div>
-        {[
-          { icon:"👤", msg:"Mtumiaji mpya: Kaleb Gwalugano amejiunga",   time:"Dakika 2",  color:"#34D399" },
-          { icon:"🚩", msg:"Post imeflagiwa na watu 8 — David Mkwawa",   time:"Dakika 15", color:"#F87171" },
-          { icon:"✅", msg:"Resource imeidhinishwa: ML Roadmap Tanzania", time:"Saa 1",     color:"#4ECDC4" },
-          { icon:"🏆", msg:"Challenge mpya imeundwa: AgriBot Wakulima",   time:"Saa 2",     color:"#F5A623" },
-          { icon:"📰", msg:"Habari imechapishwa: AI Innovation Hub DSM",  time:"Saa 3",     color:"#A78BFA" },
-          { icon:"🎫", msg:"Event mpya: LLMs Workshop — Draft saved",     time:"Saa 4",     color:"#60A5FA" },
-        ].map((a,i)=>(
-          <div key={i} style={{ display:"flex", gap:12, alignItems:"center", padding:"9px 0", borderBottom: i<5?"1px solid #1A1A1C":"none" }}>
-            <div style={{ width:32, height:32, borderRadius:8, background:`${a.color}15`, border:`1px solid ${a.color}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>{a.icon}</div>
-            <span style={{ fontSize:13, color:"rgba(242,242,245,0.7)", flex:1 }}>{a.msg}</span>
-            <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)", flexShrink:0 }}>{a.time}</span>
+        <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.38)", letterSpacing:"0.04em", marginBottom:14 }}>WATUMIAJI WAPYA</div>
+        {recentUsers.length === 0 && <div style={{ color:"rgba(242,242,245,0.3)", fontSize:13 }}>Inapakia...</div>}
+        {recentUsers.map((u,i)=>(
+          <div key={u.handle||i} style={{ display:"flex", gap:12, alignItems:"center", padding:"9px 0", borderBottom: i<recentUsers.length-1?"1px solid #1A1A1C":"none" }}>
+            <div style={{ width:32, height:32, borderRadius:8, background:"#F5A62320", border:"1px solid #F5A62330", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>👤</div>
+            <span style={{ fontSize:13, color:"rgba(242,242,245,0.7)", flex:1 }}>{u.name} <span style={{ color:"rgba(242,242,245,0.35)" }}>@{u.handle}</span></span>
+            <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)", flexShrink:0 }}>{new Date(u.created_at).toLocaleDateString()}</span>
           </div>
         ))}
       </div>
@@ -390,28 +395,48 @@ function DashboardPage() {
 
 // ── USERS ─────────────────────────────────────────────────────────
 function UsersPage() {
-  const [users, setUsers] = useState(USERS);
+  const [users, setUsers] = useState([]);
+  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("Wote");
   const [toast, setToast] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
 
+  const loadUsers = async (q="", status="Wote") => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (q) params.q = q;
+      if (status !== "Wote") params.status = status;
+      const { data } = await adminAPI.users(params);
+      setUsers(data.users || []);
+      setTotal(data.total || 0);
+    } catch { notify("❌ Hitilafu kupakia watumiaji"); }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadUsers(); }, []);
+
   const filtered = users.filter(u => {
-    const matchQ = u.name.toLowerCase().includes(search.toLowerCase()) || u.handle.toLowerCase().includes(search.toLowerCase());
-    const matchF = filter==="Wote" || (filter==="Active" && u.status==="active") || (filter==="Banned" && u.status==="banned") || (filter==="Pending" && u.status==="pending") || (filter==="Verified" && u.verified);
-    return matchQ && matchF;
+    const matchQ = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.handle?.toLowerCase().includes(search.toLowerCase());
+    return matchQ;
   });
 
-  const toggleBan = id => {
-    setUsers(us => us.map(u => u.id===id ? { ...u, status: u.status==="banned" ? "active" : "banned" } : u));
-    const u = users.find(u=>u.id===id);
-    notify(u.status==="banned" ? `✅ ${u.name} ameachiliwa` : `🚫 ${u.name} amebaniwa`);
+  const toggleBan = async id => {
+    try {
+      const { data } = await adminAPI.banUser(id);
+      setUsers(us => us.map(u => u.id===id ? { ...u, is_banned: data.is_banned } : u));
+      notify(data.is_banned ? `🚫 Mtumiaji amebaniwa` : `✅ Mtumiaji ameachiliwa`);
+    } catch { notify("❌ Hitilafu"); }
   };
-  const toggleVerify = id => {
-    setUsers(us => us.map(u => u.id===id ? { ...u, verified:!u.verified } : u));
-    const u = users.find(u=>u.id===id);
-    notify(u.verified ? `❌ Verification imeondolewa — ${u.name}` : `✅ ${u.name} ameverified`);
+  const toggleVerify = async id => {
+    try {
+      const { data } = await adminAPI.verifyUser(id);
+      setUsers(us => us.map(u => u.id===id ? { ...u, is_verified: data.is_verified } : u));
+      notify(data.is_verified ? `✅ Mtumiaji ameverified` : `❌ Verification imeondolewa`);
+    } catch { notify("❌ Hitilafu"); }
   };
 
   const STATUS_C = { active:"#34D399", banned:"#F87171", pending:"#F5A623" };
@@ -423,44 +448,49 @@ function UsersPage() {
 
       <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
         <div style={{ position:"relative", flex:1, minWidth:200 }}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Tafuta jina au handle..." style={{ background:"#161618", border:"1px solid #232325", borderRadius:9, padding:"9px 12px 9px 32px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, outline:"none", width:"100%" }} />
+          <input value={search} onChange={e=>{setSearch(e.target.value); loadUsers(e.target.value, filter);}} placeholder="Tafuta jina au handle..." style={{ background:"#161618", border:"1px solid #232325", borderRadius:9, padding:"9px 12px 9px 32px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, outline:"none", width:"100%" }} />
           <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:"rgba(242,242,245,0.28)", fontSize:13 }}>◎</span>
         </div>
-        {["Wote","Active","Banned","Pending","Verified"].map(f=>(
-          <button key={f} onClick={()=>setFilter(f)} style={{ padding:"7px 14px", borderRadius:8, cursor:"pointer", fontFamily:MONO, fontSize:11, fontWeight:700, border:`1px solid ${filter===f?"#F5A623":"#232325"}`, background:filter===f?"rgba(245,166,35,0.1)":"transparent", color:filter===f?"#F5A623":"rgba(242,242,245,0.4)", transition:"all 0.18s" }}>{f}</button>
+        {["Wote","Active","Banned","Verified"].map(f=>(
+          <button key={f} onClick={()=>{setFilter(f); loadUsers(search,f);}} style={{ padding:"7px 14px", borderRadius:8, cursor:"pointer", fontFamily:MONO, fontSize:11, fontWeight:700, border:`1px solid ${filter===f?"#F5A623":"#232325"}`, background:filter===f?"rgba(245,166,35,0.1)":"transparent", color:filter===f?"#F5A623":"rgba(242,242,245,0.4)", transition:"all 0.18s" }}>{f}</button>
         ))}
       </div>
 
       <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, overflow:"hidden" }}>
         <div style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 80px 80px 120px", background:"#0C0C0E", borderBottom:"1px solid #232325", padding:"10px 18px" }}>
-          {["MTUMIAJI","JUKUMU / MJI","BADGE","STATUS","VERIFIED","VITENDO"].map(h=>(
+          {["MTUMIAJI","JUKUMU / MJI","ROLE","STATUS","VERIFIED","VITENDO"].map(h=>(
             <div key={h} style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.32)", fontWeight:700, letterSpacing:"0.04em" }}>{h}</div>
           ))}
         </div>
-        {filtered.map((u,i)=>(
+        {loading && <div style={{ padding:24, color:"rgba(242,242,245,0.3)", fontSize:13 }}>Inapakia watumiaji...</div>}
+        {filtered.map((u,i)=>{
+          const COLORS = ["#F5A623","#4ECDC4","#A78BFA","#F87171","#34D399","#60A5FA"];
+          const ci = (u.name||"?").charCodeAt(0) % 6;
+          return (
           <div key={u.id} style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 80px 80px 120px", padding:"11px 18px", borderBottom:i<filtered.length-1?"1px solid #1A1A1C":"none", alignItems:"center" }}>
             <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-              <Av i={u.name.split(" ").map(w=>w[0]).join("").slice(0,2)} c={["#F5A623","#4ECDC4","#A78BFA","#F87171","#34D399","#60A5FA"][u.id%6]} />
+              <Av i={(u.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2)} c={COLORS[ci]} />
               <div>
                 <div style={{ fontWeight:600, fontSize:13 }}>{u.name}</div>
-                <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.32)" }}>@{u.handle}</div>
+                <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.32)" }}>@{u.handle} · {u.email}</div>
               </div>
             </div>
             <div>
-              <div style={{ fontSize:12, color:"rgba(242,242,245,0.65)" }}>{u.role}</div>
-              <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>📍{u.city} · {u.posts} posts</div>
+              <div style={{ fontSize:12, color:"rgba(242,242,245,0.65)" }}>{u.role||"—"}</div>
+              <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>📍{u.city||"—"} · {u.post_count||0} posts</div>
             </div>
-            <Badge label={u.badge} color={u.badge==="Pro"?"#F5A623":u.badge==="Basic"?"#4ECDC4":"rgba(242,242,245,0.4)"} />
+            <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.5)" }}>{u.role_name||"member"}</div>
             <div>
-              <span style={{ fontFamily:MONO, fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:`${STATUS_C[u.status]}18`, color:STATUS_C[u.status] }}>{u.status}</span>
+              <span style={{ fontFamily:MONO, fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:u.is_banned?"#F8717118":"#34D39918", color:u.is_banned?"#F87171":"#34D399" }}>{u.is_banned?"banned":"active"}</span>
             </div>
-            <div style={{ fontSize:16 }}>{u.verified ? "✅" : "⬜"}</div>
+            <div style={{ fontSize:16 }}>{u.is_verified ? "✅" : "⬜"}</div>
             <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
-              <ActionBtn label={u.verified?"Unverify":"Verify"} color="#4ECDC4" small onClick={()=>toggleVerify(u.id)} />
-              <ActionBtn label={u.status==="banned"?"Unban":"Ban"} danger={u.status!=="banned"} color="#34D399" small onClick={()=>toggleBan(u.id)} />
+              <ActionBtn label={u.is_verified?"Unverify":"Verify"} color="#4ECDC4" small onClick={()=>toggleVerify(u.id)} />
+              <ActionBtn label={u.is_banned?"Unban":"Ban"} danger={!u.is_banned} color="#34D399" small onClick={()=>toggleBan(u.id)} />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -869,8 +899,8 @@ const PUBLISHED_NEWS = [
 ];
 
 function HabariPage() {
-  const [inbox, setInbox]         = useState(APIFY_INBOX);
-  const [published, setPublished] = useState(PUBLISHED_NEWS);
+  const [inbox, setInbox]         = useState([]);
+  const [published, setPublished] = useState([]);
   const [tab, setTab]             = useState("inbox");
   const [expanded, setExpanded]   = useState(null);
   const [editId, setEditId]       = useState(null);
@@ -885,76 +915,84 @@ function HabariPage() {
   const CAT_C  = { Tanzania:"#F5A623", Africa:"#4ECDC4", Global:"#A78BFA", Jamii:"#34D399" };
   const mf = k => e => setManualForm(p=>({...p,[k]:e.target.value}));
 
-  // Simulate Apify scrape
-  const runScraper = () => {
-    setScraping(true);
-    setTimeout(() => {
-      const newItem = {
-        id: Date.now(),
-        title:"Africa's AI Investment hits $2.4B in Q1 2025 — East Africa leads growth",
-        source:"Quartz Africa", sourceUrl:"https://qz.com/africa", scrapedAt:"Sasa hivi",
-        category:"Africa", region:"Africa",
-        rawSummary:"A new report from Africa Tech Ventures shows AI investment across the continent reached $2.4 billion in Q1 2025, with East Africa — led by Kenya and Tanzania — accounting for 34% of all deals.",
-        aiSummary:"Ripoti mpya inaonyesha uwekezaji wa AI Afrika ulifika dola bilioni 2.4 katika robo ya kwanza ya 2025, na Afrika Mashariki — hasa Kenya na Tanzania — ikiongoza kwa 34% ya mikataba yote. Mwaka huu unatarajiwa kuwa mkubwa zaidi kwa teknolojia ya AI barani Afrika.",
-        tags:["Africa","Investment","EastAfrica"], hot:true, status:"inbox",
-      };
-      setInbox(prev => [newItem, ...prev]);
-      setScraping(false);
-      notify("✅ Apify imekimbia — habari 1 mpya imepatikana!");
-    }, 2800);
+  const loadNews = async () => {
+    try {
+      const [inboxRes, pubRes] = await Promise.all([
+        api.get("/api/admin/news?status=inbox"),
+        api.get("/api/admin/news?status=published"),
+      ]);
+      setInbox(inboxRes.data?.news || []);
+      setPublished(pubRes.data?.news || []);
+    } catch { /* show seed data if API not ready */ }
   };
 
-  // Simulate AI re-summarize
+  useEffect(() => { loadNews(); }, []);
+
+  const runScraper = async () => {
+    setScraping(true);
+    try {
+      await api.post("/api/admin/apify/run");
+      notify("✅ Apify imewashwa — habari zitaonekana hivi karibuni!");
+      setTimeout(() => loadNews(), 3000);
+    } catch { notify("⚠ Apify haijasanidiwa bado — angalia .env"); }
+    setScraping(false);
+  };
+
   const reSummarize = (id) => {
     setSummarizing(id);
     setTimeout(() => {
       setInbox(prev => prev.map(n => n.id===id ? {
         ...n,
-        aiSummary: n.aiSummary + " [AI imesasisha muhtasari — toleo jipya la Kiswahili lenye usahihi zaidi.]"
+        ai_summary: (n.ai_summary||n.aiSummary||"") + " [AI imesasisha muhtasari.]"
       } : n));
       setSummarizing(null);
-      notify("🤖 AI imesasisha muhtasari wa Kiswahili!");
+      notify("🤖 AI imesasisha muhtasari!");
     }, 1800);
   };
 
-  // Publish from inbox
-  const publishFromInbox = (item) => {
-    const summary = editId===item.id ? editSummary : item.aiSummary;
-    setPublished(prev => [{
-      id: Date.now(),
-      title: item.title,
-      category: item.category,
-      status: "published",
-      reads: 0,
-      time: "Sasa",
-      source: item.source,
-      hot: item.hot,
-      summary,
-    }, ...prev]);
-    setInbox(prev => prev.filter(n => n.id !== item.id));
-    setEditId(null);
-    notify("🚀 Habari imechapishwa kwenye community feed!");
+  const publishFromInbox = async (item) => {
+    const summary = editId===item.id ? editSummary : (item.ai_summary||item.ai_summary||item.aiSummary||"");
+    try {
+      await api.patch(`/api/admin/news/${item.id}/publish`, { ai_summary: summary });
+      setInbox(prev => prev.filter(n => n.id !== item.id));
+      setPublished(prev => [{ ...item, status:"published", reads:0 }, ...prev]);
+      setEditId(null);
+      notify("🚀 Habari imechapishwa kwenye community feed!");
+    } catch { notify("❌ Hitilafu kuchapisha habari"); }
   };
 
   // Discard from inbox
-  const discard = (id) => {
-    setInbox(prev => prev.filter(n => n.id !== id));
-    notify("🗑 Habari imeondolewa kutoka inbox");
+  const discard = async (id) => {
+    try {
+      await api.delete(`/api/admin/news/${id}`);
+      setInbox(prev => prev.filter(n => n.id !== id));
+      notify("🗑 Habari imeondolewa kutoka inbox");
+    } catch { setInbox(prev => prev.filter(n => n.id !== id)); notify("🗑 Imeondolewa"); }
   };
 
   // Unpublish
-  const unpublish = (id) => {
-    setPublished(prev => prev.filter(n => n.id !== id));
-    notify("↩ Habari imefutwa kutoka community");
+  const unpublish = async (id) => {
+    try {
+      await api.delete(`/api/admin/news/${id}`);
+      setPublished(prev => prev.filter(n => n.id !== id));
+      notify("↩ Habari imefutwa kutoka community");
+    } catch { setPublished(prev => prev.filter(n => n.id !== id)); notify("↩ Imefutwa"); }
   };
 
   // Manual publish
-  const saveManual = () => {
+  const saveManual = async () => {
     if (!manualForm.title.trim()) return;
-    setPublished(prev => [{
-      id: Date.now(), ...manualForm,
-      status:"published", reads:0, time:"Sasa", hot:false,
-    }, ...prev]);
+    try {
+      const res = await api.post("/api/admin/news", {
+        title: manualForm.title, category: manualForm.category,
+        ai_summary: manualForm.summary, source: manualForm.source,
+      });
+      // auto-publish it
+      await api.patch(`/api/admin/news/${res.data.id}/publish`, { ai_summary: manualForm.summary });
+      setPublished(prev => [{ ...res.data, status:"published", reads:0 }, ...prev]);
+    } catch {
+      setPublished(prev => [{ id: Date.now(), ...manualForm, status:"published", reads:0, time:"Sasa" }, ...prev]);
+    }
     setManualForm({ title:"", category:"Tanzania", summary:"", source:"" });
     setShowManual(false);
     notify("✅ Habari ya manual imechapishwa!");
@@ -1009,7 +1047,7 @@ function HabariPage() {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:20 }}>
         <StatCard icon="📥" label="Inbox"           value={inboxCount}     color="#F5A623" />
         <StatCard icon="✅" label="Zilizochapishwa" value={publishedCount}  color="#34D399" />
-        <StatCard icon="🔥" label="Hot Stories"     value={inbox.filter(n=>n.hot).length} color="#F87171" />
+        <StatCard icon="🔥" label="Hot Stories"     value={inbox.filter(n=>n.is_hot||n.hot).length} color="#F87171" />
         <StatCard icon="⏰" label="Scrape Ijayo"    value="02:14"           color="#A78BFA" sub="saa:dakika" />
       </div>
 
@@ -1058,14 +1096,14 @@ function HabariPage() {
             const isSumming   = summarizing===item.id;
             const cc          = CAT_C[item.category]||"#F5A623";
             return (
-              <div key={item.id} style={{ background:"#161618", border:`1px solid ${item.hot?"rgba(248,113,113,0.25)":"#232325"}`, borderRadius:14, overflow:"hidden", transition:"border-color 0.2s" }}>
+              <div key={item.id} style={{ background:"#161618", border:`1px solid ${item.is_hot||item.hot?"rgba(248,113,113,0.25)":"#232325"}`, borderRadius:14, overflow:"hidden", transition:"border-color 0.2s" }}>
                 {/* Item header */}
                 <div style={{ padding:"14px 18px", cursor:"pointer" }} onClick={()=>setExpanded(isExpanded?null:item.id)}>
                   <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8, flexWrap:"wrap" }}>
                     <Badge label={item.category} color={cc} />
                     <Badge label={item.source}   color="rgba(242,242,245,0.35)" />
-                    {item.hot && <Badge label="🔥 Hot" color="#F87171" />}
-                    <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.28)", marginLeft:"auto" }}>{item.scrapedAt}</span>
+                    {item.is_hot||item.hot && <Badge label="🔥 Hot" color="#F87171" />}
+                    <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.28)", marginLeft:"auto" }}>{item.scraped_at||item.scrapedAt||new Date(item.published_at).toLocaleString()}</span>
                   </div>
                   <h3 style={{ fontWeight:700, fontSize:14, lineHeight:1.4, marginBottom:6 }}>{item.title}</h3>
                   {/* AI summary preview */}
@@ -1076,7 +1114,7 @@ function HabariPage() {
                         {isSumming ? "⟳ ..." : "⟳ Sasisha"}
                       </button>
                     </div>
-                    <p style={{ fontSize:12, color:"rgba(242,242,245,0.7)", lineHeight:1.65, margin:0 }}>{item.aiSummary}</p>
+                    <p style={{ fontSize:12, color:"rgba(242,242,245,0.7)", lineHeight:1.65, margin:0 }}>{item.ai_summary||item.aiSummary||""}</p>
                   </div>
                 </div>
 
@@ -1086,8 +1124,8 @@ function HabariPage() {
                     {/* Raw original */}
                     <div style={{ marginBottom:14 }}>
                       <div style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.3)", letterSpacing:"0.04em", marginBottom:6 }}>ORIGINAL (English) — {item.source}</div>
-                      <p style={{ fontSize:12, color:"rgba(242,242,245,0.45)", lineHeight:1.7, fontStyle:"italic" }}>{item.rawSummary}</p>
-                      <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily:MONO, fontSize:10, color:"#4ECDC4", textDecoration:"none", marginTop:4, display:"inline-block" }}>↗ Angalia chanzo asili</a>
+                      <p style={{ fontSize:12, color:"rgba(242,242,245,0.45)", lineHeight:1.7, fontStyle:"italic" }}>{item.raw_summary||item.rawSummary||""}</p>
+                      <a href={item.source_url||item.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily:MONO, fontSize:10, color:"#4ECDC4", textDecoration:"none", marginTop:4, display:"inline-block" }}>↗ Angalia chanzo asili</a>
                     </div>
 
                     {/* Edit AI summary */}
@@ -1095,12 +1133,12 @@ function HabariPage() {
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
                         <div style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.3)", letterSpacing:"0.04em" }}>MUHTASARI WA KISWAHILI — HARIRI KABLA YA KUCHAPISHA</div>
                         {!isEditing && (
-                          <button onClick={e=>{e.stopPropagation();setEditId(item.id);setEditSummary(item.aiSummary);}} style={{ background:"transparent", border:"1px solid #232325", color:"#A78BFA", borderRadius:6, padding:"3px 10px", cursor:"pointer", fontFamily:MONO, fontSize:9, fontWeight:700 }}>✏ Hariri</button>
+                          <button onClick={e=>{e.stopPropagation();setEditId(item.id);setEditSummary(item.ai_summary||item.aiSummary||"");}} style={{ background:"transparent", border:"1px solid #232325", color:"#A78BFA", borderRadius:6, padding:"3px 10px", cursor:"pointer", fontFamily:MONO, fontSize:9, fontWeight:700 }}>✏ Hariri</button>
                         )}
                       </div>
                       {isEditing
                         ? <textarea value={editSummary} onChange={e=>setEditSummary(e.target.value)} rows={4} style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(245,166,35,0.3)", borderRadius:8, padding:"10px 12px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, lineHeight:1.65, outline:"none", resize:"vertical" }} />
-                        : <p style={{ fontSize:13, color:"rgba(242,242,245,0.75)", lineHeight:1.7 }}>{item.aiSummary}</p>
+                        : <p style={{ fontSize:13, color:"rgba(242,242,245,0.75)", lineHeight:1.7 }}>{item.ai_summary||item.aiSummary||""}</p>
                       }
                       {isEditing && (
                         <div style={{ display:"flex", gap:7, marginTop:8 }}>
@@ -1151,7 +1189,7 @@ function HabariPage() {
                   <div style={{ display:"flex", gap:7, marginBottom:7, alignItems:"center", flexWrap:"wrap" }}>
                     <Badge label={n.category} color={CAT_C[n.category]||"#F5A623"} />
                     <Badge label="✓ Published"  color="#34D399" />
-                    {n.hot && <Badge label="🔥 Hot" color="#F87171" />}
+                    {n.is_hot||n.hot && <Badge label="🔥 Hot" color="#F87171" />}
                     <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.28)" }}>{n.time}</span>
                     {n.reads>0 && <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.28)" }}>👁 {n.reads.toLocaleString()}</span>}
                     {n.source && <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.22)" }}>· {n.source}</span>}
@@ -1844,8 +1882,24 @@ function SettingsPage() {
     maxFreeMessages: "50",
   });
 
-  // Sections state
   const [section, setSection] = useState("api");
+
+  // Load settings from API
+  useEffect(() => {
+    adminAPI.getSettings().then(({ data }) => {
+      if (!data) return;
+      if (data.apify_schedule) setApify(p=>({...p, schedule:data.apify_schedule}));
+      if (data.apify_keywords_tz) setApify(p=>({...p, keywords_tz:data.apify_keywords_tz}));
+      if (data.apify_keywords_af) setApify(p=>({...p, keywords_af:data.apify_keywords_af}));
+      if (data.site_name) setPlatform(p=>({...p, siteName:data.site_name}));
+      if (data.smtp_host) setPlatform(p=>({...p, smtpHost:data.smtp_host}));
+      if (data.smtp_port) setPlatform(p=>({...p, smtpPort:data.smtp_port}));
+      if (data.smtp_user) setPlatform(p=>({...p, smtpUser:data.smtp_user}));
+      if (data.registration_open) setPlatform(p=>({...p, registrationOpen:data.registration_open==="true"}));
+      if (data.maintenance_mode) setPlatform(p=>({...p, maintenanceMode:data.maintenance_mode==="true"}));
+      if (data.jobs_require_approval) setPlatform(p=>({...p, requireApproval:data.jobs_require_approval==="true"}));
+    }).catch(()=>{});
+  }, []);
 
   const toggleVisible = k => setKeys(prev=>({...prev,[k]:{...prev[k],visible:!prev[k].visible}}));
   const updateKey     = (k,v) => setKeys(prev=>({...prev,[k]:{...prev[k],value:v}}));
@@ -1854,6 +1908,39 @@ function SettingsPage() {
     setTimeout(()=>setSaved(s=>({...s,[k]:false})),2000);
     notify(`✅ ${keys[k].label} imehifadhiwa!`);
   };
+
+  const savePlatform = async () => {
+    try {
+      await adminAPI.saveSettings({
+        site_name: platform.siteName,
+        site_url: platform.siteUrl,
+        admin_email: platform.adminEmail,
+        smtp_host: platform.smtpHost,
+        smtp_port: platform.smtpPort,
+        smtp_user: platform.smtpUser,
+        maintenance_mode: String(platform.maintenanceMode),
+        registration_open: String(platform.registrationOpen),
+        jobs_require_approval: String(platform.requireApproval),
+        max_free_messages: platform.maxFreeMessages,
+      });
+      notify("✅ Mipangilio ya platform imehifadhiwa!");
+    } catch { notify("❌ Hitilafu kuhifadhi mipangilio"); }
+  };
+
+  const saveApify = async () => {
+    try {
+      await adminAPI.saveSettings({
+        apify_schedule: apify.schedule,
+        apify_keywords_tz: apify.keywords_tz,
+        apify_keywords_af: apify.keywords_af,
+        apify_keywords_gl: apify.keywords_gl,
+        apify_auto_publish: String(apify.autoPublish),
+        apify_summary_lang: apify.summaryLang,
+      });
+      notify("✅ Mipangilio ya Apify imehifadhiwa!");
+    } catch { notify("❌ Hitilafu kuhifadhi mipangilio"); }
+  };
+
   const testConnection = k => notify(`🔄 Testing ${keys[k].label}... Connected ✅`);
   const ap = k => e => setApify(p=>({...p,[k]:e.target.value}));
   const pp = k => e => setPlatform(p=>({...p,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value}));
@@ -2030,7 +2117,7 @@ function SettingsPage() {
                 sub="Chapisha habari moja kwa moja bila admin review — HATARI, usiwashe bila makini"
               />
 
-              <button onClick={()=>notify("✅ Mipangilio ya Apify imehifadhiwa!")} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
+              <button onClick={saveApify} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
                 Hifadhi Mipangilio →
               </button>
             </div>
@@ -2057,7 +2144,7 @@ function SettingsPage() {
               <Toggle checked={platform.registrationOpen} onChange={()=>setPlatform(p=>({...p,registrationOpen:!p.registrationOpen}))} label="Usajili Wazi" sub="Ruhusu watu wapya kujisajili JamiiAI" />
               <Toggle checked={platform.requireApproval}  onChange={()=>setPlatform(p=>({...p,requireApproval:!p.requireApproval}))} label="Idhini ya Admin kwa Wanachama Wapya" sub="Kila mwanachama mpya anahitaji idhini yako kabla ya kutumia platform" />
               <Toggle checked={platform.maintenanceMode}  onChange={()=>setPlatform(p=>({...p,maintenanceMode:!p.maintenanceMode}))} label="Maintenance Mode" sub="Zuia ufikiaji wa platform — inaonyesha ukurasa wa 'Tunafanya kazi'" />
-              <button onClick={()=>notify("✅ Platform settings zimehifadhiwa!")} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
+              <button onClick={savePlatform} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
                 Hifadhi Mipangilio →
               </button>
             </div>
@@ -2314,8 +2401,8 @@ function JobDetailPanel({ job, isInbox, onClose, onApprove, onReject, onToggleFe
 }
 
 function KaziPage() {
-  const [inbox,   setInbox]    = useState(JOBS_INBOX);
-  const [active,  setActive]   = useState(JOBS_ACTIVE);
+  const [inbox,   setInbox]    = useState([]);
+  const [active,  setActive]   = useState([]);
   const [tab,     setTab]      = useState("inbox");
   const [selected,setSelected] = useState(null);
   const [fetching,setFetching] = useState(false);
@@ -2323,25 +2410,46 @@ function KaziPage() {
 
   const notify = msg => { setToast(msg); setTimeout(() => setToast(null), 2800); };
 
-  const approveJob = id => {
-    const job = inbox.find(j => j.id === id);
-    if (!job) return;
-    setInbox(p => p.filter(j => j.id !== id));
-    setActive(p => [{ ...job, status:"active", views:0, applications_count:0 }, ...p]);
-    setSelected(null);
-    notify("✅ Kazi imechapishwa na inaonekana kwenye community!");
+  const loadJobs = async () => {
+    try {
+      const [inboxRes, activeRes] = await Promise.all([
+        adminAPI.jobs("inbox"),
+        adminAPI.jobs("active"),
+      ]);
+      setInbox(inboxRes.data.jobs || []);
+      setActive(activeRes.data.jobs || []);
+    } catch { notify("❌ Hitilafu kupakia kazi"); }
   };
 
-  const rejectJob = id => {
-    setInbox(p => p.filter(j => j.id !== id));
-    setSelected(null);
-    notify("🗑 Kazi imekataliwa na kufutwa.");
+  useEffect(() => { loadJobs(); }, []);
+
+  const approveJob = async id => {
+    try {
+      await adminAPI.approveJob(id);
+      const job = inbox.find(j => j.id === id);
+      setInbox(p => p.filter(j => j.id !== id));
+      if (job) setActive(p => [{ ...job, status:"active" }, ...p]);
+      setSelected(null);
+      notify("✅ Kazi imechapishwa na inaonekana kwenye community!");
+    } catch { notify("❌ Hitilafu"); }
   };
 
-  const toggleFeature = id => {
-    setActive(p => p.map(j => j.id === id ? {...j, is_featured:!j.is_featured} : j));
-    if (selected?.id === id) setSelected(p => ({...p, is_featured:!p.is_featured}));
-    notify("⭐ Featured status imebadilishwa!");
+  const rejectJob = async id => {
+    try {
+      await adminAPI.rejectJob(id);
+      setInbox(p => p.filter(j => j.id !== id));
+      setSelected(null);
+      notify("🗑 Kazi imekataliwa na kufutwa.");
+    } catch { notify("❌ Hitilafu"); }
+  };
+
+  const toggleFeature = async id => {
+    try {
+      await adminAPI.featureJob(id);
+      setActive(p => p.map(j => j.id === id ? {...j, is_featured:!j.is_featured} : j));
+      if (selected?.id === id) setSelected(p => ({...p, is_featured:!p.is_featured}));
+      notify("⭐ Featured status imebadilishwa!");
+    } catch { notify("❌ Hitilafu"); }
   };
 
   const toggleHot = id => {
@@ -2350,43 +2458,21 @@ function KaziPage() {
     notify("🔥 Hot status imebadilishwa!");
   };
 
-  const closeJob = id => {
-    setActive(p => p.filter(j => j.id !== id));
-    setSelected(null);
-    notify("🔒 Kazi imefungwa.");
+  const closeJob = async id => {
+    try {
+      await adminAPI.rejectJob(id);
+      setActive(p => p.filter(j => j.id !== id));
+      setSelected(null);
+      notify("🔒 Kazi imefungwa.");
+    } catch { notify("❌ Hitilafu"); }
   };
 
   const fetchJobs = () => {
     setFetching(true);
-    setTimeout(() => {
-      const newJob = {
-        id:`f_${Date.now()}`,
-        title:"ML Engineer — Fintech Africa",
-        type:"remote",
-        company_name:"Flutterwave",
-        location:"Remote / Lagos",
-        is_remote:true,
-        salary_min:6000000,
-        salary_max:12000000,
-        salary_currency:"NGN",
-        salary_visible:true,
-        description:"Flutterwave inatafuta ML Engineer wa kujenga mifumo ya fraud detection na credit scoring kwa masoko ya Afrika.",
-        requirements:"Python, Scikit-learn, XGBoost, experience ya fintech, miaka 3+",
-        tags:["Python","ML","Fraud Detection","FinTech"],
-        apply_internal:false,
-        apply_url:"https://flutterwave.com/careers",
-        deadline:"2026-05-10",
-        is_hot:true,
-        is_featured:false,
-        poster_name:"Flutterwave HR",
-        poster_email:"careers@flutterwave.com",
-        source:"linkedin",
-        created_at:new Date().toISOString().split("T")[0],
-      };
-      setInbox(p => [newJob, ...p]);
+    loadJobs().then(() => {
       setFetching(false);
-      notify("✅ Kazi 1 mpya imepatikana — inasubiri review yako!");
-    }, 2000);
+      notify("✅ Kazi zimesasishwa!");
+    });
   };
 
   const totalViews = active.reduce((s,j) => s + (j.views||0), 0);
