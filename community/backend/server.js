@@ -25,19 +25,18 @@ const app  = express();
 const PORT = process.env.PORT || 4000;
 
 const allowedOrigins = [
-  process.env.CLIENT_URL || "http://localhost:5173",
-  process.env.ADMIN_URL || "http://localhost:5174"
-];
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  process.env.CLIENT_URL,
+  process.env.ADMIN_URL
+].filter(Boolean);
 
 app.use(cors({ 
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  }, 
-  credentials: true 
+  origin: allowedOrigins,
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
 app.use(helmet());
 app.use(morgan("dev"));
