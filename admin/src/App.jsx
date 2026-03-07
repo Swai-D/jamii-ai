@@ -43,8 +43,8 @@ function Btn({ children, onClick, variant = "primary", disabled, full }) {
 }
 
 function AdminAuth({ onLogin }) {
-  const [email, setEmail] = useState("admin@jamii.ai.com");
-  const [password, setPassword] = useState("davyswai@jamii.ai.2026");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
