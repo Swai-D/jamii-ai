@@ -1,6 +1,80 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { authAPI } from "./lib/api";
 
 const MONO = "'Roboto Mono', monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+
+function AdminAuth({ onLogin }) {
+  const [email, setEmail] = useState("admin@jamii.ai.com");
+  const [password, setPassword] = useState("davyswai@jamii.ai.2026");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await authAPI.login({ email, password });
+      if (!["super_admin","admin","moderator","editor","analyst"].includes(data.user.role_name)) {
+        throw new Error("Huna ufikiaji wa admin panel");
+      }
+      localStorage.setItem("admin_token", data.token);
+      onLogin(data.user);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Login imefeli");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#080C14", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div style={{ width: "100%", maxWidth: 400, background: "#161618", border: "1px solid #232325", borderRadius: 20, padding: 40 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>🇹🇿</div>
+          <h1 style={{ fontSize: 24, fontWeight: 900, letterSpacing: "-0.03em", color: "#F5A623" }}>JamiiAI Admin</h1>
+          <p style={{ fontSize: 14, color: "rgba(242,242,245,0.4)", marginTop: 8 }}>Ingia kusimamia community</p>
+        </div>
+
+        {error && (
+          <div style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10, padding: "12px 16px", color: "#F87171", fontSize: 13, marginBottom: 24, textAlign: "center", fontFamily: MONO }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontFamily: MONO, fontSize: 10, color: "rgba(242,242,245,0.38)", letterSpacing: "0.04em", display: "block", marginBottom: 8 }}>EMAIL ADDRESS</label>
+            <input 
+              type="email" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)}
+              style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid #2C2C2E", borderRadius: 10, padding: "12px 16px", color: "#F2F2F5", fontFamily: MONO, fontSize: 14, outline: "none" }}
+              required 
+            />
+          </div>
+          <div style={{ marginBottom: 32 }}>
+            <label style={{ fontFamily: MONO, fontSize: 10, color: "rgba(242,242,245,0.38)", letterSpacing: "0.04em", display: "block", marginBottom: 8 }}>PASSWORD</label>
+            <input 
+              type="password" 
+              value={password} 
+              onChange={e => setPassword(e.target.value)}
+              style={{ width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid #2C2C2E", borderRadius: 10, padding: "12px 16px", color: "#F2F2F5", fontFamily: MONO, fontSize: 14, outline: "none" }}
+              required 
+            />
+          </div>
+
+          <button 
+            disabled={loading}
+            style={{ width: "100%", background: "#F5A623", color: "#0C0C0E", border: "none", padding: 14, borderRadius: 12, cursor: loading ? "default" : "pointer", fontFamily: MONO, fontWeight: 800, fontSize: 14, opacity: loading ? 0.7 : 1 }}
+          >
+            {loading ? "Inahakiki..." : "INGIA KWENYE PANEL →"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 // ── SEED DATA ─────────────────────────────────────────────────────
 const STATS = {
@@ -2459,6 +2533,39 @@ function KaziPage() {
 // ── MAIN APP ──────────────────────────────────────────────────────
 export default function AdminPanel() {
   const [page, setPage] = useState("dashboard");
+  const [adminUser, setAdminUser] = useState(null);
+  const [loading, setLoading] = useState(!!localStorage.getItem("admin_token"));
+
+  useEffect(() => {
+    const token = localStorage.getItem("admin_token");
+    if (token) {
+      authAPI.me()
+        .then(res => {
+          setAdminUser(res.data);
+        })
+        .catch(() => {
+          localStorage.removeItem("admin_token");
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("admin_token");
+    setAdminUser(null);
+  };
+
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "#080C14", display: "flex", alignItems: "center", justifyContent: "center", color: "#F5A623", fontFamily: MONO, fontSize: 14 }}>
+      Inapakia...
+    </div>
+  );
+
+  if (!adminUser) {
+    return <AdminAuth onLogin={setAdminUser} />;
+  }
 
   const PAGES = {
     dashboard:     <DashboardPage />,
@@ -2524,12 +2631,13 @@ export default function AdminPanel() {
 
         {/* Admin user */}
         <div style={{ borderTop:"1px solid #1E1E20", paddingTop:14 }}>
-          <div style={{ display:"flex", gap:9, alignItems:"center", padding:"8px 6px", borderRadius:9, cursor:"pointer" }}>
-            <Av i="DM" c="#F5A623" s={30} />
-            <div>
-              <div style={{ fontWeight:600, fontSize:12 }}>Davy Mwangi</div>
-              <div style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.3)" }}>Super Admin</div>
+          <div style={{ display:"flex", gap:9, alignItems:"center", padding:"8px 6px", borderRadius:9 }}>
+            <Av i={adminUser.name?.[0]||"A"} c="#F5A623" s={30} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight:600, fontSize:12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{adminUser.name}</div>
+              <div style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.3)" }}>{adminUser.role_name || "Admin"}</div>
             </div>
+            <button onClick={handleLogout} style={{ background: "transparent", border: "none", color: "rgba(242,242,245,0.3)", cursor: "pointer", fontSize: 14 }}>🚪</button>
           </div>
         </div>
       </aside>
@@ -2541,7 +2649,7 @@ export default function AdminPanel() {
           <h1 style={{ fontWeight:700, fontSize:15, letterSpacing:"-0.02em" }}>{PAGE_TITLE[page]}</h1>
           <div style={{ display:"flex", gap:10, alignItems:"center" }}>
             <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>JamiiAI Admin · v1.0</span>
-            <a href="#" style={{ fontFamily:MONO, fontSize:11, color:"#F5A623", textDecoration:"none" }}>← Community</a>
+            <a href="http://localhost:5173" target="_blank" style={{ fontFamily:MONO, fontSize:11, color:"#F5A623", textDecoration:"none" }}>← Community</a>
           </div>
         </div>
 
