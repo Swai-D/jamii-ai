@@ -109,18 +109,30 @@ function TypeBadge({ type }) {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
-function Av({ initials, color, size = 40, userId }) {
-  // Derive consistent color from userId, initials, or fallback — same input = same color always
+function Av({ initials, color, size = 40, userId, src }) {
+  // Derive consistent color from userId, initials, or fallback
   const seed = userId || initials || "x";
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
   const derived = AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
   const bg = color || derived;
-  // Dark text on light colors, light text on dark colors
   const textColor = ["#F5A623","#FBBF24","#34D399","#60A5FA"].includes(bg) ? "#0A0F1C" : "#fff";
+  
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: size * 0.35, color: textColor, flexShrink: 0 }}>
-      {initials}
+    <div style={{ 
+      width: size, height: size, borderRadius: "50%", 
+      background: src ? "transparent" : bg, 
+      display: "flex", alignItems: "center", justifyContent: "center", 
+      fontFamily: "'Roboto Mono',monospace", fontWeight: 700, 
+      fontSize: size * 0.35, color: textColor, flexShrink: 0,
+      overflow: "hidden",
+      border: src ? `1.5px solid rgba(255,255,255,0.1)` : "none"
+    }}>
+      {src ? (
+        <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        initials
+      )}
     </div>
   );
 }
@@ -1495,7 +1507,7 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
               style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer", background: activeNav === 'profile' ? "rgba(245,166,35,0.1)" : "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: 12, border: `1px solid ${activeNav === 'profile' ? "rgba(245,166,35,0.2)" : "transparent"}`, transition: "all 0.2s" }} 
               onClick={() => setActiveNav("profile")}
             >
-              <Av initials={ME.avatar} size={30} userId={ME.id} color={activeNav === 'profile' ? "#F5A623" : undefined} />
+              <Av initials={ME.avatar} size={30} userId={ME.id} src={user?.avatar_url} color={activeNav === 'profile' ? "#F5A623" : undefined} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 11, color: activeNav === 'profile' ? "#F5A623" : "#FFF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ME.name}</div>
                 <div style={{ fontSize: 9, opacity: 0.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>@{ME.handle}</div>
@@ -1513,7 +1525,7 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
               <NotificationBell socket={socket} />
               <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
               <div onClick={() => setActiveNav("profile")} style={{ cursor: "pointer" }}>
-                <Av initials={ME.avatar} size={32} userId={ME.id} />
+                <Av initials={ME.avatar} size={32} userId={ME.id} src={user?.avatar_url} />
               </div>
             </div>
           </div>
