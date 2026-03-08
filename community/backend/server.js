@@ -1557,7 +1557,7 @@ app.get("/api/search", optionalAuth, async (req, res) => {
       (type==="all"||type==="users") ? db.query(
         `SELECT id,name,handle,avatar_url,role,city,is_verified,
           (SELECT COUNT(*) FROM follows WHERE following_id=users.id) AS followers
-         FROM users WHERE onboarded=true
+         FROM users WHERE name IS NOT NULL
            AND (name ILIKE $1 OR handle ILIKE $1 OR role ILIKE $1 OR bio ILIKE $1)
          ORDER BY is_verified DESC LIMIT $2 OFFSET $3`,
         [likeQ, parseInt(limit), off]
@@ -1614,7 +1614,7 @@ app.get("/api/search/suggestions", optionalAuth, async (req, res) => {
     if (!q || q.trim().length < 1) return res.json({ suggestions:[] });
     const likeQ = `%${q.trim()}%`;
     const [users, posts] = await Promise.all([
-      db.query(`SELECT id,name,handle,avatar_url,role,'user' AS type FROM users WHERE onboarded=true AND (name ILIKE $1 OR handle ILIKE $1) LIMIT 3`, [likeQ]),
+      db.query(`SELECT id,name,handle,avatar_url,role,'user' AS type FROM users WHERE name IS NOT NULL AND (name ILIKE $1 OR handle ILIKE $1) LIMIT 3`, [likeQ]),
       db.query(`SELECT p.id, LEFT(p.content,60) AS name, 'post' AS type, u.handle AS author_handle FROM posts p JOIN users u ON u.id=p.user_id WHERE p.content ILIKE $1 LIMIT 3`, [likeQ]),
     ]);
     res.json({ suggestions:[...users.rows, ...posts.rows] });
