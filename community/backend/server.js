@@ -633,7 +633,7 @@ app.get("/api/users", optionalAuth, async (req, res) => {
   try {
     const { role, city, available, q, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
-    const conditions = ["u.onboarded = true"];
+    const conditions = ["u.name IS NOT NULL"]; // Relaxed condition
     const params = [];
 
     if (role)      { params.push(role);      conditions.push(`u.role = $${params.length}`); }
@@ -907,6 +907,7 @@ app.get("/api/posts", optionalAuth, async (req, res) => {
       `SELECT p.*,
         u.name AS author_name, u.handle AS author_handle,
         u.avatar_url AS author_avatar, u.is_verified AS author_verified,
+        u.role AS author_role,
         (SELECT COUNT(*) FROM post_likes WHERE post_id=p.id) AS like_count,
         (SELECT COUNT(*) FROM comments   WHERE post_id=p.id) AS comment_count
         ${req.user ? `,(SELECT COUNT(*)>0 FROM post_likes WHERE post_id=p.id AND user_id='${req.user.id}') AS user_liked` : ""}

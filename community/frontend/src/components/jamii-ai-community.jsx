@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Heart, MessageSquare, Bookmark, Share2, Send, Languages, Star, Users, MapPin, Briefcase, ExternalLink, Zap, Github, Linkedin, Twitter, Mail, Phone, CheckCircle2, Trophy, Calendar, Globe, Clock, Search, ChevronRight, LogOut } from "lucide-react";
+import { Heart, MessageSquare, Bookmark, Share2, Send, Languages, Star, Users, MapPin, Briefcase, ExternalLink, Zap, Github, Linkedin, Twitter, Mail, Phone, CheckCircle2, Trophy, Calendar, Globe, Clock, Search, ChevronRight, LogOut, UserPlus, UserCheck } from "lucide-react";
 import { translations } from "../translations";
 import ProfilePage from "./jamii-ai-profile";
 import SearchBar from "./SearchBar";
@@ -1044,7 +1044,7 @@ function ImageLightbox({ src, onClose }) {
   );
 }
 
-function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention }) {
+function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention, onAuthorClick }) {
   const [showComments,    setShowComments]    = useState(false);
   const [newComment,      setNewComment]      = useState("");
   const [comments,        setComments]        = useState([]);
@@ -1096,16 +1096,27 @@ function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention }) {
         <div style={{ padding: "18px 20px 14px" }}>
 
           {/* Author row */}
-          <div style={{ display: "flex", gap: 12, marginBottom: hasText ? 12 : 8 }}>
-            <Av
-              initials={post.author_name ? post.author_name.split(" ").map(w => w[0]).join("") : "??"}
-              userId={post.user_id || post.author_handle}
-              size={40}
-            />
+          <div 
+            onClick={() => onAuthorClick?.({ id: post.user_id, name: post.author_name, handle: post.author_handle, avatar_url: post.author_avatar, role: post.author_role, is_verified: post.author_verified })}
+            style={{ display: "flex", gap: 12, marginBottom: hasText ? 12 : 8, cursor: "pointer" }}
+          >
+            {post.author_avatar ? (
+              <img 
+                src={post.author_avatar} 
+                alt={post.author_name} 
+                style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} 
+              />
+            ) : (
+              <Av
+                initials={post.author_name ? post.author_name.split(" ").map(w => w[0]).join("") : "??"}
+                userId={post.user_id || post.author_handle}
+                size={40}
+              />
+            )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontWeight: 700, fontSize: 14 }}>{post.author_name}</span>
-                {post.is_verified && <VerifiedBadge size={14} />}
+                {post.author_verified && <VerifiedBadge size={14} />}
                 <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.3)" }}>@{post.author_handle}</span>
                 <Pill label={t[post.category] || post.category} bg={ts.bg} color={ts.color} />
               </div>
@@ -1401,7 +1412,9 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
       );
       setPosts([{
         ...res.data,
-        author_name: ME.name, author_handle: ME.handle, author_role: ME.role,
+        author_name: ME.name, author_handle: ME.handle, 
+        author_avatar: user?.avatar_url, author_role: user?.role || ME.role,
+        author_verified: user?.is_verified,
         like_count: 0, comment_count: 0, bookmark_count: 0,
         user_liked: false, user_bookmarked: false
       }, ...posts]);
@@ -1611,6 +1624,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
                   me={ME} t={t}
                   onHashtag={(tag) => { setActiveFilter("zote"); setComposerText(`#${tag} `); notify(`#${tag}`); }}
                   onMention={(handle) => { notify(`@${handle}`); }}
+                  onAuthorClick={(author) => setSelectedExpert(author)}
                 />)}
               </div>
             )}
