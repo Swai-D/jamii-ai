@@ -283,8 +283,6 @@ export default function ProfilePage({ user, lang, onLogout }) {
   const uploadFile = async (file, type) => {
     const formData = new FormData();
     // Backend expects 'avatar' for avatar and 'image' for cover (reusing post logic)
-    // Actually, let's check what our backend route /api/upload/cover expects.
-    // I defined it to use handleUpload(uploadPostImage, req, res) which expects 'image'.
     formData.append(type === 'avatar' ? 'avatar' : 'image', file);
     
     try {
@@ -296,6 +294,7 @@ export default function ProfilePage({ user, lang, onLogout }) {
           Authorization: `Bearer ${token}`
         }
       });
+      // Backend returns avatarUrl or coverUrl
       return type === 'avatar' ? res.data.avatarUrl : res.data.coverUrl;
     } catch (err) {
       console.error("Upload error:", err);
@@ -310,27 +309,25 @@ export default function ProfilePage({ user, lang, onLogout }) {
     
     // Show local preview first
     const localUrl = URL.createObjectURL(file);
+    const field = type === 'avatar' ? 'avatar' : 'cover_image';
+    
     if (editing) {
-      setDraft(d => ({ ...d, [type === 'avatar' ? 'avatar' : 'cover_image']: localUrl }));
+      setDraft(d => ({ ...d, [field]: localUrl }));
     } else {
-      setProfile(p => ({ ...p, [type === 'avatar' ? 'avatar' : 'cover_image']: localUrl }));
+      setProfile(p => ({ ...p, [field]: localUrl }));
     }
 
     // Actual upload
     const remoteUrl = await uploadFile(file, type);
     if (remoteUrl) {
-      const field = type === 'avatar' ? 'avatar' : 'cover_image';
-      const updatedProfile = { ...profile, [field]: remoteUrl, [type === 'avatar' ? 'avatar_url' : 'cover_image']: remoteUrl };
-      
+      // Update state with remote URL
       if (editing) {
         setDraft(d => ({ ...d, [field]: remoteUrl }));
       }
-      setProfile(updatedProfile);
+      setProfile(p => ({ ...p, [field]: remoteUrl }));
       
-      // Notify parent app to sync globally
-      if (typeof onUpdateUser === 'function') {
-        onUpdateUser(updatedProfile);
-      }
+      // Update the main user object in parent if needed
+      // (This assumes user object has avatar_url/cover_image)
       
       notify(`✅ ${type === 'avatar' ? 'Picha' : 'Cover'} imesasishwa!`);
     }
@@ -341,10 +338,15 @@ export default function ProfilePage({ user, lang, onLogout }) {
     if (notifLoaded) return;
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${API_URL}/users/me/settings`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.data?.notifications) setNotifSettings(res.data.notifications);
+      // Since there's no GET /settings, we'll use the profile data we already have
+      // or just stick with defaults. Most notification_prefs are in user object.
+      if (profile.notification_prefs) {
+        setNotifSettings(prev => ({ ...prev, ...profile.notification_prefs }));
+      }
       setNotifLoaded(true);
-    } catch (e) { setNotifLoaded(true); }
+    } catch (e) { 
+      setNotifLoaded(true); 
+    }
   };
 
   const saveNotifSettings = async (key, val) => {
@@ -491,7 +493,17 @@ export default function ProfilePage({ user, lang, onLogout }) {
       {/* ── COVER + HEADER ── */}
       <div style={{ position: "relative" }}>
         {/* Cover */}
-        <div style={{ height: 180, background: P.cover_image ? `url(${P.cover_image}) center/cover` : `linear-gradient(135deg, ${P.avatarColor}22 0%, rgba(78,205,196,0.08) 50%, rgba(167,139,250,0.06) 100%)`, backgroundImage: !P.cover_image && "linear-gradient(rgba(245,166,35,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.04) 1px,transparent 1px)", backgroundSize: !P.cover_image && "40px 40px", position: "relative", overflow: "hidden" }}>
+        <div style={{ 
+          height: 180, 
+          backgroundColor: !P.cover_image ? `${P.avatarColor}22` : "transparent",
+          backgroundImage: P.cover_image 
+            ? `url(${P.cover_image})` 
+            : "linear-gradient(rgba(245,166,35,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.04) 1px,transparent 1px)", 
+          backgroundPosition: "center",
+          backgroundSize: P.cover_image ? "cover" : "40px 40px", 
+          position: "relative", 
+          overflow: "hidden" 
+        }}>
           {!P.cover_image && <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: `${P.avatarColor}12`, filter: "blur(80px)", top: -150, right: -100 }} />}
           {editing && (
             <button onClick={() => coverFileRef.current?.click()} style={{ position: "absolute", bottom: 12, right: 16, background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.15)", color: "#DCE6F0", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
