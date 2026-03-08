@@ -189,9 +189,33 @@ function normalizeUser(u) {
   };
 }
 
-function ExpertDetailModal({ dev: rawDev, onClose, t, onMessage, onFollow, me }) {
-  const dev = normalizeUser(rawDev);
+function ExpertDetailModal({ dev: initialDev, onClose, t, onMessage, onFollow, me }) {
+  const [fullDev, setFullDev] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchFullProfile = async () => {
+      if (!initialDev?.handle && !initialDev?.id) return;
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const identifier = initialDev.handle || initialDev.id;
+        const res = await axios.get(`${API_URL}/users/${identifier}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        setFullDev(res.data);
+      } catch (err) {
+        console.error("Failed to fetch full profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFullProfile();
+  }, [initialDev]);
+
+  const dev = normalizeUser(fullDev || initialDev);
   const isSelf = me?.id === dev.id;
+  const color = userColor(dev);
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -199,7 +223,7 @@ function ExpertDetailModal({ dev: rawDev, onClose, t, onMessage, onFollow, me })
       <div style={{ position: "relative", background: "#0D1322", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 28, width: "100%", maxWidth: 640, maxHeight: "92vh", overflowY: "auto", padding: 0, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
 
         {/* Header gradient */}
-        <div style={{ height: 130, background: `linear-gradient(135deg, ${dev.color}44 0%, #0D1322 100%)`, position: "relative", borderRadius: "28px 28px 0 0" }}>
+        <div style={{ height: 130, background: `linear-gradient(135deg, ${color}44 0%, #0D1322 100%)`, position: "relative", borderRadius: "28px 28px 0 0" }}>
           <button onClick={onClose} style={{ position: "absolute", top: 18, right: 18, background: "rgba(0,0,0,0.35)", border: "none", color: "#FFF", width: 34, height: 34, borderRadius: "50%", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
 
@@ -208,8 +232,8 @@ function ExpertDetailModal({ dev: rawDev, onClose, t, onMessage, onFollow, me })
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20 }}>
             <div style={{ position: "relative" }}>
               {dev.avatar_url
-                ? <img src={dev.avatar_url} alt={dev.name} style={{ width: 100, height: 100, borderRadius: "50%", objectFit: "cover", border: `3px solid ${dev.color}` }} />
-                : <Av initials={dev.name ? dev.name.split(" ").map(w => w[0]).join("") : "??"} color={dev.color} size={100} />
+                ? <img src={dev.avatar_url} alt={dev.name} style={{ width: 100, height: 100, borderRadius: "50%", objectFit: "cover", border: `3px solid ${color}` }} />
+                : <Av initials={dev.name ? dev.name.split(" ").map(w => w[0]).join("") : "??"} color={color} size={100} />
               }
               {dev.is_verified && (
                 <div style={{ position: "absolute", bottom: 4, right: 4, background: "#0D1322", borderRadius: "50%", padding: 3 }}>
@@ -218,10 +242,10 @@ function ExpertDetailModal({ dev: rawDev, onClose, t, onMessage, onFollow, me })
               )}
             </div>
             <div style={{ display: "flex", gap: 10, paddingBottom: 8 }}>
-              {dev.github_url   && <a href={dev.github_url}   target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Github   size={20} /></a>}
-              {dev.linkedin_url && <a href={dev.linkedin_url} target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Linkedin size={20} /></a>}
-              {dev.website_url  && <a href={dev.website_url}  target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Globe    size={20} /></a>}
-              {dev.twitter_url  && <a href={dev.twitter_url}  target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Twitter  size={20} /></a>}
+              {(dev.github_url || dev.github)   && <a href={dev.github_url || dev.github}   target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Github   size={20} /></a>}
+              {(dev.linkedin_url || dev.linkedin) && <a href={dev.linkedin_url || dev.linkedin} target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Linkedin size={20} /></a>}
+              {(dev.website_url || dev.website)  && <a href={dev.website_url || dev.website}  target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Globe    size={20} /></a>}
+              {(dev.twitter_url || dev.twitter)  && <a href={dev.twitter_url || dev.twitter}  target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Twitter  size={20} /></a>}
             </div>
           </div>
 
@@ -236,13 +260,20 @@ function ExpertDetailModal({ dev: rawDev, onClose, t, onMessage, onFollow, me })
             </div>
           </div>
 
+          {/* Loading indicator for full data */}
+          {loading && !fullDev && (
+            <div style={{ padding: "20px 0", textAlign: "center", opacity: 0.5, fontSize: 13 }}>
+              Inapakia taarifa kamili...
+            </div>
+          )}
+
           {/* Stats */}
           <div style={{ display: "flex", gap: 28, padding: "16px 0", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 22 }}>
             {dev.rating && (
               <div><div style={{ fontSize: 18, fontWeight: 800, color: "#F5A623" }}>⭐ {dev.rating}</div><div style={{ fontSize: 10, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>Rating</div></div>
             )}
             <div>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>{dev.project_count}</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{dev.project_count || 0}</div>
               <div style={{ fontSize: 10, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>Miradi</div>
             </div>
             <div>
