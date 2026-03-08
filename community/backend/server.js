@@ -1527,12 +1527,22 @@ app.post("/api/upload/avatar", auth, async (req, res) => {
     await handleUpload(uploadAvatar, req, res);
     if (!req.file) return res.status(400).json({ error:"Picha haikupokewa" });
     const url = getUploadedUrl(req, "avatars");
-    const { rows:[old] } = await db.query("SELECT avatar_url FROM users WHERE id=$1",[req.user.id]);
-    if (old?.avatar_url && !USE_LOCAL_STORAGE) await deleteCloudinaryImage(old.avatar_url);
     await db.query("UPDATE users SET avatar_url=$1, updated_at=NOW() WHERE id=$2",[url, req.user.id]);
     res.json({ success:true, avatarUrl: url });
   } catch (err) {
     if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error:"Picha ni kubwa. Max 2MB" });
+    res.status(500).json({ error:err.message });
+  }
+});
+
+app.post("/api/upload/cover", auth, async (req, res) => {
+  try {
+    await handleUpload(uploadPostImage, req, res);
+    if (!req.file) return res.status(400).json({ error:"Picha haikupokewa" });
+    const url = getUploadedUrl(req, "posts");
+    await db.query("UPDATE users SET cover_image=$1, updated_at=NOW() WHERE id=$2",[url, req.user.id]);
+    res.json({ success:true, coverUrl: url });
+  } catch (err) {
     res.status(500).json({ error:err.message });
   }
 });

@@ -168,6 +168,7 @@ function App() {
       {view === 'community' && (
         <JamiiAICommunity 
           user={user}
+          setUser={setUser}
           lang={lang}
           toggleLang={toggleLang}
           onLogout={handleLogout}

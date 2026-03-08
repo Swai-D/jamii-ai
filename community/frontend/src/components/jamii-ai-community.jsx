@@ -1253,7 +1253,7 @@ function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention, onAut
 
 // ─── MAIN COMMUNITY ──────────────────────────────────────────────────────────
 
-export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLang, socket, onSearch }) {
+export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw', toggleLang, socket, onSearch }) {
   const t = translations[lang];
 // ... (rest of the component)
   const ME = { 
@@ -1519,7 +1519,14 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
           </div>
           <div style={{ padding: "18px 22px", maxWidth: (activeNav === "ujumbe" || activeNav === "profile" || activeNav === "wataalamu" || activeNav === "startups") ? "1100px" : "800px", margin: "0 auto" }}>
             
-            {activeNav === "profile" && <ProfilePage user={user} lang={lang} onLogout={onLogout} />}
+            {activeNav === "profile" && (
+              <ProfilePage 
+                user={user} 
+                lang={lang} 
+                onLogout={onLogout} 
+                onUpdateUser={(updated) => setUser(updated)}
+              />
+            )}
 
             {(activeNav === "nyumbani" || activeNav === "gundua") && (
               <div>
