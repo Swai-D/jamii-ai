@@ -3,58 +3,6 @@ import axios from "axios";
 
 const API_URL = "http://localhost:4000/api";
 
-function ToggleItem({ label, defaultOn }) {
-  const [on, setOn] = useState(defaultOn);
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-      <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
-      <div onClick={() => setOn(!on)} style={{ width: 40, height: 22, borderRadius: 11, background: on ? "#F5A623" : "rgba(255,255,255,0.1)", cursor: "pointer", position: "relative", transition: "all 0.2s" }}>
-        <div style={{ position: "absolute", top: 3, left: on ? 21 : 3, width: 16, height: 16, borderRadius: "50%", background: on ? "#0A0F1C" : "rgba(220,230,240,0.5)", transition: "left 0.2s" }} />
-      </div>
-    </div>
-  );
-}
-
-// ─── SEED DATA ────────────────────────────────────────────────────
-const INITIAL_PROFILE = {
-  id: "usr_001",
-  name: "Davy Mwangi",
-  handle: "davyswai",
-  email: "davy@jamii.ai",
-  avatar: null,
-  avatarInitials: "DM",
-  avatarColor: "#F5A623",
-  role: "AI Developer",
-  city: "Dar es Salaam",
-  bio: "Ninajenga AI solutions kwa biashara za Afrika Mashariki. Founder wa CareBot — AI-powered customer care kwa WhatsApp na Instagram. Napenda open source na community building.",
-  skills: ["Claude API", "Node.js", "React", "LangChain", "PostgreSQL", "RAG Systems"],
-  interests: ["LLMs & Agents", "NLP / Swahili AI", "Startups", "AI for Agriculture"],
-  hourlyRate: "TZS 55K",
-  available: true,
-  github: "github.com/davyswai",
-  linkedin: "linkedin.com/in/davyswai",
-  website: "carebot.co.tz",
-  joinedAt: "Januari 2025",
-  // Stats
-  followers: 142,
-  following: 38,
-  postCount: 24,
-  rating: 4.9,
-  projectCount: 8,
-};
-
-const INITIAL_PROJECTS = [
-  { id: "p1", title: "CareBot", desc: "AI-powered customer care platform kwa WhatsApp na Instagram. Inatumia Claude API kwa natural language understanding.", tech: ["Claude API", "Node.js", "WhatsApp API"], status: "active",  link: "carebot.co.tz",  stars: 34 },
-  { id: "p2", title: "SwahiliRAG", desc: "RAG system inayoweza ku-process documents za Kiswahili. Accuracy 89% kwa Q&A tasks.", tech: ["LangChain", "Pinecone", "OpenAI"],  status: "active",  link: "github.com/davyswai/swahili-rag", stars: 18 },
-  { id: "p3", title: "AgriChat TZ", desc: "WhatsApp chatbot kwa wakulima wa Tanzania — hali ya hewa, magonjwa ya mazao, bei za soko.", tech: ["LLMs", "Twilio", "Python"],          status: "completed", link: "",  stars: 9  },
-];
-
-const INITIAL_POSTS = [
-  { id: "pp1", content: "Nimekamilisha CareBot v2! Sasa ina support ya Instagram DMs na multi-language. 🚀 #ClaudeAPI #Tanzania", category: "mradi",  likes: 87, comments: 15, time: "Jana" },
-  { id: "pp2", content: "Swali: Mtu ana experience ya kuintegrate LangChain na PostgreSQL pgvector? Ninahitaji msaada na vector search optimization. #LangChain #RAG", category: "swali",  likes: 23, comments: 8,  time: "Siku 3" },
-  { id: "pp3", content: "Tanzania AI Hackathon inakuja Machi 15! Jiandikishe — prize pool TZS 10M. Link kwenye bio. 🇹🇿 #TanzaniaAI", category: "habari", likes: 142, comments: 31, time: "Wiki 1" },
-];
-
 const ALL_SKILLS = ["Python","JavaScript","TypeScript","Node.js","React","Next.js","FastAPI","Django","TensorFlow","PyTorch","Scikit-learn","HuggingFace","LangChain","LlamaIndex","Claude API","OpenAI","Gemini API","RAG Systems","Vector DB","Pinecone","Weaviate","PostgreSQL","MongoDB","Redis","Docker","Kubernetes","AWS","GCP","Azure","MLflow","Weights & Biases","Computer Vision","NLP","Speech Recognition","Data Science","Pandas","NumPy","Matplotlib"];
 const ALL_INTERESTS = ["NLP / Swahili AI","Computer Vision","LLMs & Agents","MLOps","AI for Agriculture","AI for Health","Data Science","AI Ethics","Startups","Research","Open Source","AI Policy"];
 const CITIES = ["Dar es Salaam","Arusha","Mwanza","Dodoma","Zanzibar","Moshi","Tanga","Morogoro","Tabora","Nyingine"];
@@ -63,9 +11,19 @@ const STATUS_COLORS = { active: { bg: "rgba(52,211,153,0.12)", color: "#34D399",
 const CAT_COLORS = { mradi: { bg: "rgba(52,211,153,0.12)", color: "#34D399" }, swali: { bg: "rgba(96,165,250,0.12)", color: "#60A5FA" }, habari: { bg: "rgba(167,139,250,0.12)", color: "#A78BFA" }, kazi: { bg: "rgba(245,166,35,0.12)", color: "#F5A623" } };
 
 // ─── HELPERS ─────────────────────────────────────────────────────
-function Av({ initials, color, size = 80, src }) {
+const AVATAR_COLORS = ["#F5A623","#4ECDC4","#A78BFA","#34D399","#F87171","#60A5FA","#FBBF24","#E879F9"];
+function deriveColor(seed) {
+  if (!seed) return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function Av({ initials, color, size = 80, src, userId }) {
+  const bg = color || deriveColor(userId || initials || "x");
+  const textColor = ["#F5A623","#FBBF24","#34D399","#60A5FA"].includes(bg) ? "#0A0F1C" : "#fff";
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: src ? "transparent" : color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: size * 0.28, color: "#0A0F1C", flexShrink: 0, overflow: "hidden", border: `3px solid ${color}40` }}>
+    <div style={{ width: size, height: size, borderRadius: "50%", background: src ? "transparent" : bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: size * 0.28, color: textColor, flexShrink: 0, overflow: "hidden", border: `3px solid ${bg}40` }}>
       {src ? <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
     </div>
   );
@@ -110,7 +68,7 @@ const TABS = [
 
 // ─── MAIN ─────────────────────────────────────────────────────────
 export default function ProfilePage({ user, lang, onLogout }) {
-  const [profile, setProfile]   = useState(INITIAL_PROFILE);
+  const [profile, setProfile]   = useState({});
   const [projects, setProjects] = useState([]);
   const [posts, setPosts]       = useState([]);
   const [tab, setTab]           = useState("overview");
@@ -125,6 +83,16 @@ export default function ProfilePage({ user, lang, onLogout }) {
   const [skillQ, setSkillQ]     = useState("");
   const fileRef                 = useRef();
   const coverFileRef            = useRef();
+
+  // ── Settings state ────────────────────────────────────────────
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwLoading, setPwLoading] = useState(false);
+  const [notifSettings, setNotifSettings] = useState({
+    likes_comments: true, email_digest: true, new_challenges: true,
+    newsletter: false, ai_jobs: true
+  });
+  const [notifLoaded, setNotifLoaded] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const notify = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
@@ -144,16 +112,22 @@ export default function ProfilePage({ user, lang, onLogout }) {
         }
       }
       
-      // Merge INITIAL_PROFILE with whatever data we have
-      setProfile(prev => ({
-        ...INITIAL_PROFILE,
+      // Build profile from API data — normalize DB field names
+      setProfile({
         ...userData,
+        // Normalize field names: DB uses snake_case, UI uses camelCase in some places
+        avatar:      userData?.avatar_url    || null,
+        github:      userData?.github_url    || "",
+        linkedin:    userData?.linkedin_url  || "",
+        website:     userData?.website_url   || "",
+        hourlyRate:  userData?.hourly_rate   || "",
+        avatarColor: userData?.avatarColor || deriveColor(userData?.id || userData?.handle),
         avatarInitials: userData?.name ? userData.name.split(" ").map(w => w[0]).join("") : "??",
-        skills: Array.isArray(userData?.skills) ? userData.skills : (typeof userData?.skills === 'string' ? JSON.parse(userData.skills || "[]") : INITIAL_PROFILE.skills),
-        interests: Array.isArray(userData?.interests) ? userData.interests : (typeof userData?.interests === 'string' ? JSON.parse(userData.interests || "[]") : INITIAL_PROFILE.interests),
-      }));
+        skills:    Array.isArray(userData?.skills)    ? userData.skills    : (typeof userData?.skills    === "string" ? JSON.parse(userData.skills    || "[]") : []),
+        interests: Array.isArray(userData?.interests) ? userData.interests : (typeof userData?.interests === "string" ? JSON.parse(userData.interests || "[]") : []),
+      });
 
-      // Mock projects if API fails
+      // Fetch projects
       try {
         const pRes = await axios.get(`${API_URL}/projects/user/${userData?.id}`);
         setProjects(pRes.data.map(p => ({
@@ -162,8 +136,7 @@ export default function ProfilePage({ user, lang, onLogout }) {
           desc: p.description
         })));
       } catch (e) { 
-        console.warn("Projects API not ready, using default projects");
-        setProjects(INITIAL_PROJECTS); 
+        setProjects([]);
       }
 
     } catch (err) { 
@@ -175,7 +148,28 @@ export default function ProfilePage({ user, lang, onLogout }) {
   useEffect(() => { fetchProfile(); }, []);
 
   // ── Edit helpers ─────────────────────────────────────────────
-  const startEdit = () => { setDraft({ ...profile }); setEditing(true); };
+  const startEdit = () => {
+    setDraft({
+      name:       profile.name        || "",
+      handle:     profile.handle      || "",
+      email:      profile.email       || "",
+      role:       profile.role        || "",
+      city:       profile.city        || "",
+      bio:        profile.bio         || "",
+      hourlyRate: profile.hourlyRate  || profile.hourly_rate || "",
+      github:     profile.github      || profile.github_url  || "",
+      linkedin:   profile.linkedin    || profile.linkedin_url || "",
+      website:    profile.website     || profile.website_url  || "",
+      skills:     profile.skills      || [],
+      interests:  profile.interests   || [],
+      available:  profile.available   !== undefined ? profile.available : true,
+      avatarColor: profile.avatarColor || deriveColor(profile.id || profile.handle),
+      avatar:     profile.avatar      || profile.avatar_url || null,
+      cover_image: profile.cover_image || null,
+      id:         profile.id,
+    });
+    setEditing(true);
+  };
   const cancelEdit = () => { setDraft(null); setEditing(false); };
 
   const saveProfile = async () => {
@@ -186,9 +180,18 @@ export default function ProfilePage({ user, lang, onLogout }) {
     try {
       const token = localStorage.getItem("token");
       await axios.put(`${API_URL}/users/${draft.id}`, {
-        ...draft,
-        skills: JSON.stringify(draft.skills),
-        interests: JSON.stringify(draft.interests)
+        name:         draft.name,
+        handle:       draft.handle,
+        bio:          draft.bio,
+        role:         draft.role,
+        city:         draft.city,
+        hourly_rate:  draft.hourlyRate,
+        available:    draft.available,
+        github_url:   draft.github,
+        linkedin_url: draft.linkedin,
+        website_url:  draft.website,
+        skills:       draft.skills,
+        interests:    draft.interests,
       }, { headers: { Authorization: `Bearer ${token}` } });
       notify("✅ Profile imehifadhiwa!");
     } catch (err) { 
@@ -315,6 +318,51 @@ export default function ProfilePage({ user, lang, onLogout }) {
       setProfile(p => ({ ...p, [field]: remoteUrl }));
       notify(`✅ ${type === 'avatar' ? 'Picha' : 'Cover'} imesasishwa!`);
     }
+  };
+
+  // ── Settings handlers ─────────────────────────────────────────
+  const loadNotifSettings = async () => {
+    if (notifLoaded) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/users/me/settings`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data?.notifications) setNotifSettings(res.data.notifications);
+      setNotifLoaded(true);
+    } catch (e) { setNotifLoaded(true); }
+  };
+
+  const saveNotifSettings = async (key, val) => {
+    const updated = { ...notifSettings, [key]: val };
+    setNotifSettings(updated);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.patch(`${API_URL}/users/me/settings`, { notifications: updated }, { headers: { Authorization: `Bearer ${token}` } });
+    } catch (e) { console.warn("Notif settings save failed"); }
+  };
+
+  const changePassword = async () => {
+    if (!pwForm.current || !pwForm.next) return notify("❌ Jaza nywila zote!");
+    if (pwForm.next !== pwForm.confirm) return notify("❌ Nywila mpya hazilingani!");
+    if (pwForm.next.length < 8) return notify("❌ Nywila iwe na herufi 8 au zaidi!");
+    setPwLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(`${API_URL}/auth/change-password`, { currentPassword: pwForm.current, newPassword: pwForm.next }, { headers: { Authorization: `Bearer ${token}` } });
+      notify("✅ Nywila imebadilishwa!");
+      setPwForm({ current: "", next: "", confirm: "" });
+    } catch (err) {
+      notify(err.response?.data?.error || "❌ Nywila ya sasa si sahihi");
+    }
+    setPwLoading(false);
+  };
+
+  const deleteAccount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } });
+      localStorage.removeItem("token");
+      window.location.href = "/";
+    } catch (e) { notify("❌ Kushindwa kufuta akaunti"); }
   };
 
   const filteredSkills = ALL_SKILLS.filter(s => s.toLowerCase().includes(skillQ.toLowerCase()) && !(draft?.skills || []).includes(s));
@@ -782,17 +830,19 @@ export default function ProfilePage({ user, lang, onLogout }) {
 
           {/* ── SETTINGS ── */}
           {tab === "settings" && (
-            <div className="fin" style={{ maxWidth: 600 }}>
+            <div className="fin" style={{ maxWidth: 600 }} ref={el => { if (el && !notifLoaded) loadNotifSettings(); }}>
               <h2 style={{ fontWeight: 700, fontSize: 20, letterSpacing: "-0.03em", marginBottom: 24 }}>Mipangilio ya Akaunti</h2>
 
               {/* Password change */}
               <div className="card" style={{ marginBottom: 16 }}>
                 <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 16 }}>BADILISHA NYWILA</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <InputField label="Nywila ya Sasa" placeholder="••••••••" type="password" value="" onChange={() => {}} />
-                  <InputField label="Nywila Mpya" placeholder="••••••••" type="password" value="" onChange={() => {}} />
-                  <InputField label="Thibitisha Nywila Mpya" placeholder="••••••••" type="password" value="" onChange={() => {}} />
-                  <button onClick={() => notify("🔐 Nywila imebadilishwa!")} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "11px", borderRadius: 9, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14 }}>Badilisha Nywila</button>
+                  <InputField label="Nywila ya Sasa" placeholder="••••••••" type="password" value={pwForm.current} onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))} />
+                  <InputField label="Nywila Mpya" placeholder="••••••••" type="password" value={pwForm.next} onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))} />
+                  <InputField label="Thibitisha Nywila Mpya" placeholder="••••••••" type="password" value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} />
+                  <button onClick={changePassword} disabled={pwLoading} style={{ background: pwLoading ? "rgba(245,166,35,0.5)" : "#F5A623", color: "#0A0F1C", border: "none", padding: "11px", borderRadius: 9, cursor: pwLoading ? "default" : "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 14 }}>
+                    {pwLoading ? "Inabadilisha..." : "Badilisha Nywila"}
+                  </button>
                 </div>
               </div>
 
@@ -800,13 +850,18 @@ export default function ProfilePage({ user, lang, onLogout }) {
               <div className="card" style={{ marginBottom: 16 }}>
                 <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.12em", marginBottom: 16 }}>ARIFA</div>
                 {[
-                  ["Arifa za Likes na Comments", true],
-                  ["Email Digest ya Wiki", true],
-                  ["Arifa za Changamoto Mpya", true],
-                  ["Newsletter ya JamiiAI", false],
-                  ["Arifa za AI Jobs", true],
-                ].map(([label, def]) => (
-                  <ToggleItem key={label} label={label} defaultOn={def} />
+                  ["likes_comments", "Arifa za Likes na Comments"],
+                  ["email_digest",   "Email Digest ya Wiki"],
+                  ["new_challenges", "Arifa za Changamoto Mpya"],
+                  ["newsletter",     "Newsletter ya JamiiAI"],
+                  ["ai_jobs",        "Arifa za AI Jobs"],
+                ].map(([key, label]) => (
+                  <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
+                    <div onClick={() => saveNotifSettings(key, !notifSettings[key])} style={{ width: 40, height: 22, borderRadius: 11, background: notifSettings[key] ? "#F5A623" : "rgba(255,255,255,0.1)", cursor: "pointer", position: "relative", transition: "all 0.2s" }}>
+                      <div style={{ position: "absolute", top: 3, left: notifSettings[key] ? 21 : 3, width: 16, height: 16, borderRadius: "50%", background: notifSettings[key] ? "#0A0F1C" : "rgba(220,230,240,0.5)", transition: "left 0.2s" }} />
+                    </div>
+                  </div>
                 ))}
               </div>
 
@@ -819,7 +874,13 @@ export default function ProfilePage({ user, lang, onLogout }) {
                       <div style={{ fontWeight: 700, fontSize: 14 }}>Weka Profile Kuwa Private</div>
                       <div style={{ fontSize: 12, color: "rgba(220,230,240,0.4)", marginTop: 3 }}>Watu wengine hawataona profile yako</div>
                     </div>
-                    <button className="icon-btn">Weka Private</button>
+                    <button className="icon-btn" onClick={async () => {
+                      try {
+                        const token = localStorage.getItem("token");
+                        await axios.patch(`${API_URL}/users/me/settings`, { private: true }, { headers: { Authorization: `Bearer ${token}` } });
+                        notify("🔒 Profile imewekwa private");
+                      } catch { notify("❌ Imeshindwa"); }
+                    }}>Weka Private</button>
                   </div>
                   <div style={{ height: 1, background: "rgba(248,113,113,0.15)" }} />
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -827,7 +888,13 @@ export default function ProfilePage({ user, lang, onLogout }) {
                       <div style={{ fontWeight: 700, fontSize: 14, color: "#F87171" }}>Futa Akaunti Yangu</div>
                       <div style={{ fontSize: 12, color: "rgba(220,230,240,0.4)", marginTop: 3 }}>Hatua hii haiwezi kubatilishwa kabisa</div>
                     </div>
-                    <button className="icon-btn danger" onClick={() => notify("⚠️ Fungua settings → confirm ili kufuta")}>🗑 Futa Akaunti</button>
+                    {!deleteConfirm
+                      ? <button className="icon-btn danger" onClick={() => setDeleteConfirm(true)}>🗑 Futa Akaunti</button>
+                      : <div style={{ display: "flex", gap: 8 }}>
+                          <button className="icon-btn" onClick={() => setDeleteConfirm(false)}>Ghairi</button>
+                          <button onClick={deleteAccount} style={{ background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.3)", color: "#F87171", padding: "9px 16px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: 13 }}>Thibitisha Kufuta</button>
+                        </div>
+                    }
                   </div>
                 </div>
               </div>

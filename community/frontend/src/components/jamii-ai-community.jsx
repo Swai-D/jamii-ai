@@ -48,47 +48,6 @@ const PAGE_TITLE = {
   kazi: "Kazi za AI 💼",
 };
 
-// ─── MOCK DATA ───────────────────────────────────────────────────────────────
-
-const JOBS = [
-  {
-    id: "1", title: "Senior ML Engineer", type: "full_time", category: "ML Engineer",
-    company_name: "Vodacom Tanzania", company_logo: null,
-    location: "Dar es Salaam", country: "Tanzania", is_remote: false,
-    salary_min: 3000000, salary_max: 7000000, salary_currency: "TZS", salary_visible: true,
-    tags: ["Python", "TensorFlow", "MLOps", "SQL"],
-    is_featured: true, is_hot: true, views: 342, applications_count: 18,
-    deadline: "2026-03-28", created_at: "2026-03-01", is_saved: false, has_applied: false,
-    description: "Tunatafuta ML Engineer mwenye uzoefu wa kujenga mifano ya AI kwa bidhaa zetu za mobile money na network optimization. Utafanya kazi na team ya data scientists kujenga na deploy models za production.",
-    requirements: "• Uzoefu wa miaka 3+ wa ML/AI\n• Python, TensorFlow/PyTorch\n• MLOps na cloud (AWS/GCP)\n• SQL na data pipelines",
-    benefits: "• Bima ya afya\n• Remote siku 2/wiki\n• Training budget TZS 500K/mwaka\n• Bonus ya mwaka",
-  },
-  {
-    id: "2", title: "Data Science Intern", type: "internship", category: "Data Analyst",
-    company_name: "CRDB Bank", company_logo: null,
-    location: "Dar es Salaam", country: "Tanzania", is_remote: false,
-    salary_min: 500000, salary_max: 1000000, salary_currency: "TZS", salary_visible: true,
-    tags: ["Python", "SQL", "Excel", "Power BI"],
-    is_featured: false, is_hot: false, views: 156, applications_count: 47,
-    deadline: "2026-03-20", created_at: "2026-03-03", is_saved: true, has_applied: false,
-    description: "Internship ya miezi 3 kwenye team ya Data Science. Utajifunza Python, SQL, na jinsi ya kuchanganua data za benki za kweli.",
-    requirements: "• Mwanafunzi au aliyehitimu hivi karibuni\n• Maarifa ya Python au Excel\n• Hamu ya kujifunza data science",
-    benefits: "• Posho ya kila mwezi\n• Certificate ya mwisho\n• Uwezekano wa ajira ya kudumu",
-  },
-  {
-    id: "3", title: "NLP Research Assistant", type: "remote", category: "NLP Engineer",
-    company_name: "Sarufi NLP", company_logo: null,
-    location: "Remote", country: "Tanzania", is_remote: true,
-    salary_min: 1500000, salary_max: 3000000, salary_currency: "TZS", salary_visible: true,
-    tags: ["Python", "NLP", "Kiswahili", "Annotation"],
-    is_featured: true, is_hot: false, views: 89, applications_count: 12,
-    deadline: "2026-04-15", created_at: "2026-03-05", is_saved: false, has_applied: true,
-    description: "Tunatengeneza NLP tools za Kiswahili. Tunatafuta mtu wa kutusaidia kukusanya data na ku-annotate datasets za lugha za Kiswahili na Kibongo.",
-    requirements: "• Ufahamu wa Kiswahili (native au fluent)\n• Python basics\n• Uvumilivu na makini kwenye data annotation",
-    benefits: "• Kazi 100% remote\n• Saa za kazi flexible\n• Co-authorship kwenye research papers",
-  },
-];
-
 const TYPE_LABELS = {
   full_time:  { label: "Full-time",  color: "#34D399", bg: "rgba(52,211,153,0.1)" },
   internship: { label: "Internship", color: "#60A5FA", bg: "rgba(96,165,250,0.1)" },
@@ -113,6 +72,21 @@ function daysLeft(deadline) {
   return diff <= 0 ? "Imekwisha" : diff === 1 ? "Siku 1 imebaki" : `Siku ${diff} zimebaki`;
 }
 
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  let interval = Math.floor(seconds / 31536000);
+  if (interval >= 1) return interval === 1 ? "Mwaka 1 uliopita" : `Miaka ${interval} iliyopita`;
+  interval = Math.floor(seconds / 2592000);
+  if (interval >= 1) return interval === 1 ? "Mwezi 1 uliopita" : `Miezi ${interval} iliyopita`;
+  interval = Math.floor(seconds / 86400);
+  if (interval >= 1) return interval === 1 ? "Siku 1 iliyopita" : `Siku ${interval} zilizopita`;
+  interval = Math.floor(seconds / 3600);
+  if (interval >= 1) return interval === 1 ? "Saa 1 lililopita" : `Masaa ${interval} yaliyopita`;
+  interval = Math.floor(seconds / 60);
+  if (interval >= 1) return interval === 1 ? "Dakika 1 iliyopita" : `Dakika ${interval} zilizopita`;
+  return seconds <= 10 ? "Sasa hivi" : `Sekunde ${seconds} zilizopita`;
+}
+
 function CompanyInitials({ name, size = 44 }) {
   const colors = ["#F5A623","#34D399","#60A5FA","#A78BFA","#F87171"];
   const color  = colors[name.charCodeAt(0) % colors.length];
@@ -133,45 +107,19 @@ function TypeBadge({ type }) {
   );
 }
 
-// ─── MOCK DATA ───────────────────────────────────────────────────────────────
-
-const MOCK_POSTS = [
-  { id: 1, author_name: "Amina Hassan", author_handle: "aminahassan", color: "#4ECDC4", author_role: "ML Engineer", created_at: new Date().toISOString(), category: "swali", content: "Habari wote! 🙋‍♀️ Ninajaribu kujenga sentiment analysis model kwa Kiswahili lakini dataset ni ndogo sana. Kuna mtu ana dataset ya Swahili text au amefanya kitu kama hiki?", like_count: 24, comment_count: 8, bookmark_count: 5, user_liked: false, user_bookmarked: false },
-  { id: 2, author_name: "Jonas Kimaro", author_handle: "jonaskimaro", color: "#F87171", author_role: "AI Architect", created_at: new Date().toISOString(), category: "mradi", content: "🚀 Nimekamilisha mradi wangu wa kwanza wa RAG system kwa Kiswahili! Bot inaweza kujibu maswali kutoka documents za Kiswahili kwa usahihi wa 89%. Stack: LangChain + Claude API.", like_count: 87, comment_count: 15, bookmark_count: 32, user_liked: true, user_bookmarked: false },
-];
-
-const MOCK_EVENTS = [
-  { id:1, name:"Tanzania AI Hackathon 2025", date:"2025-03-15", type:"Hackathon", color:"#F5A623", location:"Dar es Salaam + Online", description:"Jenga AI solution kwa Tanzania. Teams za 2–4. Prize pool TZS 10M+.", tags:["AI","NLP","Open"], rsvp_count:128, max_rsvp:200 },
-  { id:2, name:"AI for Agriculture Webinar", date:"2025-03-22", type:"Webinar", color:"#4ECDC4", location:"Online — Zoom", description:"Jinsi AI inavyosaidia wakulima Tanzania — hali ya hewa, magonjwa ya mazao, bei za soko.", tags:["AgriTech","ML"], rsvp_count:67, max_rsvp:300 },
-  { id:3, name:"JamiiAI Monthly Meetup DSM", date:"2025-04-01", type:"Meetup", color:"#A78BFA", location:"Café Kule, Masaki DSM", description:"Networking ya kila mwezi. Presentations 3, demos, na chakula. Karibu wote.", tags:["Community","Networking"], rsvp_count:44, max_rsvp:60 },
-];
-
-const MOCK_CONVOS = [
-  { id:1, name:"Amina Hassan", last_message:"Nzuri sana! Dataset niko nayo, tutashirikiana lini?", last_message_at: new Date().toISOString(), unread_count:3, is_online:true, role:"ML Engineer" },
-  { id:2, name:"Jonas Kimaro", last_message:"Code iko GitHub — angalia README kwanza 🔥", last_message_at: new Date().toISOString(), unread_count:1, is_online:true, role:"AI Architect" },
-  { id:3, name:"Fatuma Said", last_message:"Asante kwa kushiriki post yangu!", last_message_at: new Date().toISOString(), unread_count:0, is_online:false, role:"Data Scientist" },
-];
-
-const MOCK_MEMBERS_ONLINE = [
-  { name: "Amina Hassan", avatar: "AH", color: "#4ECDC4", role: "ML Eng" },
-  { name: "Jonas Kimaro", avatar: "JK", color: "#F87171", role: "AI Arch" },
-  { name: "Grace Mushi", avatar: "GM", color: "#60A5FA", role: "Student" },
-];
-
-const MOCK_TRENDING = ["#SwahiliNLP", "#TanzaniaAI", "#ClaudeAPI", "#AIJobs", "#RAGSystem"];
-
-const MOCK_EXPERTS = [
-  { id: 1, name: "Amina Hassan", handle: "aminahassan", avatar: "AH", color: "#4ECDC4", role: "ML Engineer", city: "Dar es Salaam", bio: "Specialized katika NLP na low-resource language models. PhD candidate UDSM.", skills: ["Python", "TensorFlow", "NLP"], rating: 4.9, hourly_rate: "TZS 45K/hr", available: true, is_verified: true },
-  { id: 2, name: "Jonas Kimaro", handle: "jonaskimaro", avatar: "JK", color: "#F87171", role: "AI Architect", city: "Dodoma", bio: "Ninajenga AI systems kwa enterprises. 5+ years experience.", skills: ["LangChain", "RAG", "AWS"], rating: 4.8, hourly_rate: "TZS 60K/hr", available: true, is_verified: true },
-  { id: 3, name: "Fatuma Said", handle: "fatumasaid", avatar: "FS", color: "#A78BFA", role: "Data Scientist", city: "Zanzibar", bio: "Computer vision na data pipeline specialist. Open source contributor.", skills: ["Pandas", "PyTorch", "CV"], rating: 5.0, hourly_rate: "TZS 50K/hr", available: false, is_verified: false },
-  { id: 4, name: "David Mkwawa", handle: "davidmkwawa", avatar: "DM", color: "#34D399", role: "AI Dev", city: "Arusha", bio: "Full-stack AI developer. Najua kuintegrisha AI kwenye apps za biashara.", skills: ["Node.js", "OpenAI", "VectorDB"], rating: 4.7, hourly_rate: "TZS 35K/hr", available: true, is_verified: false },
-];
-
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
-function Av({ initials, color, size = 40 }) {
+function Av({ initials, color, size = 40, userId }) {
+  // Derive consistent color from userId, initials, or fallback — same input = same color always
+  const seed = userId || initials || "x";
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  const derived = AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+  const bg = color || derived;
+  // Dark text on light colors, light text on dark colors
+  const textColor = ["#F5A623","#FBBF24","#34D399","#60A5FA"].includes(bg) ? "#0A0F1C" : "#fff";
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: color || "#F5A623", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: size * 0.35, color: "#0A0F1C", flexShrink: 0 }}>
+    <div style={{ width: size, height: size, borderRadius: "50%", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: size * 0.35, color: textColor, flexShrink: 0 }}>
       {initials}
     </div>
   );
@@ -204,138 +152,200 @@ function VerifiedBadge({ size = 14 }) {
 
 // ─── SUB-COMPONENTS ──────────────────────────────────────────────────────────
 
-function ExpertDetailModal({ dev, onClose, t }) {
-  if (!dev) return null;
-  const skills = Array.isArray(dev.skills) ? dev.skills : JSON.parse(dev.skills || "[]");
-  
+// Derive a consistent color from user id/handle — no DB column needed
+const AVATAR_COLORS = ["#F5A623","#4ECDC4","#A78BFA","#34D399","#F87171","#60A5FA","#FBBF24","#E879F9"];
+function userColor(user) {
+  const str = user?.id || user?.handle || "x";
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function normalizeUser(u) {
+  return {
+    ...u,
+    skills: Array.isArray(u.skills)
+      ? u.skills
+      : (typeof u.skills === "string" && u.skills.startsWith("["))
+        ? JSON.parse(u.skills)
+        : [],
+    hourly_rate: u.hourly_rate || null,
+    available:   u.available ?? true,
+    rating:      u.rating ? Number(u.rating).toFixed(1) : null,
+    project_count: u.project_count || 0,
+    color: userColor(u),
+  };
+}
+
+function ExpertDetailModal({ dev: rawDev, onClose, t, onMessage, onFollow, me }) {
+  const dev = normalizeUser(rawDev);
+  const isSelf = me?.id === dev.id;
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }} />
-      <div className="fin" style={{ position: "relative", background: "#0D1322", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 28, width: "100%", maxWidth: 640, maxHeight: "92vh", overflowY: "auto", padding: 0, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
-        <div style={{ height: 140, background: `linear-gradient(135deg, ${dev.color || "#F5A623"}44 0%, #0D1322 100%)`, position: "relative" }}>
-          <button onClick={onClose} style={{ position: "absolute", top: 20, right: 20, background: "rgba(0,0,0,0.3)", border: "none", color: "#FFF", width: 36, height: 36, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)", zIndex: 10 }}>×</button>
+      <div style={{ position: "relative", background: "#0D1322", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 28, width: "100%", maxWidth: 640, maxHeight: "92vh", overflowY: "auto", padding: 0, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
+
+        {/* Header gradient */}
+        <div style={{ height: 130, background: `linear-gradient(135deg, ${dev.color}44 0%, #0D1322 100%)`, position: "relative", borderRadius: "28px 28px 0 0" }}>
+          <button onClick={onClose} style={{ position: "absolute", top: 18, right: 18, background: "rgba(0,0,0,0.35)", border: "none", color: "#FFF", width: 34, height: 34, borderRadius: "50%", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
-        
-        <div style={{ padding: "0 32px 32px", marginTop: -50 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
+
+        <div style={{ padding: "0 28px 28px", marginTop: -52 }}>
+          {/* Avatar + social icons */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20 }}>
             <div style={{ position: "relative" }}>
-              <Av initials={dev.name ? dev.name.split(" ").map(w => w[0]).join("") : "??"} color={dev.color || "#4ECDC4"} size={110} />
+              {dev.avatar_url
+                ? <img src={dev.avatar_url} alt={dev.name} style={{ width: 100, height: 100, borderRadius: "50%", objectFit: "cover", border: `3px solid ${dev.color}` }} />
+                : <Av initials={dev.name ? dev.name.split(" ").map(w => w[0]).join("") : "??"} color={dev.color} size={100} />
+              }
               {dev.is_verified && (
-                <div style={{ position: "absolute", bottom: 4, right: 4, background: "#0D1322", borderRadius: "50%", padding: 3, display: "flex" }}>
-                  <VerifiedBadge size={28} />
+                <div style={{ position: "absolute", bottom: 4, right: 4, background: "#0D1322", borderRadius: "50%", padding: 3 }}>
+                  <VerifiedBadge size={24} />
                 </div>
               )}
             </div>
-            <div style={{ display: "flex", gap: 12, paddingBottom: 10 }}>
-              {dev.github_url && <a href={dev.github_url} target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)", transition: "color 0.2s" }} className="social-link"><Github size={22} /></a>}
-              {dev.linkedin_url && <a href={dev.linkedin_url} target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)", transition: "color 0.2s" }} className="social-link"><Linkedin size={22} /></a>}
-              {dev.website_url && <a href={dev.website_url} target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)", transition: "color 0.2s" }} className="social-link"><Globe size={22} /></a>}
-              {dev.twitter_url && <a href={dev.twitter_url} target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)", transition: "color 0.2s" }} className="social-link"><Twitter size={22} /></a>}
+            <div style={{ display: "flex", gap: 10, paddingBottom: 8 }}>
+              {dev.github_url   && <a href={dev.github_url}   target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Github   size={20} /></a>}
+              {dev.linkedin_url && <a href={dev.linkedin_url} target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Linkedin size={20} /></a>}
+              {dev.website_url  && <a href={dev.website_url}  target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Globe    size={20} /></a>}
+              {dev.twitter_url  && <a href={dev.twitter_url}  target="_blank" rel="noreferrer" style={{ color: "rgba(220,230,240,0.4)" }}><Twitter  size={20} /></a>}
             </div>
           </div>
 
-          <div style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.03em" }}>{dev.name}</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
-              <span style={{ color: "#F5A623", fontFamily: "'Roboto Mono',monospace", fontSize: 16, fontWeight: 600 }}>@{dev.handle}</span>
-              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(255,255,255,0.2)" }} />
-              <span style={{ fontSize: 15, opacity: 0.7, fontWeight: 500 }}>{dev.role}</span>
-              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(255,255,255,0.2)" }} />
-              <span style={{ fontSize: 14, opacity: 0.5 }}>📍 {dev.city}</span>
-              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(255,255,255,0.2)" }} />
-              <span style={{ fontSize: 13, opacity: 0.5, display: "flex", alignItems: "center", gap: 5 }}>
-                <Calendar size={14} /> {new Date(dev.created_at || Date.now()).toLocaleDateString('sw-TZ', { month: 'long', year: 'numeric' })}
-              </span>
+          {/* Name + meta */}
+          <div style={{ marginBottom: 22 }}>
+            <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 6 }}>{dev.name}</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ color: "#F5A623", fontFamily: "'Roboto Mono',monospace", fontSize: 14, fontWeight: 600 }}>@{dev.handle}</span>
+              <span style={{ opacity: 0.2 }}>·</span>
+              <span style={{ fontSize: 13, opacity: 0.6 }}>{dev.role}</span>
+              {dev.city && <><span style={{ opacity: 0.2 }}>·</span><span style={{ fontSize: 13, opacity: 0.45 }}>📍 {dev.city}</span></>}
             </div>
           </div>
 
-          {/* Stats Bar */}
-          <div style={{ display: "flex", gap: 32, padding: "20px 0", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 24 }}>
+          {/* Stats */}
+          <div style={{ display: "flex", gap: 28, padding: "16px 0", borderTop: "1px solid rgba(255,255,255,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 22 }}>
+            {dev.rating && (
+              <div><div style={{ fontSize: 18, fontWeight: 800, color: "#F5A623" }}>⭐ {dev.rating}</div><div style={{ fontSize: 10, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>Rating</div></div>
+            )}
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#F5A623" }}>{dev.rating || "5.0"}</div>
-              <div style={{ fontSize: 10, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>Rating</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#FFF" }}>{dev.project_count || "0"}</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{dev.project_count}</div>
               <div style={{ fontSize: 10, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>Miradi</div>
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#FFF" }}>{dev.hourly_rate || "N/A"}</div>
-              <div style={{ fontSize: 10, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>Rate / hr</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{dev.followers || 0}</div>
+              <div style={{ fontSize: 10, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>Wafuasi</div>
             </div>
+            {dev.hourly_rate && (
+              <div><div style={{ fontSize: 18, fontWeight: 800, color: "#4ECDC4" }}>{dev.hourly_rate}</div><div style={{ fontSize: 10, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>Rate/hr</div></div>
+            )}
           </div>
 
+          {/* Bio */}
           {dev.bio && (
-            <div style={{ marginBottom: 28 }}>
-              <h4 style={{ fontSize: 11, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Bio</h4>
-              <p style={{ fontSize: 15, lineHeight: 1.7, color: "rgba(220,230,240,0.75)" }}>{dev.bio}</p>
+            <div style={{ marginBottom: 22 }}>
+              <p style={{ fontSize: 14, lineHeight: 1.7, color: "rgba(220,230,240,0.72)" }}>{dev.bio}</p>
             </div>
           )}
 
-          {/* Contact Section */}
-          {(dev.email || dev.phone) && (
-            <div style={{ marginBottom: 28 }}>
-              <h4 style={{ fontSize: 11, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Mawasiliano</h4>
-              <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-                {dev.email && <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "rgba(220,230,240,0.8)" }}><Mail size={16} color="#F5A623" /> {dev.email}</div>}
-                {dev.phone && <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "rgba(220,230,240,0.8)" }}><Phone size={16} color="#F5A623" /> {dev.phone}</div>}
+          {/* Skills */}
+          {dev.skills.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <h4 style={{ fontSize: 10, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>Ujuzi</h4>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {dev.skills.map(s => (
+                  <span key={s} style={{ background: "rgba(245,166,35,0.1)", border: "1px solid rgba(245,166,35,0.2)", padding: "5px 12px", borderRadius: 7, fontSize: 11, fontWeight: 700, color: "#F5A623" }}>{s}</span>
+                ))}
               </div>
             </div>
           )}
 
-          <div style={{ marginBottom: 32 }}>
-            <h4 style={{ fontSize: 11, opacity: 0.4, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Ujuzi (Skills)</h4>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {skills.map(s => (
-                <span key={s} style={{ background: "rgba(245,166,35,0.1)", border: "1px solid rgba(245,166,35,0.2)", padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, color: "#F5A623" }}>{s}</span>
-              ))}
-            </div>
+          {/* Availability badge */}
+          <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: dev.available ? "#34D399" : "#6B7280" }} />
+            <span style={{ fontSize: 12, color: dev.available ? "#34D399" : "rgba(220,230,240,0.4)", fontWeight: 600 }}>
+              {dev.available ? "Anapatikana sasa" : "Hanapatikani sasa"}
+            </span>
           </div>
 
-          <div style={{ display: "flex", gap: 14, position: "sticky", bottom: 0, background: "#0D1322", paddingTop: 10 }}>
-            <button style={{ flex: 1.5, background: "#F5A623", color: "#0A0F1C", border: "none", padding: "16px", borderRadius: 16, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 16, transition: "transform 0.2s" }} className="action-btn">
-              <Briefcase size={22} /> {t.ajiri} {dev.name.split(" ")[0]}
-            </button>
-            <button style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#FFF", border: "1px solid rgba(255,255,255,0.1)", padding: "16px", borderRadius: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 16, transition: "background 0.2s" }} className="secondary-btn">
-              <MessageSquare size={22} /> {t.ujumbe}
-            </button>
-          </div>
+          {/* Action buttons — hidden for self */}
+          {!isSelf && (
+            <div style={{ display: "flex", gap: 12, position: "sticky", bottom: 0, background: "#0D1322", paddingTop: 10 }}>
+              {dev.available && (
+                <button
+                  onClick={() => { onMessage(dev); onClose(); }}
+                  style={{ flex: 1.5, background: "#F5A623", color: "#0A0F1C", border: "none", padding: "14px", borderRadius: 14, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14 }}
+                >
+                  <MessageSquare size={18} /> Mtumie Ujumbe
+                </button>
+              )}
+              <button
+                onClick={() => { onFollow(dev.id); onClose(); }}
+                style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#FFF", border: "1px solid rgba(255,255,255,0.1)", padding: "14px", borderRadius: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14 }}
+              >
+                <UserPlus size={18} /> Fuata
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function ExpertCard({ dev, onClick, t }) {
-  const skills = Array.isArray(dev.skills) ? dev.skills : JSON.parse(dev.skills || "[]");
+function ExpertCard({ dev: rawDev, onClick, t }) {
+  const dev = normalizeUser(rawDev);
   return (
     <div onClick={() => onClick(dev)} style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 18, transition: "all 0.2s", cursor: "pointer" }} className="post-card">
       <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-        <Av initials={dev.name ? dev.name.split(" ").map(w => w[0]).join("") : "??"} color="#4ECDC4" size={44} />
+        {dev.avatar_url
+          ? <img src={dev.avatar_url} alt={dev.name} style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+          : <Av initials={dev.name ? dev.name.split(" ").map(w => w[0]).join("") : "??"} color={dev.color} size={44} />
+        }
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dev.name}</span>
-            {dev.is_verified && <VerifiedBadge size={14} />}
-            <div style={{ width: 7, height: 7, borderRadius: "50%", background: dev.available ? "#34D399" : "#444", marginLeft: "auto", flexShrink: 0 }} />
+            {dev.is_verified && <VerifiedBadge size={13} />}
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: dev.available ? "#34D399" : "#444", marginLeft: "auto", flexShrink: 0, title: dev.available ? "Anapatikana" : "Hanapatikani" }} />
           </div>
-          <div style={{ color: "rgba(220,230,240,0.4)", fontSize: 11, fontFamily: "'Roboto Mono',monospace", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis" }}>{dev.role} · {dev.city}</div>
+          <div style={{ color: "rgba(220,230,240,0.4)", fontSize: 11, fontFamily: "'Roboto Mono',monospace", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {dev.role}{dev.city ? ` · ${dev.city}` : ""}
+          </div>
         </div>
       </div>
-      <p style={{ fontSize: 12, color: "rgba(220,230,240,0.55)", lineHeight: 1.5, marginBottom: 10, height: 36, overflow: "hidden" }}>{dev.bio}</p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
-        {skills.slice(0, 3).map(s => <SkillTag key={s} label={s} />)}
-      </div>
+
+      {dev.bio && (
+        <p style={{ fontSize: 12, color: "rgba(220,230,240,0.5)", lineHeight: 1.5, marginBottom: 10, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          {dev.bio}
+        </p>
+      )}
+
+      {dev.skills.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
+          {dev.skills.slice(0, 3).map(s => <SkillTag key={s} label={s} />)}
+          {dev.skills.length > 3 && <span style={{ fontSize: 10, color: "rgba(220,230,240,0.3)", padding: "4px 8px" }}>+{dev.skills.length - 3}</span>}
+        </div>
+      )}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 10 }}>
-          <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F5A623" }}>⭐ {dev.rating}</span>
-          <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#4ECDC4" }}>{dev.hourly_rate}</span>
+        <div style={{ display: "flex", gap: 12 }}>
+          {dev.rating && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F5A623" }}>⭐ {dev.rating}</span>}
+          {dev.hourly_rate && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#4ECDC4" }}>{dev.hourly_rate}</span>}
+          {!dev.rating && !dev.hourly_rate && <span style={{ fontSize: 11, color: "rgba(220,230,240,0.25)" }}>{dev.followers || 0} wafuasi</span>}
         </div>
-        <button style={{ background: dev.available ? "#F5A623" : "rgba(255,255,255,0.05)", color: dev.available ? "#0A0F1C" : "rgba(220,230,240,0.2)", border: "none", padding: "6px 14px", borderRadius: 7, cursor: dev.available ? "pointer" : "default", fontFamily: "'Roboto Mono',sans-serif", fontWeight: 700, fontSize: 11 }}>{dev.available ? `${t.ajiri} →` : t.busy}</button>
+        <span style={{
+          background: dev.available ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.04)",
+          color: dev.available ? "#34D399" : "rgba(220,230,240,0.25)",
+          border: `1px solid ${dev.available ? "rgba(52,211,153,0.2)" : "rgba(255,255,255,0.06)"}`,
+          padding: "5px 12px", borderRadius: 7, fontSize: 11, fontWeight: 700
+        }}>
+          {dev.available ? "Anapatikana" : "Busy"}
+        </span>
       </div>
     </div>
   );
 }
-
 function StartupCard({ st, t }) {
   const tech = Array.isArray(st.tech_stack) ? st.tech_stack : (Array.isArray(st.tech) ? st.tech : JSON.parse(st.tech_stack || "[]"));
   const color = st.color || "#F5A623";
@@ -848,10 +858,15 @@ function MessagingUI({ user, t }) {
           </div>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
-          {(convos.length > 0 ? convos : MOCK_CONVOS).map(c => (
+          {convos.length === 0 ? (
+            <div style={{ textAlign:"center", padding:"40px 16px", color:"rgba(220,230,240,0.3)" }}>
+              <div style={{ fontSize:32, marginBottom:8 }}>💬</div>
+              <div style={{ fontSize:13 }}>Hakuna mazungumzo bado</div>
+            </div>
+          ) : convos.map(c => (
             <div key={c.id} onClick={() => setSelected(c)} style={{ display: "flex", gap: 10, padding: "11px 12px", borderRadius: 12, cursor: "pointer", background: selected?.id === c.id ? "rgba(245,166,35,0.1)" : "transparent", marginBottom: 4, transition: "0.2s", alignItems: "center" }}>
               <div style={{ position: "relative" }}>
-                <Av initials={c.name ? c.name.split(" ").map(w => w[0]).join("") : "??"} color="#4ECDC4" size={38} />
+                <Av initials={c.name ? c.name.split(" ").map(w => w[0]).join("") : "??"} userId={c.id} size={38} />
                 {c.is_online && <div style={{ position: "absolute", bottom: 1, right: 1, width: 9, height: 9, borderRadius: "50%", background: "#34D399", border: "2px solid #0C0C0E" }} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -874,7 +889,7 @@ function MessagingUI({ user, t }) {
         {selected ? (
           <>
             <div style={{ padding: "13px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", gap: 12 }}>
-              <Av initials={selected.name ? selected.name.split(" ").map(w => w[0]).join("") : "??"} color="#4ECDC4" size={34} />
+              <Av initials={selected.name ? selected.name.split(" ").map(w => w[0]).join("") : "??"} userId={selected.id} size={34} />
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>{selected.name}</div>
                 <div style={{ fontSize: 10, color: selected.is_online ? "#34D399" : "rgba(220,230,240,0.3)" }}>
@@ -923,11 +938,120 @@ function MessagingUI({ user, t }) {
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
 
-function PostCard({ post, onLike, onBookmark, me, t }) {
-  const [showComments, setShowComments] = useState(false);
-  const [newComment, setNewComment] = useState("");
-  const [comments, setComments] = useState([]);
+// ── RICH TEXT PARSER — #tags, @mentions, URLs ────────────────────────────────
+function parsePostContent(text, onHashtag, onMention) {
+  if (!text) return null;
+  // Split by tokens: #tag, @mention, https://url
+  const parts = text.split(/(#[\w\u0080-\uFFFF]+|@[\w.]+|https?:\/\/[^\s]+)/g);
+  return parts.map((part, i) => {
+    if (/^#[\w\u0080-\uFFFF]+/.test(part)) {
+      return (
+        <span
+          key={i}
+          onClick={(e) => { e.stopPropagation(); onHashtag?.(part.slice(1)); }}
+          style={{ color: "#F5A623", fontWeight: 700, cursor: "pointer" }}
+          className="rich-token"
+        >{part}</span>
+      );
+    }
+    if (/^@[\w.]+/.test(part)) {
+      return (
+        <span
+          key={i}
+          onClick={(e) => { e.stopPropagation(); onMention?.(part.slice(1)); }}
+          style={{ color: "#4ECDC4", fontWeight: 700, cursor: "pointer" }}
+          className="rich-token"
+        >{part}</span>
+      );
+    }
+    if (/^https?:\/\//.test(part)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          style={{ color: "#60A5FA", textDecoration: "underline", textDecorationStyle: "dotted", wordBreak: "break-all" }}
+        >{part}</a>
+      );
+    }
+    return part;
+  });
+}
+
+// News link card shown below post content when post has source_url
+function NewsLinkCard({ url, title }) {
+  if (!url) return null;
+  let hostname = "";
+  try { hostname = new URL(url).hostname.replace("www.", ""); } catch { return null; }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        display: "flex", alignItems: "center", gap: 12,
+        background: "rgba(96,165,250,0.06)",
+        border: "1px solid rgba(96,165,250,0.15)",
+        borderRadius: 10, padding: "10px 14px",
+        textDecoration: "none", marginBottom: 14,
+        transition: "border-color 0.2s",
+      }}
+      className="news-link-card"
+    >
+      <div style={{ fontSize: 20, flexShrink: 0 }}>🔗</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#DCE6F0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title || url}</div>
+        <div style={{ fontSize: 10, color: "rgba(96,165,250,0.7)", marginTop: 2, fontFamily: "'Roboto Mono',monospace" }}>{hostname}</div>
+      </div>
+      <div style={{ marginLeft: "auto", flexShrink: 0, fontSize: 11, color: "rgba(96,165,250,0.6)" }}>↗</div>
+    </a>
+  );
+}
+
+function ImageLightbox({ src, onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "zoom-out", padding: 20,
+      }}
+    >
+      <button onClick={onClose} style={{
+        position: "absolute", top: 18, right: 22,
+        background: "rgba(255,255,255,0.08)", border: "none",
+        color: "#DCE6F0", width: 38, height: 38, borderRadius: "50%",
+        cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 10000,
+      }}>✕</button>
+      <img
+        src={src}
+        alt=""
+        onClick={e => e.stopPropagation()}
+        style={{
+          maxWidth: "92vw", maxHeight: "90vh",
+          borderRadius: 14, objectFit: "contain",
+          boxShadow: "0 40px 80px rgba(0,0,0,0.6)",
+          cursor: "default",
+        }}
+      />
+    </div>
+  );
+}
+
+function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention }) {
+  const [showComments,    setShowComments]    = useState(false);
+  const [newComment,      setNewComment]      = useState("");
+  const [comments,        setComments]        = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [imgLoaded,       setImgLoaded]       = useState(false);
+  const [imgError,        setImgError]        = useState(false);
+  const [lightbox,        setLightbox]        = useState(false);
 
   const ts = TAG_COLORS[post.category] || TAG_COLORS.swali;
 
@@ -938,7 +1062,7 @@ function PostCard({ post, onLike, onBookmark, me, t }) {
     try {
       const res = await axios.get(`${API_URL}/posts/${post.id}/comments`);
       setComments(res.data);
-    } catch (error) { console.error(error); }
+    } catch { }
     setLoadingComments(false);
   };
 
@@ -954,53 +1078,165 @@ function PostCard({ post, onLike, onBookmark, me, t }) {
     } catch { alert("Ingia kwanza ili kutoa maoni."); }
   };
 
+  const hasImage = !!post.image_url && !imgError;
+  const hasText  = !!post.content?.trim();
+
   return (
-    <div className="post-card" style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 22, marginBottom: 12, transition: "border-color 0.2s" }}>
-      <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-        <Av initials={post.author_name ? post.author_name.split(" ").map(w => w[0]).join("") : "??"} color="#4ECDC4" size={44} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{post.author_name}</span>
-            {post.is_verified && <VerifiedBadge size={16} />}
-            <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.3)" }}>@{post.author_handle}</span>
-            <Pill label={t[post.category] || post.category} bg={ts.bg} color={ts.color} />
-          </div>
-          <div style={{ fontSize: 12, color: "rgba(220,230,240,0.38)", marginTop: 2, fontFamily: "'Roboto Mono',monospace" }}>{post.author_role || "Mwanachama"} · {new Date(post.created_at).toLocaleDateString()}</div>
-        </div>
-      </div>
-      <p style={{ fontSize: 15, lineHeight: 1.75, color: "rgba(220,230,240,0.88)", marginBottom: 18, paddingLeft: 56 }}>{post.content}</p>
-      <div style={{ display: "flex", gap: 12, paddingLeft: 56 }}>
-        <button onClick={() => onLike(post.id)} style={{ display: "flex", alignItems: "center", gap: 6, background: post.user_liked ? "rgba(245,166,35,0.12)" : "transparent", border: "none", color: post.user_liked ? "#F5A623" : "rgba(220,230,240,0.45)", padding: "8px 12px", borderRadius: 8, cursor: "pointer" }}>
-          <Heart size={18} fill={post.user_liked ? "#F5A623" : "none"} strokeWidth={2.5} />
-          <span style={{ fontSize: 13, fontWeight: 700 }}>{post.like_count}</span>
-        </button>
-        <button onClick={fetchComments} style={{ display: "flex", alignItems: "center", gap: 6, background: showComments ? "rgba(78,205,196,0.12)" : "transparent", border: "none", color: showComments ? "#4ECDC4" : "rgba(220,230,240,0.45)", padding: "8px 12px", borderRadius: 8, cursor: "pointer" }}>
-          <MessageSquare size={18} fill={showComments ? "#4ECDC4" : "none"} strokeWidth={2.5} />
-          <span style={{ fontSize: 13, fontWeight: 700 }}>{post.comment_count}</span>
-        </button>
-        <button onClick={() => onBookmark(post.id)} style={{ display: "flex", alignItems: "center", gap: 6, background: post.user_bookmarked ? "rgba(167,139,250,0.12)" : "transparent", border: "none", color: post.user_bookmarked ? "#A78BFA" : "rgba(220,230,240,0.45)", padding: "8px 12px", borderRadius: 8, cursor: "pointer" }}>
-          <Bookmark size={18} fill={post.user_bookmarked ? "#A78BFA" : "none"} strokeWidth={2.5} />
-          <span style={{ fontSize: 13, fontWeight: 700 }}>{post.bookmark_count}</span>
-        </button>
-      </div>
-      {showComments && (
-        <div style={{ marginTop: 18, paddingLeft: 56, borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 16 }}>
-          {comments.map((c, i) => (
-            <div key={i} style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-              <Av initials={c.author_name ? c.author_name.split(" ").map(w => w[0]).join("") : "?"} color="#A78BFA" size={30} />
-              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "10px 14px", flex: 1 }}>
-                <span style={{ fontWeight: 700, fontSize: 12, color: "#A78BFA" }}>{c.author_name}</span>
-                <p style={{ fontSize: 13, color: "rgba(220,230,240,0.7)", marginTop: 3 }}>{c.text}</p>
+    <>
+      {lightbox && <ImageLightbox src={post.image_url} onClose={() => setLightbox(false)} />}
+
+      <div className="post-card" style={{
+        background: "rgba(255,255,255,0.025)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 16, marginBottom: 12,
+        overflow: "hidden",
+        transition: "border-color 0.2s",
+      }}>
+        {/* ── Card body — padding top ── */}
+        <div style={{ padding: "18px 20px 14px" }}>
+
+          {/* Author row */}
+          <div style={{ display: "flex", gap: 12, marginBottom: hasText ? 12 : 8 }}>
+            <Av
+              initials={post.author_name ? post.author_name.split(" ").map(w => w[0]).join("") : "??"}
+              userId={post.user_id || post.author_handle}
+              size={40}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>{post.author_name}</span>
+                {post.is_verified && <VerifiedBadge size={14} />}
+                <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.3)" }}>@{post.author_handle}</span>
+                <Pill label={t[post.category] || post.category} bg={ts.bg} color={ts.color} />
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(220,230,240,0.35)", marginTop: 2, fontFamily: "'Roboto Mono',monospace" }}>
+                {post.author_role || "Mwanachama"} · {timeAgo(post.created_at)}
               </div>
             </div>
-          ))}
-          <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-            <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder={t.andika_jibu} style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "10px 14px", color: "#DCE6F0", outline: "none" }} />
-            <button onClick={handleAddComment} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}><Send size={16} /></button>
           </div>
+
+          {/* Caption / text content */}
+          {hasText && (
+            <p style={{
+              fontSize: 14, lineHeight: 1.75,
+              color: "rgba(220,230,240,0.88)",
+              marginBottom: hasImage ? 14 : 4,
+              paddingLeft: 52,
+              whiteSpace: "pre-wrap", wordBreak: "break-word",
+            }}>
+              {parsePostContent(post.content,
+                (tag)    => onHashtag?.(tag),
+                (handle) => onMention?.(handle),
+              )}
+            </p>
+          )}
+
+          {/* News source link — sits between caption and image */}
+          {post.source_url && (
+            <div style={{ paddingLeft: 52, marginBottom: hasImage ? 14 : 0 }}>
+              <NewsLinkCard url={post.source_url} title={post.source_title} />
+            </div>
+          )}
         </div>
-      )}
-    </div>
+
+        {/* ── Image — full-bleed below caption ── */}
+        {hasImage && (
+          <div
+            onClick={() => setLightbox(true)}
+            style={{
+              width: "100%",
+              background: "rgba(255,255,255,0.03)",
+              cursor: "zoom-in",
+              position: "relative",
+              overflow: "hidden",
+              minHeight: imgLoaded ? 0 : 220,
+            }}
+          >
+            {!imgLoaded && (
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%)",
+                backgroundSize: "200% 100%",
+                animation: "shimmer 1.4s infinite",
+              }} />
+            )}
+            <img
+              src={post.image_url}
+              alt=""
+              onLoad={()  => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+              style={{
+                width: "100%",
+                maxHeight: 480,
+                objectFit: "cover",
+                display: "block",
+                opacity: imgLoaded ? 1 : 0,
+                transition: "opacity 0.3s ease",
+              }}
+            />
+            <div style={{
+              position: "absolute", bottom: 10, right: 10,
+              background: "rgba(0,0,0,0.55)", borderRadius: 6,
+              padding: "3px 8px", fontSize: 10,
+              color: "rgba(255,255,255,0.7)",
+              fontFamily: "'Roboto Mono',monospace",
+              opacity: 0, transition: "opacity 0.2s",
+            }} className="img-zoom-hint">🔍 Panua</div>
+          </div>
+        )}
+
+        {/* ── Actions + comments ── */}
+        <div style={{ padding: "10px 20px 16px" }}>
+          <div style={{ display: "flex", gap: 4, paddingLeft: 52 }}>
+            <button onClick={() => onLike(post.id)} style={{ display: "flex", alignItems: "center", gap: 5, background: post.user_liked ? "rgba(245,166,35,0.12)" : "transparent", border: "none", color: post.user_liked ? "#F5A623" : "rgba(220,230,240,0.4)", padding: "7px 12px", borderRadius: 8, cursor: "pointer", transition: "all 0.15s" }}>
+              <Heart size={16} fill={post.user_liked ? "#F5A623" : "none"} strokeWidth={2.5} />
+              <span style={{ fontSize: 12, fontWeight: 700 }}>{post.like_count}</span>
+            </button>
+            <button onClick={fetchComments} style={{ display: "flex", alignItems: "center", gap: 5, background: showComments ? "rgba(78,205,196,0.12)" : "transparent", border: "none", color: showComments ? "#4ECDC4" : "rgba(220,230,240,0.4)", padding: "7px 12px", borderRadius: 8, cursor: "pointer", transition: "all 0.15s" }}>
+              <MessageSquare size={16} fill={showComments ? "#4ECDC4" : "none"} strokeWidth={2.5} />
+              <span style={{ fontSize: 12, fontWeight: 700 }}>{post.comment_count}</span>
+            </button>
+            <button onClick={() => onBookmark(post.id)} style={{ display: "flex", alignItems: "center", gap: 5, background: post.user_bookmarked ? "rgba(167,139,250,0.12)" : "transparent", border: "none", color: post.user_bookmarked ? "#A78BFA" : "rgba(220,230,240,0.4)", padding: "7px 12px", borderRadius: 8, cursor: "pointer", transition: "all 0.15s" }}>
+              <Bookmark size={16} fill={post.user_bookmarked ? "#A78BFA" : "none"} strokeWidth={2.5} />
+              <span style={{ fontSize: 12, fontWeight: 700 }}>{post.bookmark_count}</span>
+            </button>
+          </div>
+
+          {/* Comments */}
+          {showComments && (
+            <div style={{ marginTop: 14, borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 14 }}>
+              {loadingComments && (
+                <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(255,255,255,0.05)", animation: "shimmer 1.4s infinite" }} />
+                  <div style={{ flex: 1, height: 44, borderRadius: 12, background: "rgba(255,255,255,0.04)", animation: "shimmer 1.4s infinite" }} />
+                </div>
+              )}
+              {comments.map((c, i) => (
+                <div key={i} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                  <Av initials={c.author_name ? c.author_name.split(" ").map(w => w[0]).join("") : "?"} userId={c.user_id || c.author_handle} size={28} />
+                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "9px 13px", flex: 1 }}>
+                    <span style={{ fontWeight: 700, fontSize: 11, color: "#A78BFA" }}>{c.author_name}</span>
+                    <p style={{ fontSize: 13, color: "rgba(220,230,240,0.7)", marginTop: 3, lineHeight: 1.5 }}>{c.text}</p>
+                  </div>
+                </div>
+              ))}
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <input
+                  value={newComment}
+                  onChange={e => setNewComment(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleAddComment()}
+                  placeholder={t.andika_jibu}
+                  style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 13px", color: "#DCE6F0", outline: "none", fontSize: 13 }}
+                />
+                <button onClick={handleAddComment} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>
+                  <Send size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>{/* end actions+comments wrapper */}
+      </div>{/* end post-card */}
+    </>
   );
 }
 
@@ -1022,17 +1258,12 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
   const [activeFilter, setActiveFilter]   = useState("all");
   const [startupFilter, setStartupFilter] = useState("Zote");
   const [instFilter, setInstFilter]       = useState("Zote");
-  const [instPage, setInstPage]           = useState(1);
   const [resFilter, setResFilter]         = useState("Zote");
-
-  const [resPage, setResPage]             = useState(1);
   const [showResForm, setShowResForm]     = useState(false);
-
   const [resSubmitted, setResSubmitted]   = useState(false);
   const [resForm, setResForm]             = useState({ title: "", type: "Dataset", link: "", tags: "", desc: "" });
 
   const [jobs, setJobs]                   = useState([]);
-  const [jobsLoading, setJobsLoading]     = useState(false);
   const [selectedJob, setSelectedJob]     = useState(null);
   const [jobSearch, setJobSearch]         = useState("");
   const [jobType, setJobType]             = useState("all");
@@ -1040,27 +1271,34 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
   const [showJobForm, setShowJobForm]     = useState(false);
   const [jobForm, setJobForm]             = useState({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
 
-  const handleJobSubmit = async () => {
+  const handleJobSubmit = () => {
     if (!jobForm.title.trim() || !jobForm.company.trim()) return;
-    try {
-      const token = localStorage.getItem("token");
-      const payload = {
-        title: jobForm.title, company_name: jobForm.company,
-        type: jobForm.type, location: jobForm.location,
-        description: jobForm.desc, requirements: jobForm.requirements,
-        is_remote: jobForm.type === "remote",
-        poster_name: ME.name, poster_email: "",
-        tags: jobForm.salary ? [jobForm.salary] : [],
-      };
-      const res = await axios.post(`${API_URL}/jobs`, payload, { headers: { Authorization: `Bearer ${token}` } });
-      setJobs([res.data, ...jobs]);
-      setShowJobForm(false);
-      setJobForm({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
-      notify("✓ Kazi imetumwa kwa review!");
-    } catch {
-      notify("Hitilafu — ingia kwanza!");
-    }
+    const newJob = {
+      id: Date.now().toString(),
+      title: jobForm.title,
+      company_name: jobForm.company,
+      type: jobForm.type,
+      location: jobForm.location || "Remote",
+      is_remote: !jobForm.location,
+      description: jobForm.desc,
+      requirements: jobForm.requirements,
+      salary_visible: !!jobForm.salary,
+      salary_min: jobForm.salary ? parseInt(jobForm.salary) : 0,
+      salary_currency: "TZS",
+      tags: ["AI", "New"],
+      views: 0,
+      applications_count: 0,
+      deadline: "2026-12-31",
+      created_at: new Date().toISOString(),
+      is_saved: false,
+      has_applied: false
+    };
+    setJobs([newJob, ...jobs]);
+    setShowJobForm(false);
+    setJobForm({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
+    notify("✓ Kazi imechapishwa!");
   };
+
   const handleResSubmit = () => {
     if (!resForm.title.trim() || !resForm.link.trim()) return;
 
@@ -1096,6 +1334,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
   const [loading, setLoading]             = useState(false);
   const [composerText, setComposerText]   = useState("");
   const [composerCat, setComposerCat]     = useState("swali");
+  const [composerImage, setComposerImage] = useState(null);   // uploaded image URL
   const [showOptions, setShowOptions]     = useState(false);
   const [notification, setNotification]   = useState(null);
   const [isPosting, setIsPosting]         = useState(false);
@@ -1117,19 +1356,15 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
       if (activeNav === "nyumbani" || activeNav === "gundua") {
         const res = await axios.get(`${API_URL}/posts?category=${activeFilter}`, { headers });
         setPosts(res.data.posts);
-      } else if (activeNav === "kazi") {
-        setJobsLoading(true);
-        const params = new URLSearchParams({ page: 1, limit: 30 });
-        if (jobType !== "all") params.append("type", jobType);
-        if (jobLoc !== "all") params.append("location", jobLoc);
-        if (jobSearch) params.append("search", jobSearch);
-        const res = await axios.get(`${API_URL}/jobs?${params}`, { headers });
-        setJobs(res.data.jobs || []);
-        setJobsLoading(false);
       } else {
         const endpointMap = { startups: "startups", rasilimali: "resources", changamoto: "challenges", habari: "news", wataalamu: "users", vyuo: "institutions", matukio: "events" };
-        const res = await axios.get(`${API_URL}/${endpointMap[activeNav]}`);
-        setDataList(activeNav === 'wataalamu' ? res.data.users : res.data);
+        if (activeNav === "kazi") {
+          const res = await axios.get(`${API_URL}/jobs`);
+          setJobs(res.data?.jobs || res.data || []);
+        } else {
+          const res = await axios.get(`${API_URL}/${endpointMap[activeNav]}`);
+          setDataList(activeNav === 'wataalamu' ? res.data.users : res.data);
+        }
       }
     } catch (err) { console.error(err); }
     setLoading(false);
@@ -1155,13 +1390,23 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
   };
 
   const handlePost = async () => {
-    if (!composerText.trim()) return;
+    if (!composerText.trim() && !composerImage) return;
     setIsPosting(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.post(`${API_URL}/posts`, { content: composerText, category: composerCat }, { headers: { Authorization: `Bearer ${token}` } });
-      setPosts([{ ...res.data, author_name: ME.name, author_handle: ME.handle, author_role: ME.role, like_count: 0, comment_count: 0, bookmark_count: 0, user_liked: false, user_bookmarked: false }, ...posts]);
-      setComposerText(""); setShowOptions(false); notify("✓ Imetumwa!");
+      const res = await axios.post(
+        `${API_URL}/posts`,
+        { content: composerText, category: composerCat, image_url: composerImage || undefined },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPosts([{
+        ...res.data,
+        author_name: ME.name, author_handle: ME.handle, author_role: ME.role,
+        like_count: 0, comment_count: 0, bookmark_count: 0,
+        user_liked: false, user_bookmarked: false
+      }, ...posts]);
+      setComposerText(""); setComposerImage(null); setShowOptions(false);
+      notify("✓ Imetumwa!");
     } catch { notify("Hitilafu imetokea."); }
     setIsPosting(false);
   };
@@ -1173,7 +1418,14 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
 
   return (
     <div style={{ fontFamily: "'Roboto Mono',monospace", background: "#0A0F1C", color: "#DCE6F0", minHeight: "100vh", display: "flex", justifyContent: "center", overflow: "hidden" }}>
-      {selectedExpert && <ExpertDetailModal dev={selectedExpert} onClose={() => setSelectedExpert(null)} t={t} />}
+      {selectedExpert && <ExpertDetailModal
+        dev={selectedExpert}
+        onClose={() => setSelectedExpert(null)}
+        t={t}
+        me={ME}
+        onFollow={(id) => handleLike && axios.post(`${API_URL}/users/${id}/follow`, {}, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }).then(() => notify("✓ Umemfuata!")).catch(() => {})}
+        onMessage={(dev) => { setActiveNav("ujumbe"); }}
+      />}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -1185,7 +1437,12 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
         .ftab.active{background:rgba(245,166,35,0.1);color:#F5A623;border-color:rgba(245,166,35,0.2)}
         .search-input:focus{background:rgba(255,255,255,0.07) !important; border-color:rgba(245,166,35,0.3) !important; box-shadow: 0 0 15px rgba(245,166,35,0.05)}
         .responsive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+        .rich-token:hover{opacity:0.75}
+        .news-link-card:hover{border-color:rgba(96,165,250,0.35) !important}
         @keyframes notif{0%{opacity:0;transform:translateX(20px)}15%{opacity:1;transform:translateX(0)}85%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(20px)}}
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        .post-card:hover .img-zoom-hint{opacity:1 !important}
+        .post-card:hover{border-color:rgba(255,255,255,0.12) !important}
         @media (max-width: 1100px) { 
           .right-sidebar { display: none !important; }
           .main-container { max-width: 100% !important; }
@@ -1225,7 +1482,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
               style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer", background: activeNav === 'profile' ? "rgba(245,166,35,0.1)" : "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: 12, border: `1px solid ${activeNav === 'profile' ? "rgba(245,166,35,0.2)" : "transparent"}`, transition: "all 0.2s" }} 
               onClick={() => setActiveNav("profile")}
             >
-              <Av initials={ME.avatar} size={30} color={activeNav === 'profile' ? "#F5A623" : "#4ECDC4"} />
+              <Av initials={ME.avatar} size={30} userId={ME.id} color={activeNav === 'profile' ? "#F5A623" : undefined} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 11, color: activeNav === 'profile' ? "#F5A623" : "#FFF", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ME.name}</div>
                 <div style={{ fontSize: 9, opacity: 0.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>@{ME.handle}</div>
@@ -1243,7 +1500,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
               <NotificationBell socket={socket} />
               <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.1)", margin: "0 4px" }} />
               <div onClick={() => setActiveNav("profile")} style={{ cursor: "pointer" }}>
-                <Av initials={ME.avatar} size={32} color="#F5A623" />
+                <Av initials={ME.avatar} size={32} userId={ME.id} />
               </div>
             </div>
           </div>
@@ -1252,25 +1509,110 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
             {activeNav === "profile" && <ProfilePage user={user} lang={lang} onLogout={onLogout} />}
 
             {(activeNav === "nyumbani" || activeNav === "gundua") && (
-              <>
+              <div>
                 <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 18, marginBottom: 16 }}>
-                  <textarea value={composerText} onChange={e => { setComposerText(e.target.value); setShowOptions(true); }} placeholder={t.shiriki_kitu} style={{ width: "100%", background: "transparent", border: "none", color: "#DCE6F0", fontSize: 14, outline: "none", resize: "none" }} rows={3} />
+                  <textarea
+                    value={composerText}
+                    onChange={e => { setComposerText(e.target.value); setShowOptions(true); }}
+                    placeholder={t.shiriki_kitu}
+                    style={{ width: "100%", background: "transparent", border: "none", color: "#DCE6F0", fontSize: 14, outline: "none", resize: "none" }}
+                    rows={3}
+                  />
+
+                  {/* Image preview */}
+                  {composerImage && (
+                    <div style={{ position: "relative", display: "inline-block", marginBottom: 10 }}>
+                      <img
+                        src={composerImage}
+                        alt="preview"
+                        style={{ maxHeight: 200, maxWidth: "100%", borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)", display: "block" }}
+                      />
+                      <button
+                        onClick={() => setComposerImage(null)}
+                        style={{ position: "absolute", top: -8, right: -8, width: 22, height: 22, borderRadius: "50%", background: "rgba(248,113,113,0.85)", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}
+                      >×</button>
+                    </div>
+                  )}
+
+                  {/* Image upload row */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                    <label style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "6px 12px", borderRadius: 8, cursor: "pointer",
+                      background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+                      color: "rgba(220,230,240,0.55)", fontSize: 11, fontWeight: 700,
+                      transition: "all 0.18s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(245,166,35,0.3)"; e.currentTarget.style.color = "#F5A623"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "rgba(220,230,240,0.55)"; }}
+                    >
+                      🖼️ Picha
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) { notify("❌ Picha kubwa sana (max 5MB)"); return; }
+                          // Local preview immediately
+                          const localUrl = URL.createObjectURL(file);
+                          setComposerImage(localUrl);
+                          setShowOptions(true);
+                          // Upload to Cloudinary
+                          try {
+                            const token = localStorage.getItem("token");
+                            const fd = new FormData();
+                            fd.append("image", file);
+                            const res = await axios.post(`${API_URL}/upload/post-image`, fd, {
+                              headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" }
+                            });
+                            setComposerImage(res.data.imageUrl || res.data.url || localUrl);
+                          } catch { /* keep local preview, post will fail gracefully */ }
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+
+                    {/* char count */}
+                    {composerText.length > 0 && (
+                      <span style={{ fontSize: 10, color: composerText.length > 500 ? "#F87171" : "rgba(220,230,240,0.25)", marginLeft: "auto" }}>
+                        {composerText.length}/500
+                      </span>
+                    )}
+                  </div>
+
                   {showOptions && (
-                    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 14 }}>
-                      <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 14 }}>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {Object.entries({ swali: t.swali, mradi: t.mradi, habari: t.habari_filter, kazi: t.kazi }).map(([k, v]) => (
                           <button key={k} onClick={() => setComposerCat(k)} style={{ padding: "6px 14px", borderRadius: 20, fontSize: 11, border: `1px solid ${composerCat === k ? TAG_COLORS[k].color : "rgba(255,255,255,0.1)"}`, background: composerCat === k ? TAG_COLORS[k].bg : "transparent", color: composerCat === k ? TAG_COLORS[k].color : "#FFF", cursor: "pointer" }}>{v}</button>
                         ))}
                       </div>
-                      <button onClick={handlePost} disabled={isPosting} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "8px 20px", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>{isPosting ? t.inatuma : t.chapisha}</button>
+                      <button
+                        onClick={handlePost}
+                        disabled={isPosting || (!composerText.trim() && !composerImage)}
+                        style={{
+                          background: (!composerText.trim() && !composerImage) ? "rgba(245,166,35,0.3)" : "#F5A623",
+                          color: "#0A0F1C", border: "none", padding: "8px 20px", borderRadius: 8,
+                          fontWeight: 700, cursor: (!composerText.trim() && !composerImage) ? "default" : "pointer",
+                          fontFamily: "'Roboto Mono',monospace", fontSize: 12,
+                        }}
+                      >{isPosting ? t.inatuma : t.chapisha}</button>
                     </div>
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
                   {localizedFilters.map(tab => <span key={tab.id} className={`ftab ${activeFilter === tab.id ? "active" : ""}`} onClick={() => setActiveFilter(tab.id)}>{tab.label}</span>)}
                 </div>
-                {loading ? <div style={{ opacity: 0.4 }}>{t.inapakia}</div> : posts.map(p => <PostCard key={p.id} post={p} onLike={handleLike} onBookmark={handleBookmark} me={ME} t={t} />)}
-              </>
+                {loading ? <div style={{ opacity: 0.4 }}>{t.inapakia}</div> : posts.map(p => <PostCard
+                  key={p.id} post={p}
+                  onLike={handleLike} onBookmark={handleBookmark}
+                  me={ME} t={t}
+                  onHashtag={(tag) => { setActiveFilter("zote"); setComposerText(`#${tag} `); notify(`#${tag}`); }}
+                  onMention={(handle) => { notify(`@${handle}`); }}
+                />)}
+              </div>
             )}
 
             {activeNav === "wataalamu" && (
@@ -1296,9 +1638,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
 
                 <div className="responsive-grid">
                   {loading ? t.inapakia : (() => {
-                    const baseList = dataList.length > 0 ? dataList : MOCK_EXPERTS;
-                    // Force Amina and Jonas to be in the list if it's mock-only or empty
-                    const fullList = dataList.length > 0 ? dataList : MOCK_EXPERTS;
+                    const fullList = dataList;
                     
                     const filtered = fullList.filter(dev => {
                       const searchStr = expertSearch.toLowerCase();
@@ -1379,44 +1719,11 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
                 </div>
                 <div style={{ display: "flex", gap: 5, marginBottom: 20, flexWrap: "wrap" }}>
                   {["Zote", "University", "Research Institute", "Government Body", "NGO / Training"].map(t => (
-                    <button key={t} onClick={() => { setInstFilter(t); setInstPage(1); }} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${instFilter === t ? "#60A5FA" : "rgba(255,255,255,0.1)"}`, background: instFilter === t ? "rgba(96,165,250,0.12)" : "transparent", color: instFilter === t ? "#60A5FA" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{t}</button>
+                    <button key={t} onClick={() => setInstFilter(t)} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${instFilter === t ? "#60A5FA" : "rgba(255,255,255,0.1)"}`, background: instFilter === t ? "rgba(96,165,250,0.12)" : "transparent", color: instFilter === t ? "#60A5FA" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{t}</button>
                   ))}
                 </div>
                 <div className="responsive-grid">
-                  {loading ? t.inapakia : (() => {
-                    const filtered = dataList.filter(ins => instFilter === "Zote" || ins.type === instFilter);
-                    const startIndex = (instPage - 1) * itemsPerPage;
-                    const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
-                    const totalPages = Math.ceil(filtered.length / itemsPerPage);
-
-                    if (filtered.length === 0) return <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 40, opacity: 0.4 }}>Hakuna taasisi iliyopatikana</div>;
-
-                    return (
-                      <>
-                        {paginated.map(ins => <InstitutionCard key={ins.id} ins={ins} t={t} />)}
-                        
-                        {totalPages > 1 && (
-                          <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", gap: 10, marginTop: 20, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                            <button 
-                              disabled={instPage === 1} 
-                              onClick={() => setInstPage(p => p - 1)}
-                              style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "none", color: "#FFF", cursor: instPage === 1 ? "default" : "pointer", opacity: instPage === 1 ? 0.2 : 1 }}
-                            >
-                              ← {t.nyuma || "Nyuma"}
-                            </button>
-                            <span style={{ display: "flex", alignItems: "center", fontSize: 13, opacity: 0.5 }}>{instPage} / {totalPages}</span>
-                            <button 
-                              disabled={instPage === totalPages} 
-                              onClick={() => setInstPage(p => p + 1)}
-                              style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "none", color: "#FFF", cursor: instPage === totalPages ? "default" : "pointer", opacity: instPage === totalPages ? 0.2 : 1 }}
-                            >
-                              {t.mbele || "Mbele"} →
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {loading ? t.inapakia : dataList.filter(ins => instFilter === "Zote" || ins.type === instFilter).map(ins => <InstitutionCard key={ins.id} ins={ins} t={t} />)}
                 </div>
               </div>
             )}
@@ -1500,74 +1807,41 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
 
                 <div style={{ display: "flex", gap: 5, marginBottom: 20, flexWrap: "wrap" }}>
                   {["Zote", "Dataset", "Tutorial", "Guide", "Research Paper"].map(t => (
-                    <button key={t} onClick={() => { setResFilter(t); setResPage(1); }} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${resFilter === t ? "#34D399" : "rgba(255,255,255,0.1)"}`, background: resFilter === t ? "rgba(52,211,153,0.12)" : "transparent", color: resFilter === t ? "#34D399" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{t}</button>
+                    <button key={t} onClick={() => setResFilter(t)} style={{ padding: "5px 13px", borderRadius: 20, fontSize: 11, fontWeight: 700, cursor: "pointer", border: `1px solid ${resFilter === t ? "#34D399" : "rgba(255,255,255,0.1)"}`, background: resFilter === t ? "rgba(52,211,153,0.12)" : "transparent", color: resFilter === t ? "#34D399" : "rgba(220,230,240,0.4)", fontFamily: "'Roboto Mono',monospace", transition: "all 0.2s" }}>{t}</button>
                   ))}
                 </div>
                 <div className="responsive-grid">
-                  {loading ? t.inapakia : (() => {
-                    const filtered = dataList.filter(r => resFilter === "Zote" || r.type === resFilter);
-                    const startIndex = (resPage - 1) * itemsPerPage;
-                    const paginated = filtered.slice(startIndex, startIndex + itemsPerPage);
-                    const totalPages = Math.ceil(filtered.length / itemsPerPage);
-
-                    if (filtered.length === 0) return <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 40, opacity: 0.4 }}>Hakuna rasilimali iliyopatikana</div>;
-
+                  {loading ? t.inapakia : dataList.filter(r => resFilter === "Zote" || r.type === resFilter).map(r => {
+                    const typeColor = { Dataset: "#4ECDC4", Tutorial: "#F5A623", Guide: "#34D399", "Research Paper": "#A78BFA" };
+                    const tc = typeColor[r.type] || "#F5A623";
+                    const tags = Array.isArray(r.tags) ? r.tags : (typeof r.tags === 'string' ? JSON.parse(r.tags || "[]") : []);
+                    const isPending = r.status === "pending";
                     return (
-                      <>
-                        {paginated.map(r => {
-                          const typeColor = { Dataset: "#4ECDC4", Tutorial: "#F5A623", Guide: "#34D399", "Research Paper": "#A78BFA" };
-                          const tc = typeColor[r.type] || "#F5A623";
-                          const tags = Array.isArray(r.tags) ? r.tags : (typeof r.tags === 'string' ? JSON.parse(r.tags || "[]") : []);
-                          const isPending = r.status === "pending";
-                          return (
-                            <div key={r.id} style={{ background: "rgba(255,255,255,0.025)", border: `1px solid ${isPending ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", cursor: "pointer", transition: "all 0.2s", opacity: isPending ? 0.8 : 1 }} className="post-card">
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                  <Pill label={r.type} bg={`${tc}18`} color={tc} />
-                                  {isPending && <Pill label="⏳ INASUBIRI" bg="rgba(245,166,35,0.1)" color="#F5A623" />}
-                                </div>
-                                <div style={{ display: "flex", gap: 8 }}>
-                                  {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F5A623" }}>⭐ {r.stars}</span>}
-                                  {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.35)" }}>↓ {r.downloads?.toLocaleString()}</span>}
-                                </div>
-                              </div>
-                              <h3 style={{ fontWeight: 800, fontSize: 14, letterSpacing: "-0.01em", marginBottom: 5, lineHeight: 1.3, flex: 1 }}>{r.title}</h3>
-                              <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.3)", marginBottom: 8 }}>by {r.author_name || 'JamiiAI Team'}</div>
-                              <p style={{ fontSize: 12, color: "rgba(220,230,240,0.52)", lineHeight: 1.6, marginBottom: 12, height: 38, overflow: "hidden" }}>{r.description}</p>
-                              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
-                                {tags.slice(0, 3).map(t => <SkillTag key={t} label={t} />)}
-                              </div>
-                              {isPending ? (
-                                <div style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.15)", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "rgba(245,166,35,0.6)", textAlign: "center", fontWeight: 700 }}>MAPITIO YA ADMIN...</div>
-                              ) : (
-                                <button style={{ background: tc, color: "#0A0F1C", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',sans-serif", fontWeight: 800, fontSize: 12, marginTop: "auto" }}>Pakua / Angalia →</button>
-                              )}
-                            </div>
-                          );
-                        })}
-
-                        {totalPages > 1 && (
-                          <div style={{ gridColumn: "1/-1", display: "flex", justifyContent: "center", gap: 10, marginTop: 20, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                            <button 
-                              disabled={resPage === 1} 
-                              onClick={() => setResPage(p => p - 1)}
-                              style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "none", color: "#FFF", cursor: resPage === 1 ? "default" : "pointer", opacity: resPage === 1 ? 0.2 : 1 }}
-                            >
-                              ← {t.nyuma || "Nyuma"}
-                            </button>
-                            <span style={{ display: "flex", alignItems: "center", fontSize: 13, opacity: 0.5 }}>{resPage} / {totalPages}</span>
-                            <button 
-                              disabled={resPage === totalPages} 
-                              onClick={() => setResPage(p => p + 1)}
-                              style={{ padding: "8px 16px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "none", color: "#FFF", cursor: resPage === totalPages ? "default" : "pointer", opacity: resPage === totalPages ? 0.2 : 1 }}
-                            >
-                              {t.mbele || "Mbele"} →
-                            </button>
+                      <div key={r.id} style={{ background: "rgba(255,255,255,0.025)", border: `1px solid ${isPending ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", cursor: "pointer", transition: "all 0.2s", opacity: isPending ? 0.8 : 1 }} className="post-card">
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                            <Pill label={r.type} bg={`${tc}18`} color={tc} />
+                            {isPending && <Pill label="⏳ INASUBIRI" bg="rgba(245,166,35,0.1)" color="#F5A623" />}
                           </div>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F5A623" }}>⭐ {r.stars}</span>}
+                            {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.35)" }}>↓ {r.downloads?.toLocaleString()}</span>}
+                          </div>
+                        </div>
+                        <h3 style={{ fontWeight: 800, fontSize: 14, letterSpacing: "-0.01em", marginBottom: 5, lineHeight: 1.3, flex: 1 }}>{r.title}</h3>
+                        <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.3)", marginBottom: 8 }}>by {r.author_name || 'JamiiAI Team'}</div>
+                        <p style={{ fontSize: 12, color: "rgba(220,230,240,0.52)", lineHeight: 1.6, marginBottom: 12, height: 38, overflow: "hidden" }}>{r.description}</p>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 14 }}>
+                          {tags.slice(0, 3).map(t => <SkillTag key={t} label={t} />)}
+                        </div>
+                        {isPending ? (
+                          <div style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.15)", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "rgba(245,166,35,0.6)", textAlign: "center", fontWeight: 700 }}>MAPITIO YA ADMIN...</div>
+                        ) : (
+                          <button style={{ background: tc, color: "#0A0F1C", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',sans-serif", fontWeight: 800, fontSize: 12, marginTop: "auto" }}>Pakua / Angalia →</button>
                         )}
-                      </>
+                      </div>
                     );
-                  })()}
+                  })}
                 </div>
               </div>
             )}
@@ -1628,7 +1902,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {loading ? t.inapakia : (dataList.length > 0 ? dataList : MOCK_EVENTS).map(ev => {
+                  {loading ? t.inapakia : dataList.map(ev => {
                     const pct = Math.round(((ev.rsvp_count || 0) / (ev.max_rsvp || 100)) * 100);
                     return (
                       <div key={ev.id} style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "18px 20px", cursor: "pointer", transition: "all 0.2s" }} className="post-card">
@@ -1810,13 +2084,13 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#34D399", boxShadow: "0 0 10px #34D399", position: "relative" }}>
                     <div style={{ position: "absolute", inset: -2, borderRadius: "50%", border: "2px solid #34D399", animation: "pulse 2s infinite" }} />
                   </div>
-                  <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.05em", fontWeight: 700 }}>ONLINE — {sidebarData.online_count || MOCK_MEMBERS_ONLINE.length}</span>
+                  <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.05em", fontWeight: 700 }}>ONLINE — {sidebarData.online_count || 0}</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {(sidebarData.online_members?.length > 0 ? sidebarData.online_members : MOCK_MEMBERS_ONLINE).map(m => (
+                  {(sidebarData.online_members || []).map(m => (
                     <div key={m.name} style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer" }}>
                       <div style={{ position: "relative" }}>
-                        <Av initials={m.avatar} color={m.color} size={28} />
+                        <Av initials={m.avatar} userId={m.color || m.sender_id} size={28} />
                         <div style={{ position: "absolute", bottom: 0, right: 0, width: 7, height: 7, borderRadius: "50%", background: "#34D399", border: "1.5px solid #0A0F1C" }} />
                       </div>
                       <div style={{ minWidth: 0 }}>
@@ -1831,8 +2105,8 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
               {/* Trending */}
               <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 16 }}>
                 <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.05em", marginBottom: 12, fontWeight: 700 }}>TRENDING SASA</div>
-                {(sidebarData.trending.length > 0 ? sidebarData.trending : MOCK_TRENDING).map((tag, i) => (
-                  <div key={tag} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: i < (sidebarData.trending.length || MOCK_TRENDING.length) - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", cursor: "pointer" }}>
+                {(sidebarData.trending || []).map((tag, i) => (
+                  <div key={tag} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: i < (sidebarData.trending?.length || 0) - 1 ? "1px solid rgba(255,255,255,0.04)" : "none", cursor: "pointer" }}>
                     <span style={{ fontWeight: 700, fontSize: 13, color: i < 3 ? "#F5A623" : "rgba(220,230,240,0.65)" }}>{tag}</span>
                     <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.27)" }}>Hot 🔥</span>
                   </div>
@@ -1842,7 +2116,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
               {/* Events */}
               <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 16 }}>
                 <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.4)", letterSpacing: "0.05em", marginBottom: 12, fontWeight: 700 }}>MATUKIO YANAYOKUJA</div>
-                {(sidebarData.upcoming_events.length > 0 ? sidebarData.upcoming_events : MOCK_EVENTS).map(ev => (
+                {(sidebarData.upcoming_events || []).map(ev => (
                   <div key={ev.id} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer", alignItems: "center" }}>
                     <div style={{ width: 38, height: 38, borderRadius: 9, background: `${ev.color || '#F5A623'}18`, border: `1px solid ${ev.color || '#F5A623'}30`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: ev.color || '#F5A623', fontWeight: 700, textAlign: "center", lineHeight: 1.3 }}>

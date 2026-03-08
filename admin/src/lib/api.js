@@ -16,16 +16,62 @@ export const authAPI = {
 };
 
 export const adminAPI = {
-  stats:       ()    => api.get("/api/admin/stats"),
-  users:       (p)   => api.get("/api/admin/users", { params: p }),
-  banUser:     (id)  => api.patch(`/api/admin/users/${id}/ban`),
-  verifyUser:  (id)  => api.patch(`/api/admin/users/${id}/verify`),
-  getSettings: ()    => api.get("/api/admin/settings"),
-  saveSettings:(data)=> api.patch("/api/admin/settings", data),
-  jobs:        (s)   => api.get("/api/admin/jobs", { params: { status: s } }),
-  approveJob:  (id)  => api.patch(`/api/admin/jobs/${id}/approve`),
-  featureJob:  (id)  => api.patch(`/api/admin/jobs/${id}/feature`),
-  rejectJob:   (id)  => api.delete(`/api/admin/jobs/${id}`),
+  // Stats & Dashboard
+  stats:                  ()        => api.get("/api/admin/stats"),
+  analytics:              ()        => api.get("/api/admin/analytics"),
+
+  // Users
+  users:                  (p)       => api.get("/api/admin/users", { params: p }),
+  banUser:                (id)      => api.patch(`/api/admin/users/${id}/ban`),
+  verifyUser:             (id)      => api.patch(`/api/admin/users/${id}/verify`),
+
+  // Settings
+  getSettings:            ()        => api.get("/api/admin/settings"),
+  saveSettings:           (data)    => api.patch("/api/admin/settings", data),
+
+  // Jobs
+  jobs:                   (s)       => api.get("/api/admin/jobs", { params: { status: s } }),
+  approveJob:             (id)      => api.patch(`/api/admin/jobs/${id}/approve`),
+  featureJob:             (id)      => api.patch(`/api/admin/jobs/${id}/feature`),
+  rejectJob:              (id)      => api.delete(`/api/admin/jobs/${id}`),
+
+  // Content Moderation
+  flaggedContent:         ()        => api.get("/api/admin/content"),
+  deleteContent:          (id)      => api.delete(`/api/admin/content/${id}`),
+  approveContent:         (id)      => api.post(`/api/admin/content/${id}/approve`),
+
+  // Challenges
+  challenges:             ()        => api.get("/api/challenges"),
+  createChallenge:        (data)    => api.post("/api/admin/challenges", data),
+  updateChallengeStatus:  (id, s)   => api.patch(`/api/admin/challenges/${id}/status`, { status: s }),
+
+  // Events
+  events:                 ()        => api.get("/api/events"),
+  createEvent:            (data)    => api.post("/api/admin/events", data),
+  publishEvent:           (id)      => api.patch(`/api/admin/events/${id}/publish`),
+  deleteEvent:            (id)      => api.delete(`/api/admin/events/${id}`),
+
+  // Resources
+  resources:              (p)       => api.get("/api/admin/resources", { params: p }),
+  createResource:         (data)    => api.post("/api/admin/resources", data),
+  approveResource:        (id)      => api.patch(`/api/admin/resources/${id}/approve`),
+  deleteResource:         (id)      => api.delete(`/api/admin/resources/${id}`),
+
+  // Announcements
+  getAnnouncements:       ()        => api.get("/api/admin/announcements"),
+  sendAnnouncement:       (data)    => api.post("/api/admin/announcements", data),
+
+  // News
+  news:                   (s)       => api.get("/api/admin/news", { params: { status: s } }),
+  publishNews:            (id)      => api.patch(`/api/admin/news/${id}/publish`),
+  deleteNews:             (id)      => api.delete(`/api/admin/news/${id}`),
+  createNews:             (data)    => api.post("/api/admin/news", data),
+
+  // Billing
+  billing:                ()        => api.get("/api/admin/billing"),
+
+  // Apify
+  runApify:               ()        => api.post("/api/admin/apify/run"),
 };
 
 export default api;

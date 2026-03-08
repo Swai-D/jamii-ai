@@ -18,6 +18,8 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const nodemailer   = require("nodemailer");
 const cron         = require("node-cron");
 const axios        = require("axios");
+const path         = require("path");
+const fs           = require("fs");
 require("dotenv").config();
 
 // ── APP SETUP ───────────────────────────────────────────────────────
@@ -38,9 +40,31 @@ app.use(cors({
   credentials: true,
   optionsSuccessStatus: 200
 }));
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(morgan("dev"));
 app.use(express.json());
+
+// ── LOCAL UPLOADS (dev) ─────────────────────────────────────────────
+// Kama Laravel's public/storage — picha zinawekwa /uploads, zinapatikana
+// kwa URL: http://localhost:4000/uploads/filename.jpg
+// Production: badilisha USE_LOCAL_STORAGE=false, tumia Cloudinary
+const USE_LOCAL_STORAGE = process.env.USE_LOCAL_STORAGE === "true" ||
+  (!process.env.CLOUDINARY_CLOUD_NAME && process.env.NODE_ENV !== "production");
+
+const UPLOADS_DIR = path.join(__dirname, "uploads");
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+["avatars", "posts", "logos"].forEach(sub => {
+  const d = path.join(UPLOADS_DIR, sub);
+  if (!fs.existsSync(d)) fs.mkdirSync(d);
+});
+
+// Serve local uploads kama static files
+app.use("/uploads", express.static(UPLOADS_DIR, {
+  setHeaders: (res) => {
+    res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    res.set("Cache-Control", "public, max-age=31536000");
+  }
+}));
 
 // ── DATABASE ────────────────────────────────────────────────────────
 const db = new Pool({
@@ -73,116 +97,6 @@ db.connect()
         ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);
         ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMPTZ;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT false;
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false;
-
-        -- Notifications table
-        CREATE TABLE IF NOT EXISTS notifications (
-          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-          type_str VARCHAR(50),
-          title TEXT,
-          body TEXT,
-          actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
-          actor_handle VARCHAR(50),
-          is_read BOOLEAN DEFAULT false,
-          created_at TIMESTAMPTZ DEFAULT NOW()
-        );
-
-        -- Platform settings
-        CREATE TABLE IF NOT EXISTS platform_settings (
-          key VARCHAR(100) PRIMARY KEY,
-          value TEXT,
-          updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-        );
-
-        -- Roles
-        CREATE TABLE IF NOT EXISTS roles (
-          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-          name VARCHAR(50) UNIQUE NOT NULL,
-          permissions JSONB DEFAULT '{}'
-        );
-        CREATE TABLE IF NOT EXISTS user_roles (
-          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-          role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
-          PRIMARY KEY (user_id, role_id)
-        );
-
-        -- Announcements
-        CREATE TABLE IF NOT EXISTS announcements (
-          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-          title TEXT,
-          message TEXT,
-          type VARCHAR(20) DEFAULT 'info',
-          created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-          created_at TIMESTAMPTZ DEFAULT NOW()
-        );
-
-        -- Jobs tables
-        CREATE TABLE IF NOT EXISTS jobs (
-          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-          posted_by UUID REFERENCES users(id) ON DELETE SET NULL,
-          title VARCHAR(200) NOT NULL,
-          type VARCHAR(50) DEFAULT 'full_time',
-          company_name VARCHAR(200),
-          company_logo TEXT,
-          description TEXT,
-          requirements TEXT,
-          benefits TEXT,
-          location VARCHAR(100),
-          country VARCHAR(100) DEFAULT 'Tanzania',
-          is_remote BOOLEAN DEFAULT false,
-          salary_min BIGINT,
-          salary_max BIGINT,
-          salary_currency VARCHAR(10) DEFAULT 'TZS',
-          salary_visible BOOLEAN DEFAULT true,
-          apply_url TEXT,
-          apply_email VARCHAR(200),
-          apply_internal BOOLEAN DEFAULT false,
-          tags JSONB DEFAULT '[]',
-          deadline TIMESTAMPTZ,
-          status VARCHAR(20) DEFAULT 'inbox',
-          is_featured BOOLEAN DEFAULT false,
-          is_hot BOOLEAN DEFAULT false,
-          views INTEGER DEFAULT 0,
-          poster_name VARCHAR(200),
-          poster_email VARCHAR(200),
-          reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
-          reviewed_at TIMESTAMPTZ,
-          created_at TIMESTAMPTZ DEFAULT NOW()
-        );
-        CREATE TABLE IF NOT EXISTS job_applications (
-          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-          job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
-          applicant_id UUID REFERENCES users(id) ON DELETE CASCADE,
-          cover_letter TEXT,
-          cv_url TEXT,
-          linkedin_url TEXT,
-          portfolio_url TEXT,
-          status VARCHAR(20) DEFAULT 'pending',
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          UNIQUE(job_id, applicant_id)
-        );
-        CREATE TABLE IF NOT EXISTS saved_jobs (
-          job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
-          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-          saved_at TIMESTAMPTZ DEFAULT NOW(),
-          PRIMARY KEY(job_id, user_id)
-        );
-
-        -- Messages enhancement
-        ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_url TEXT;
-        ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
-        ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false;
-
-        -- News enhancements
-        ALTER TABLE news ADD COLUMN IF NOT EXISTS source VARCHAR(200);
-        ALTER TABLE news ADD COLUMN IF NOT EXISTS source_url TEXT;
-        ALTER TABLE news ADD COLUMN IF NOT EXISTS ai_summary TEXT;
-        ALTER TABLE news ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'inbox';
-        ALTER TABLE news ADD COLUMN IF NOT EXISTS is_hot BOOLEAN DEFAULT false;
-        ALTER TABLE news ADD COLUMN IF NOT EXISTS reads INTEGER DEFAULT 0;
 
         -- Posts table enhancements
         ALTER TABLE posts ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'swali';
@@ -244,46 +158,83 @@ db.connect()
   })
   .catch(err => console.error("❌ DB error:", err.message));
 
-// ── CLOUDINARY ────────────────────────────────────────────────────
+// ── STORAGE ENGINE (local dev ↔ cloudinary prod) ──────────────────
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key:    process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// LOCAL storage (diskStorage) — like Laravel public/storage
+function makeLocalStorage(subfolder) {
+  return multer.diskStorage({
+    destination: (req, file, cb) => cb(null, path.join(UPLOADS_DIR, subfolder)),
+    filename:    (req, file, cb) => {
+      const ext  = path.extname(file.originalname).toLowerCase() || ".jpg";
+      const name = `${subfolder}_${req.user?.id || "anon"}_${Date.now()}${ext}`;
+      cb(null, name);
+    },
+  });
+}
+
+// CLOUDINARY storage
 const makeStorage = (folder, formats, transform) => new CloudinaryStorage({
   cloudinary,
   params: { folder:`jamii-ai/${folder}`, allowed_formats:formats, transformation:transform,
     public_id:(req) => `${folder}_${req.user?.id || "anon"}_${Date.now()}` }
 });
 
+// Helper: build public URL for local file
+const localUrl = (subfolder, filename) =>
+  `${process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 4000}`}/uploads/${subfolder}/${filename}`;
+
+// Select storage based on env
 const uploadAvatar = multer({
-  storage: makeStorage("avatars",["jpg","jpeg","png","webp"],
-    [{ width:400, height:400, crop:"fill", gravity:"face" },{ quality:"auto", fetch_format:"auto" }]),
-  limits:{ fileSize: 2*1024*1024 }
+  storage: USE_LOCAL_STORAGE
+    ? makeLocalStorage("avatars")
+    : makeStorage("avatars",["jpg","jpeg","png","webp"],
+        [{ width:400, height:400, crop:"fill", gravity:"face" },{ quality:"auto", fetch_format:"auto" }]),
+  limits:{ fileSize: 2*1024*1024 },
+  fileFilter: (req, file, cb) => cb(null, /image\/(jpeg|png|webp|gif)/.test(file.mimetype)),
 }).single("avatar");
 
 const uploadPostImage = multer({
-  storage: makeStorage("posts",["jpg","jpeg","png","webp","gif"],
-    [{ width:1200, height:630, crop:"limit" },{ quality:"auto", fetch_format:"auto" }]),
-  limits:{ fileSize: 5*1024*1024 }
+  storage: USE_LOCAL_STORAGE
+    ? makeLocalStorage("posts")
+    : makeStorage("posts",["jpg","jpeg","png","webp","gif"],
+        [{ width:1200, height:630, crop:"limit" },{ quality:"auto", fetch_format:"auto" }]),
+  limits:{ fileSize: 5*1024*1024 },
+  fileFilter: (req, file, cb) => cb(null, /image\//.test(file.mimetype)),
 }).single("image");
 
 const uploadCV = multer({
-  storage: new CloudinaryStorage({ cloudinary, params:{ folder:"jamii-ai/cvs",
-    allowed_formats:["pdf"], resource_type:"raw",
-    public_id:(req) => `cv_${req.user?.id}_${Date.now()}` }}),
+  storage: USE_LOCAL_STORAGE
+    ? makeLocalStorage("cvs")
+    : new CloudinaryStorage({ cloudinary, params:{ folder:"jamii-ai/cvs",
+        allowed_formats:["pdf"], resource_type:"raw",
+        public_id:(req) => `cv_${req.user?.id}_${Date.now()}` }}),
   limits:{ fileSize: 5*1024*1024 }
 }).single("cv");
 
 const uploadLogo = multer({
-  storage: makeStorage("logos",["jpg","jpeg","png","webp","svg"],
-    [{ width:200, height:200, crop:"pad", background:"transparent" }]),
-  limits:{ fileSize: 2*1024*1024 }
+  storage: USE_LOCAL_STORAGE
+    ? makeLocalStorage("logos")
+    : makeStorage("logos",["jpg","jpeg","png","webp","svg"],
+        [{ width:200, height:200, crop:"pad", background:"transparent" }]),
+  limits:{ fileSize: 2*1024*1024 },
+  fileFilter: (req, file, cb) => cb(null, /image\//.test(file.mimetype)),
 }).single("logo");
 
 function handleUpload(uploader, req, res) {
   return new Promise((resolve, reject) => uploader(req, res, e => e ? reject(e) : resolve()));
+}
+
+// Returns the public URL regardless of storage mode
+function getUploadedUrl(req, subfolder) {
+  if (USE_LOCAL_STORAGE) {
+    return localUrl(subfolder, req.file.filename);
+  }
+  return req.file.path; // Cloudinary returns full URL in req.file.path
 }
 
 async function deleteCloudinaryImage(url) {
@@ -559,6 +510,84 @@ authRouter.get("/me", auth, async (req, res) => {
   }
 });
 
+authRouter.patch("/profile", auth, async (req, res) => {
+  try {
+    const { name, role, city, bio, skills, interests, hourly_rate, available, github, linkedin, website } = req.body;
+    await db.query(
+      `UPDATE users SET
+        name = COALESCE($1, name),
+        role = COALESCE($2, role),
+        city = COALESCE($3, city),
+        bio  = COALESCE($4, bio),
+        skills = COALESCE($5::jsonb, skills),
+        interests = COALESCE($6::jsonb, interests),
+        hourly_rate = COALESCE($7, hourly_rate),
+        available = COALESCE($8, available),
+        github_url = COALESCE($9, github_url),
+        linkedin_url = COALESCE($10, linkedin_url),
+        website_url = COALESCE($11, website_url),
+        updated_at = NOW()
+       WHERE id = $12`,
+      [name, role, city, bio,
+       skills ? JSON.stringify(skills) : null,
+       interests ? JSON.stringify(interests) : null,
+       hourly_rate, available, github, linkedin, website,
+       req.user.id]
+    );
+    const result = await db.query(
+      `SELECT u.*,
+        (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS post_count,
+        (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
+        (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following
+       FROM users u WHERE u.id = $1`, [req.user.id]
+    );
+    const { password_hash, ...user } = result.rows[0];
+    res.json(user);
+  } catch (err) {
+    console.error("Profile update error:", err);
+    res.status(500).json({ error: "Hitilafu ya server" });
+  }
+});
+
+authRouter.get("/projects", auth, async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT * FROM user_projects WHERE user_id = $1 ORDER BY created_at DESC",
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch { res.json([]); }
+});
+
+authRouter.post("/projects", auth, async (req, res) => {
+  try {
+    const { title, desc, tech, status, link } = req.body;
+    const result = await db.query(
+      "INSERT INTO user_projects (user_id, title, description, tech_stack, status, link, created_at) VALUES ($1,$2,$3,$4,$5,$6,NOW()) RETURNING *",
+      [req.user.id, title, desc, JSON.stringify(tech||[]), status||"active", link||""]
+    );
+    res.json(result.rows[0]);
+  } catch { res.json({ id: Date.now(), title: req.body.title, desc: req.body.desc, tech: req.body.tech||[], status: req.body.status||"active", link: req.body.link||"" }); }
+});
+
+authRouter.patch("/projects/:id", auth, async (req, res) => {
+  try {
+    const { title, desc, tech, status, link } = req.body;
+    await db.query(
+      "UPDATE user_projects SET title=$1, description=$2, tech_stack=$3, status=$4, link=$5 WHERE id=$6 AND user_id=$7",
+      [title, desc, JSON.stringify(tech||[]), status, link, req.params.id, req.user.id]
+    );
+    res.json({ success: true });
+  } catch { res.json({ success: true }); }
+});
+
+authRouter.delete("/projects/:id", auth, async (req, res) => {
+  try {
+    await db.query("DELETE FROM user_projects WHERE id=$1 AND user_id=$2", [req.params.id, req.user.id]);
+    res.json({ success: true });
+  } catch { res.json({ success: true }); }
+});
+
 authRouter.patch("/onboard", auth, async (req, res) => {
   try {
     const { handle, role, city, bio, interests, notifications } = req.body;
@@ -576,6 +605,21 @@ authRouter.patch("/onboard", auth, async (req, res) => {
     console.error("❌ Onboard error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
   }
+});
+
+// POST /api/auth/change-password
+authRouter.post("/change-password", auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return res.status(400).json({ error: "Nywila zote zinahitajika" });
+    if (newPassword.length < 8) return res.status(400).json({ error: "Nywila mpya iwe na herufi 8+" });
+    const { rows:[user] } = await db.query("SELECT password_hash FROM users WHERE id=$1", [req.user.id]);
+    const valid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!valid) return res.status(401).json({ error: "Nywila ya sasa si sahihi" });
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await db.query("UPDATE users SET password_hash=$1, updated_at=NOW() WHERE id=$2", [newHash, req.user.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.use("/api/auth", authRouter);
@@ -614,19 +658,44 @@ app.get("/api/users", optionalAuth, async (req, res) => {
   }
 });
 
-// GET /api/users/:handle
+// GET /api/users/me — current logged-in user
+app.get("/api/users/me", auth, async (req, res) => {
+  try {
+    const { rows:[user] } = await db.query(
+      `SELECT u.id, u.name, u.handle, u.email, u.avatar_url, u.cover_image,
+              u.role, u.city, u.bio, u.skills, u.interests, u.hourly_rate,
+              u.available, u.rating, u.project_count, u.github_url,
+              u.linkedin_url, u.website_url, u.notification_prefs,
+              u.is_verified, u.onboarded, u.plan, u.status, u.created_at,
+              (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
+              (SELECT COUNT(*) FROM follows WHERE follower_id  = u.id) AS following,
+              (SELECT COUNT(*) FROM posts   WHERE user_id = u.id AND is_deleted=false) AS post_count
+       FROM users u WHERE u.id = $1`,
+      [req.user.id]
+    );
+    if (!user) return res.status(404).json({ error: "Mtumiaji hapatikani" });
+    res.json(user);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/users/:handle — accepts both handle (string) and UUID
 app.get("/api/users/:handle", optionalAuth, async (req, res) => {
   try {
+    const param = req.params.handle;
+    // Detect if param looks like a UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param);
+    const whereClause = isUUID ? "u.id = $1" : "u.handle = $1";
+
     const result = await db.query(
-      `SELECT u.id, u.name, u.handle, u.avatar_url, u.role, u.city, u.bio,
+      `SELECT u.id, u.name, u.handle, u.avatar_url, u.cover_image, u.role, u.city, u.bio,
               u.skills, u.interests, u.hourly_rate, u.available, u.rating,
               u.project_count, u.github_url, u.linkedin_url, u.website_url,
-              u.created_at, u.is_verified,
+              u.created_at, u.is_verified, u.plan, u.status,
               (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
-              (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following,
-              (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS post_count
-       FROM users u WHERE u.handle = $1`,
-      [req.params.handle]
+              (SELECT COUNT(*) FROM follows WHERE follower_id  = u.id) AS following,
+              (SELECT COUNT(*) FROM posts   WHERE user_id = u.id AND is_deleted=false) AS post_count
+       FROM users u WHERE ${whereClause}`,
+      [param]
     );
     if (!result.rows.length) return res.status(404).json({ error: "Mtumiaji hapatikani" });
     res.json(result.rows[0]);
@@ -634,6 +703,155 @@ app.get("/api/users/:handle", optionalAuth, async (req, res) => {
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
+
+// PUT /api/users/:id — update profile
+app.put("/api/users/:id", auth, async (req, res) => {
+  try {
+    if (req.params.id !== req.user.id) return res.status(403).json({ error: "Huna ruhusa" });
+    const {
+      name, handle, bio, role, city, hourly_rate, available,
+      github_url, linkedin_url, website_url, skills, interests,
+      cover_image, avatar_url,
+    } = req.body;
+
+    // Check handle uniqueness if changed
+    if (handle && handle !== req.user.handle) {
+      const { rows } = await db.query("SELECT id FROM users WHERE handle=$1 AND id!=$2", [handle, req.user.id]);
+      if (rows.length) return res.status(409).json({ error: "Handle tayari inatumika" });
+    }
+
+    const { rows:[updated] } = await db.query(
+      `UPDATE users SET
+        name        = COALESCE($1, name),
+        handle      = COALESCE($2, handle),
+        bio         = COALESCE($3, bio),
+        role        = COALESCE($4, role),
+        city        = COALESCE($5, city),
+        hourly_rate = COALESCE($6, hourly_rate),
+        available   = COALESCE($7, available),
+        github_url  = COALESCE($8, github_url),
+        linkedin_url= COALESCE($9, linkedin_url),
+        website_url = COALESCE($10, website_url),
+        skills      = COALESCE($11::jsonb, skills),
+        interests   = COALESCE($12::jsonb, interests),
+        cover_image = COALESCE($13, cover_image),
+        updated_at  = NOW()
+       WHERE id = $14
+       RETURNING id, name, handle, avatar_url, cover_image, role, city, bio,
+                 skills, interests, hourly_rate, available, github_url,
+                 linkedin_url, website_url, is_verified, plan`,
+      [
+        name || null,
+        handle || null,
+        bio !== undefined ? bio : null,
+        role || null,
+        city || null,
+        hourly_rate || null,
+        available !== undefined ? available : null,
+        github_url !== undefined ? github_url : null,
+        linkedin_url !== undefined ? linkedin_url : null,
+        website_url !== undefined ? website_url : null,
+        skills ? JSON.stringify(skills) : null,
+        interests ? JSON.stringify(interests) : null,
+        cover_image || null,
+        req.user.id
+      ]
+    );
+    res.json(updated);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PATCH /api/users/me/settings — notification prefs, privacy, etc.
+app.patch("/api/users/me/settings", auth, async (req, res) => {
+  try {
+    const { notifications, private: makePrivate } = req.body;
+    if (notifications) {
+      await db.query(
+        "UPDATE users SET notification_prefs=$1, updated_at=NOW() WHERE id=$2",
+        [JSON.stringify(notifications), req.user.id]
+      );
+    }
+    if (makePrivate !== undefined) {
+      // Store as part of notification_prefs or a dedicated field
+      await db.query(
+        "UPDATE users SET notification_prefs = notification_prefs || $1::jsonb, updated_at=NOW() WHERE id=$2",
+        [JSON.stringify({ private: makePrivate }), req.user.id]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /api/users/me — delete own account
+app.delete("/api/users/me", auth, async (req, res) => {
+  try {
+    await db.query("DELETE FROM users WHERE id=$1", [req.user.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── PROJECTS ──────────────────────────────────────────────────────
+// GET /api/projects/user/:userId
+app.get("/api/projects/user/:userId", optionalAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT id, title, description, tech_stack, status, link, stars, created_at
+       FROM user_projects WHERE user_id=$1 ORDER BY created_at DESC`,
+      [req.params.userId]
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/projects
+app.post("/api/projects", auth, async (req, res) => {
+  try {
+    const { title, description, tech_stack, status, link } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: "Jina la mradi linahitajika" });
+    const { rows:[project] } = await db.query(
+      `INSERT INTO user_projects (id, user_id, title, description, tech_stack, status, link, stars, created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,0,NOW()) RETURNING *`,
+      [uuid(), req.user.id, title.trim(), description||"", tech_stack||"[]", status||"active", link||""]
+    );
+    await db.query("UPDATE users SET project_count=project_count+1 WHERE id=$1", [req.user.id]);
+    res.status(201).json(project);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PUT /api/projects/:id
+app.put("/api/projects/:id", auth, async (req, res) => {
+  try {
+    const { title, description, tech_stack, status, link } = req.body;
+    const { rows:[project] } = await db.query(
+      `UPDATE user_projects SET
+        title       = COALESCE($1, title),
+        description = COALESCE($2, description),
+        tech_stack  = COALESCE($3::jsonb, tech_stack),
+        status      = COALESCE($4, status),
+        link        = COALESCE($5, link)
+       WHERE id=$6 AND user_id=$7
+       RETURNING *`,
+      [title||null, description||null, tech_stack||null, status||null, link||null, req.params.id, req.user.id]
+    );
+    if (!project) return res.status(404).json({ error: "Mradi haupatikani" });
+    res.json(project);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /api/projects/:id
+app.delete("/api/projects/:id", auth, async (req, res) => {
+  try {
+    const { rowCount } = await db.query(
+      "DELETE FROM user_projects WHERE id=$1 AND user_id=$2",
+      [req.params.id, req.user.id]
+    );
+    if (rowCount === 0) return res.status(404).json({ error: "Mradi haupatikani" });
+    await db.query("UPDATE users SET project_count=GREATEST(project_count-1,0) WHERE id=$1", [req.user.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
 
 // POST /api/users/:id/follow
 app.post("/api/users/:id/follow", auth, async (req, res) => {
@@ -704,13 +922,16 @@ app.get("/api/posts", optionalAuth, async (req, res) => {
 // POST /api/posts
 app.post("/api/posts", auth, async (req, res) => {
   try {
-    const { content, category = "swali" } = req.body;
-    if (!content?.trim()) return res.status(400).json({ error: "Maudhui yanaitajika" });
+    const { content, category = "swali", image_url, source_url, source_title } = req.body;
+
+    if (!content?.trim() && !image_url) {
+      return res.status(400).json({ error: "Andika kitu au ongeza picha" });
+    }
 
     const result = await db.query(
-      `INSERT INTO posts (id, user_id, content, category, created_at)
-       VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
-      [uuid(), req.user.id, content.trim(), category]
+      `INSERT INTO posts (id, user_id, content, category, image_url, source_url, source_title, is_deleted, is_flagged, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, false, false, NOW(), NOW()) RETURNING *`,
+      [uuid(), req.user.id, content?.trim() || "", category, image_url || null, source_url || null, source_title || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -797,11 +1018,37 @@ app.post("/api/posts/:id/comments", auth, async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ error: "Maoni hayawezi kuwa matupu" });
+
     const result = await db.query(
       `INSERT INTO comments (id, post_id, user_id, text, created_at)
        VALUES ($1,$2,$3,$4,NOW()) RETURNING *`,
       [uuid(), req.params.id, req.user.id, text.trim()]
     );
+
+    // Notify post author (si mwandishi mwenyewe)
+    const { rows:[post] } = await db.query("SELECT user_id FROM posts WHERE id=$1", [req.params.id]);
+    if (post && post.user_id !== req.user.id) {
+      await db.query(
+        `INSERT INTO notifications (id, user_id, type_str, title, body, actor_id, actor_handle, link, is_read, created_at)
+         VALUES ($1,$2,'comment',$3,$4,$5,$6,$7,false,NOW())
+         ON CONFLICT DO NOTHING`,
+        [
+          uuid(), post.user_id,
+          `@${req.user.handle} amecomment kwenye post yako`,
+          text.trim().slice(0, 120),
+          req.user.id, req.user.handle,
+          `/posts/${req.params.id}`   // ← link ina post_id — ReactiveEngine inatumia hii
+        ]
+      );
+      io.to(`user:${post.user_id}`).emit("notification", {
+        type: "comment",
+        title: `@${req.user.handle} amecomment`,
+        body: text.trim().slice(0, 80),
+        actorHandle: req.user.handle,
+        link: `/posts/${req.params.id}`,
+      });
+    }
+
     res.status(201).json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: "Hitilafu ya server" });
@@ -1254,10 +1501,11 @@ app.post("/api/upload/avatar", auth, async (req, res) => {
   try {
     await handleUpload(uploadAvatar, req, res);
     if (!req.file) return res.status(400).json({ error:"Picha haikupokewa" });
+    const url = getUploadedUrl(req, "avatars");
     const { rows:[old] } = await db.query("SELECT avatar_url FROM users WHERE id=$1",[req.user.id]);
-    if (old?.avatar_url) await deleteCloudinaryImage(old.avatar_url);
-    await db.query("UPDATE users SET avatar_url=$1, updated_at=NOW() WHERE id=$2",[req.file.path, req.user.id]);
-    res.json({ success:true, avatarUrl:req.file.path });
+    if (old?.avatar_url && !USE_LOCAL_STORAGE) await deleteCloudinaryImage(old.avatar_url);
+    await db.query("UPDATE users SET avatar_url=$1, updated_at=NOW() WHERE id=$2",[url, req.user.id]);
+    res.json({ success:true, avatarUrl: url });
   } catch (err) {
     if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error:"Picha ni kubwa. Max 2MB" });
     res.status(500).json({ error:err.message });
@@ -1268,7 +1516,8 @@ app.post("/api/upload/post-image", auth, async (req, res) => {
   try {
     await handleUpload(uploadPostImage, req, res);
     if (!req.file) return res.status(400).json({ error:"Picha haikupokewa" });
-    res.json({ success:true, imageUrl:req.file.path });
+    const url = getUploadedUrl(req, "posts");
+    res.json({ success:true, imageUrl: url, url });
   } catch (err) {
     if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error:"Picha ni kubwa. Max 5MB" });
     res.status(500).json({ error:err.message });
@@ -1279,7 +1528,8 @@ app.post("/api/upload/cv", auth, async (req, res) => {
   try {
     await handleUpload(uploadCV, req, res);
     if (!req.file) return res.status(400).json({ error:"CV haikupokewa" });
-    res.json({ success:true, cvUrl:req.file.path });
+    const url = getUploadedUrl(req, "cvs");
+    res.json({ success:true, cvUrl: url });
   } catch (err) {
     if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error:"CV ni kubwa. Max 5MB" });
     res.status(500).json({ error:err.message });
@@ -1290,7 +1540,8 @@ app.post("/api/upload/logo", auth, async (req, res) => {
   try {
     await handleUpload(uploadLogo, req, res);
     if (!req.file) return res.status(400).json({ error:"Logo haikupokewa" });
-    res.json({ success:true, logoUrl:req.file.path });
+    const url = getUploadedUrl(req, "logos");
+    res.json({ success:true, logoUrl: url });
   } catch (err) { res.status(500).json({ error:err.message }); }
 });
 
@@ -1312,7 +1563,7 @@ app.get("/api/search", optionalAuth, async (req, res) => {
       ) : { rows:[] },
 
       (type==="all"||type==="posts") ? db.query(
-        `SELECT p.id,p.content,p.image_url,p.created_at,
+        `SELECT p.id,p.content,p.image_url,p.source_url,p.source_title,p.created_at,
           u.name AS author_name, u.handle AS author_handle, u.avatar_url AS author_avatar,
           (SELECT COUNT(*) FROM post_likes WHERE post_id=p.id) AS like_count,
           (SELECT COUNT(*) FROM comments WHERE post_id=p.id) AS comment_count
@@ -1487,120 +1738,6 @@ app.patch("/api/admin/settings", adminAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error:err.message }); }
 });
 
-// ── ADMIN USERS ──────────────────────────────────────────────────
-app.get("/api/admin/users", adminAuth, async (req, res) => {
-  try {
-    const { q, status, page=1, limit=20 } = req.query;
-    const off = (page-1)*parseInt(limit);
-    const conditions = [];
-    const params = [];
-    let pi = 1;
-    if (q) { conditions.push(`(u.name ILIKE $${pi} OR u.handle ILIKE $${pi} OR u.email ILIKE $${pi})`); params.push(`%${q}%`); pi++; }
-    if (status === "Verified") { conditions.push("u.is_verified=true"); }
-    else if (status === "Banned") { conditions.push("u.is_banned=true"); }
-    else if (status === "Active") { conditions.push("(u.is_banned=false OR u.is_banned IS NULL)"); }
-    const where = conditions.length ? "WHERE " + conditions.join(" AND ") : "";
-    const { rows } = await db.query(
-      `SELECT u.id, u.name, u.handle, u.email, u.role, u.city, u.is_verified,
-              u.is_banned, u.onboarded, u.created_at, r.name AS role_name,
-              (SELECT COUNT(*) FROM posts WHERE user_id=u.id) AS post_count
-       FROM users u
-       LEFT JOIN user_roles ur ON u.id=ur.user_id
-       LEFT JOIN roles r ON ur.role_id=r.id
-       ${where}
-       ORDER BY u.created_at DESC
-       LIMIT $${pi} OFFSET $${pi+1}`,
-      [...params, parseInt(limit), off]
-    );
-    const { rows:[{count}] } = await db.query(`SELECT COUNT(*) FROM users u ${where}`, params);
-    res.json({ users: rows, total: parseInt(count) });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.patch("/api/admin/users/:id/ban", adminAuth, async (req, res) => {
-  try {
-    const { rows:[u] } = await db.query("SELECT id, is_banned FROM users WHERE id=$1", [req.params.id]);
-    if (!u) return res.status(404).json({ error: "User hapatikani" });
-    await db.query("UPDATE users SET is_banned=$1, updated_at=NOW() WHERE id=$2", [!u.is_banned, req.params.id]);
-    res.json({ success: true, is_banned: !u.is_banned });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.patch("/api/admin/users/:id/verify", adminAuth, async (req, res) => {
-  try {
-    const { rows:[u] } = await db.query("SELECT id, is_verified FROM users WHERE id=$1", [req.params.id]);
-    if (!u) return res.status(404).json({ error: "User hapatikani" });
-    await db.query("UPDATE users SET is_verified=$1, updated_at=NOW() WHERE id=$2", [!u.is_verified, req.params.id]);
-    res.json({ success: true, is_verified: !u.is_verified });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// ── ADMIN NEWS ────────────────────────────────────────────────────
-app.get("/api/admin/news", adminAuth, async (req, res) => {
-  try {
-    const { status } = req.query;
-    const where = status ? "WHERE status=$1" : "";
-    const params = status ? [status] : [];
-    const { rows } = await db.query(`SELECT * FROM news ${where} ORDER BY published_at DESC LIMIT 100`, params);
-    res.json({ news: rows });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.post("/api/admin/news", adminAuth, async (req, res) => {
-  try {
-    const { title, category="Tanzania", ai_summary, source, source_url, is_hot=false } = req.body;
-    if (!title) return res.status(400).json({ error: "Title inahitajika" });
-    const { rows:[news] } = await db.query(
-      `INSERT INTO news (id,title,category,ai_summary,source,source_url,is_hot,status,published_at)
-       VALUES($1,$2,$3,$4,$5,$6,$7,'inbox',NOW()) RETURNING *`,
-      [uuid(), title, category, ai_summary, source, source_url, is_hot]
-    );
-    res.status(201).json(news);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.patch("/api/admin/news/:id/publish", adminAuth, async (req, res) => {
-  try {
-    const { ai_summary } = req.body;
-    if (ai_summary) {
-      await db.query("UPDATE news SET status='published', ai_summary=$1, published_at=NOW() WHERE id=$2", [ai_summary, req.params.id]);
-    } else {
-      await db.query("UPDATE news SET status='published', published_at=NOW() WHERE id=$1", [req.params.id]);
-    }
-    res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.delete("/api/admin/news/:id", adminAuth, async (req, res) => {
-  try {
-    await db.query("DELETE FROM news WHERE id=$1", [req.params.id]);
-    res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// ── ANNOUNCEMENTS ─────────────────────────────────────────────────
-app.post("/api/admin/announcements", adminAuth, async (req, res) => {
-  try {
-    const { title, message, type="info" } = req.body;
-    if (!title || !message) return res.status(400).json({ error: "Title na message zinahitajika" });
-    const { rows:[ann] } = await db.query(
-      `INSERT INTO announcements (id,title,message,type,created_by,created_at)
-       VALUES($1,$2,$3,$4,$5,NOW()) RETURNING *`,
-      [uuid(), title, message, type, req.user.id]
-    );
-    io.emit("announcement", ann);
-    res.status(201).json(ann);
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// ── APIFY TRIGGER ─────────────────────────────────────────────────
-app.post("/api/admin/apify/run", adminAuth, async (req, res) => {
-  try {
-    fetchLatestNews(); // async, no await
-    res.json({ success: true, message: "Apify imewashwa — habari zitaonekana hivi karibuni" });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 // ── AUTOMATION (Apify & Kaggle) ───────────────────────────────────
 async function fetchLatestNews() {
   console.log("🔄 Inaanza kuchakata habari mpya...");
@@ -1620,6 +1757,404 @@ const scheduleHrs = 6; // should fetch from settings
 cron.schedule(`0 */${scheduleHrs} * * *`, () => {
   console.log("⏰ Inarun Cron: Fetching News & Challenges...");
   fetchLatestNews();
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN: USERS MANAGEMENT
+// ════════════════════════════════════════════════════════════════════
+
+app.get("/api/admin/users", adminAuth, async (req, res) => {
+  try {
+    const { search, status, page=1, limit=50 } = req.query;
+    const conditions = [];
+    const params = [];
+    let pi = 1;
+    if (search) {
+      conditions.push(`(u.name ILIKE $${pi} OR u.handle ILIKE $${pi} OR u.email ILIKE $${pi})`);
+      params.push(`%${search}%`); pi++;
+    }
+    if (status && status !== "Wote") {
+      if (status === "Verified") conditions.push("u.is_verified = true");
+      else { conditions.push(`u.status = $${pi}`); params.push(status.toLowerCase()); pi++; }
+    }
+    const where = conditions.length ? "WHERE " + conditions.join(" AND ") : "";
+    const { rows } = await db.query(
+      `SELECT u.id, u.name, u.handle, u.email, u.avatar_url, u.role, u.city,
+              u.status, u.is_verified, u.onboarded, u.created_at, u.updated_at,
+              r.name AS role_name,
+              (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS posts
+       FROM users u
+       LEFT JOIN user_roles ur ON u.id = ur.user_id
+       LEFT JOIN roles r ON ur.role_id = r.id
+       ${where}
+       ORDER BY u.created_at DESC
+       LIMIT $${pi} OFFSET $${pi+1}`,
+      [...params, parseInt(limit), (parseInt(page)-1)*parseInt(limit)]
+    );
+    const { rows:[{count}] } = await db.query(`SELECT COUNT(*) FROM users u ${where}`, params);
+    res.json({ users: rows, total: parseInt(count) });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/users/:id/ban", adminAuth, async (req, res) => {
+  try {
+    const { rows:[u] } = await db.query("SELECT status FROM users WHERE id=$1", [req.params.id]);
+    if (!u) return res.status(404).json({ error: "User not found" });
+    const newStatus = u.status === "banned" ? "active" : "banned";
+    await db.query("UPDATE users SET status=$1 WHERE id=$2", [newStatus, req.params.id]);
+    res.json({ success: true, status: newStatus });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/users/:id/verify", adminAuth, async (req, res) => {
+  try {
+    const { rows:[u] } = await db.query("SELECT is_verified FROM users WHERE id=$1", [req.params.id]);
+    if (!u) return res.status(404).json({ error: "User not found" });
+    await db.query("UPDATE users SET is_verified=$1 WHERE id=$2", [!u.is_verified, req.params.id]);
+    res.json({ success: true, is_verified: !u.is_verified });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN: CONTENT MODERATION
+// ════════════════════════════════════════════════════════════════════
+
+app.get("/api/admin/flagged", adminAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT p.id, p.content, p.image_url, p.created_at, p.is_flagged,
+              u.name AS author_name, u.handle AS author_handle, u.avatar_url,
+              'Flagged' AS reason,
+              (SELECT COUNT(*) FROM post_likes WHERE post_id=p.id) AS reports
+       FROM posts p JOIN users u ON u.id=p.user_id
+       WHERE p.is_flagged=true AND p.is_deleted=false
+       ORDER BY p.created_at DESC`
+    );
+    res.json({ posts: rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/posts/:id/approve", adminAuth, async (req, res) => {
+  try {
+    await db.query("UPDATE posts SET is_flagged=false WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete("/api/admin/posts/:id", adminAuth, async (req, res) => {
+  try {
+    await db.query("UPDATE posts SET is_deleted=true, is_flagged=false WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN: NEWS (HABARI)
+// ════════════════════════════════════════════════════════════════════
+
+app.get("/api/admin/news", adminAuth, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const params = status ? [status] : [];
+    const where  = status ? "WHERE status=$1" : "";
+    const { rows } = await db.query(
+      `SELECT * FROM news ${where} ORDER BY created_at DESC LIMIT 100`, params
+    );
+    res.json({ news: rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/admin/news", adminAuth, async (req, res) => {
+  try {
+    const { title, summary, category="Tanzania", source="JamiiAI", source_url, is_hot=false, status="published" } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: "Kichwa kinahitajika" });
+    const { rows:[item] } = await db.query(
+      `INSERT INTO news (id,title,summary,ai_summary,category,source,source_url,is_hot,status,published_at,created_at)
+       VALUES (uuid_generate_v4(),$1,$2,$2,$3,$4,$5,$6,$7,NOW(),NOW()) RETURNING *`,
+      [title.trim(), summary||"", category, source, source_url||"", is_hot, status]
+    );
+    res.status(201).json(item);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/news/:id/publish", adminAuth, async (req, res) => {
+  try {
+    const { summary } = req.body;
+    const updates = ["status='published'", "published_at=NOW()"];
+    const params = [req.params.id];
+    if (summary) { updates.push(`ai_summary=$${params.length+1}`); params.push(summary); }
+    await db.query(`UPDATE news SET ${updates.join(",")} WHERE id=$1`, params);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete("/api/admin/news/:id", adminAuth, async (req, res) => {
+  try {
+    await db.query("DELETE FROM news WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/admin/apify/run", adminAuth, async (req, res) => {
+  // Runs the scraper and returns any new items found
+  try {
+    const apiToken   = process.env.APIFY_API_TOKEN;
+    const actorId    = process.env.APIFY_ACTOR_ID || "apify~cheerio-scraper";
+    const sources    = JSON.parse(await getSetting("apify_sources", '{"techcrunch":true}'));
+    const keywordsTz = await getSetting("apify_keywords_tz", "Tanzania AI");
+
+    if (!apiToken) {
+      // Simulate for dev without real token
+      const simulated = {
+        id: uuid(), title: `Tanzania AI Roundup — ${new Date().toLocaleDateString()}`,
+        summary: "Muhtasari wa habari za AI Tanzania — imeandaliwa na JamiiAI.",
+        ai_summary: "Muhtasari wa habari za AI Tanzania — imeandaliwa na JamiiAI.",
+        category: "Tanzania", source: "JamiiAI Bot", is_hot: false, status: "inbox",
+      };
+      await db.query(
+        `INSERT INTO news (id,title,summary,ai_summary,category,source,status,created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())`,
+        [simulated.id, simulated.title, simulated.summary, simulated.ai_summary,
+         simulated.category, simulated.source, simulated.status]
+      );
+      return res.json({ success: true, inserted: 1, message: "Simulated (no Apify token)" });
+    }
+
+    // Real Apify call
+    const run = await axios.post(
+      `https://api.apify.com/v2/acts/${actorId}/runs?token=${apiToken}`,
+      { startUrls: Object.entries(sources).filter(([,v])=>v).map(([k])=>({url:`https://${k}.com/tag/ai`})) }
+    );
+    res.json({ success: true, runId: run.data.data?.id, message: "Scraper imeanza" });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN: CHALLENGES
+// ════════════════════════════════════════════════════════════════════
+
+app.get("/api/admin/challenges", adminAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT c.*,
+              (SELECT COUNT(*) FROM challenge_registrations WHERE challenge_id=c.id) AS participant_count
+       FROM challenges c ORDER BY c.created_at DESC`
+    );
+    res.json({ challenges: rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/admin/challenges", adminAuth, async (req, res) => {
+  try {
+    const { title, org="JamiiAI", prize_display, deadline, description, difficulty="Kati", tags=[] } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: "Jina linahitajika" });
+    const { rows:[ch] } = await db.query(
+      `INSERT INTO challenges (id,title,org,prize_display,deadline,description,difficulty,tags,status,created_at)
+       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,$7,'open',NOW()) RETURNING *`,
+      [title.trim(), org, prize_display||"", deadline||null, description||"", difficulty, JSON.stringify(tags)]
+    );
+    res.status(201).json(ch);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/challenges/:id/status", adminAuth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!["open","judging","completed","closed"].includes(status))
+      return res.status(400).json({ error: "Status batili" });
+    await db.query("UPDATE challenges SET status=$1 WHERE id=$2", [status, req.params.id]);
+    res.json({ success: true, status });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN: EVENTS (MATUKIO)
+// ════════════════════════════════════════════════════════════════════
+
+app.get("/api/admin/events", adminAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT e.*,
+              (SELECT COUNT(*) FROM event_registrations WHERE event_id=e.id) AS rsvp_count
+       FROM events e ORDER BY e.date DESC`
+    );
+    res.json({ events: rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/admin/events", adminAuth, async (req, res) => {
+  try {
+    const { name, date, type="Webinar", location, is_online=false, description, color="#F5A623" } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: "Jina linahitajika" });
+    const { rows:[ev] } = await db.query(
+      `INSERT INTO events (id,name,date,type,location,is_online,description,color,created_at)
+       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,$7,NOW()) RETURNING *`,
+      [name.trim(), date||null, type, location||"", is_online, description||"", color]
+    );
+    res.status(201).json(ev);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/events/:id/publish", adminAuth, async (req, res) => {
+  try {
+    await db.query("UPDATE events SET status='upcoming' WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete("/api/admin/events/:id", adminAuth, async (req, res) => {
+  try {
+    await db.query("DELETE FROM events WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN: RESOURCES (RASILIMALI)
+// ════════════════════════════════════════════════════════════════════
+
+app.get("/api/admin/resources", adminAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT r.*, u.name AS submitted_by_name
+       FROM resources r LEFT JOIN users u ON u.id=r.user_id
+       ORDER BY r.created_at DESC`
+    );
+    res.json({ resources: rows });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/admin/resources", adminAuth, async (req, res) => {
+  try {
+    const { title, type="Dataset", link, tags=[], description, author } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: "Jina linahitajika" });
+    const { rows:[r] } = await db.query(
+      `INSERT INTO resources (id,title,type,link,tags,description,author_name,status,source,created_at)
+       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,'approved','admin',NOW()) RETURNING *`,
+      [title.trim(), type, link||"", JSON.stringify(Array.isArray(tags)?tags:tags.split(",").map(t=>t.trim()).filter(Boolean)),
+       description||"", author||"JamiiAI"]
+    );
+    res.status(201).json(r);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/resources/:id/approve", adminAuth, async (req, res) => {
+  try {
+    await db.query("UPDATE resources SET status='approved' WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete("/api/admin/resources/:id", adminAuth, async (req, res) => {
+  try {
+    await db.query("DELETE FROM resources WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Community submit resource
+app.post("/api/resources/submit", auth, async (req, res) => {
+  try {
+    const { title, type, link, tags=[], description } = req.body;
+    if (!title?.trim() || !link?.trim()) return res.status(400).json({ error: "Jina na link vinahitajika" });
+    const { rows:[r] } = await db.query(
+      `INSERT INTO resources (id,user_id,title,type,link,tags,description,status,source,created_at)
+       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,'pending','community',NOW()) RETURNING *`,
+      [req.user.id, title.trim(), type||"Tutorial", link.trim(),
+       JSON.stringify(Array.isArray(tags)?tags:tags.split(",").map(t=>t.trim()).filter(Boolean)),
+       description||""]
+    );
+    res.status(201).json({ success: true, resource: r });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN: ANNOUNCEMENTS
+// ════════════════════════════════════════════════════════════════════
+
+app.post("/api/admin/announcements", adminAuth, async (req, res) => {
+  try {
+    const { title, body, target="Wote", channels={inapp:true}, schedule="now" } = req.body;
+    if (!title?.trim() || !body?.trim()) return res.status(400).json({ error: "Kichwa na ujumbe vinahitajika" });
+
+    // Save to DB
+    const { rows:[ann] } = await db.query(
+      `INSERT INTO announcements (id,title,body,target,channels,sent_by,sent_at,created_at)
+       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,NOW(),NOW()) RETURNING *`,
+      [title.trim(), body.trim(), target, JSON.stringify(channels), req.user.id]
+    );
+
+    // Send in-app notifications
+    if (channels.inapp) {
+      const { rows: targetUsers } = await db.query(
+        target === "Wote" ? "SELECT id FROM users WHERE status='active'" :
+        target === "Pro" ? `SELECT u.id FROM users u JOIN subscriptions s ON s.user_id=u.id WHERE s.plan='pro' AND s.status='active'` :
+        "SELECT id FROM users WHERE status='active' LIMIT 100"
+      );
+      for (const u of targetUsers.slice(0, 200)) {
+        await db.query(
+          `INSERT INTO notifications (id,user_id,type,type_str,title,is_read,created_at)
+           VALUES (uuid_generate_v4(),$1,'announcement','announcement',$2,false,NOW())`,
+          [u.id, title]
+        );
+        io.to(`user:${u.id}`).emit("notification", { type:"announcement", title, body });
+      }
+    }
+
+    // Send email if requested
+    if (channels.email) {
+      const { rows: emailUsers } = await db.query("SELECT email, name FROM users WHERE status='active' LIMIT 500");
+      for (const u of emailUsers) {
+        await sendEmail({ to: u.email, subject: title, html: `<h2>${title}</h2><p>${body}</p><hr><p>JamiiAI Community</p>` });
+      }
+    }
+
+    res.status(201).json({ success: true, announcement: ann });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN: ANALYTICS
+// ════════════════════════════════════════════════════════════════════
+
+app.get("/api/admin/analytics", adminAuth, async (req, res) => {
+  try {
+    const [users, posts, jobs, messages, daily] = await Promise.all([
+      db.query("SELECT COUNT(*) FROM users"),
+      db.query("SELECT COUNT(*) FROM posts WHERE is_deleted=false"),
+      db.query("SELECT COUNT(*) FROM jobs WHERE status='active'"),
+      db.query("SELECT COUNT(*) FROM messages"),
+      db.query(`
+        SELECT DATE(created_at) AS day, COUNT(*) AS users
+        FROM users
+        WHERE created_at >= NOW() - INTERVAL '7 days'
+        GROUP BY DATE(created_at) ORDER BY day ASC
+      `),
+    ]);
+    const postsDaily = await db.query(`
+      SELECT DATE(created_at) AS day, COUNT(*) AS posts
+      FROM posts WHERE created_at >= NOW() - INTERVAL '7 days'
+      GROUP BY DATE(created_at) ORDER BY day ASC
+    `);
+
+    // Build 7-day chart (fill missing days)
+    const days = ["Jum","Alh","Ijm","Alm","Jtn","Jmt","Leo"];
+    const weekly = days.map((day, i) => {
+      const d = daily.rows[i] || {};
+      const p = postsDaily.rows[i] || {};
+      return { day, users: parseInt(d.users||0), posts: parseInt(p.posts||0) };
+    });
+
+    res.json({
+      counts: {
+        users: parseInt(users.rows[0].count),
+        posts: parseInt(posts.rows[0].count),
+        jobs: parseInt(jobs.rows[0].count),
+        messages: parseInt(messages.rows[0].count),
+      },
+      weekly,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ════════════════════════════════════════════════════════════════════

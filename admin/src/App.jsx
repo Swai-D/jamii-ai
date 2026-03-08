@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api, { authAPI, adminAPI } from "./lib/api";
+import { authAPI, adminAPI } from "./lib/api";
 import { LogOut, Globe, Shield, Activity, Users, Settings, Bell, Briefcase, FileText, BarChart3, Star, Layers, Zap } from "lucide-react";
 
 const MONO = "'Roboto Mono', monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
@@ -143,74 +143,7 @@ function AdminAuth({ onLogin }) {
   );
 }
 
-// ── SEED DATA ─────────────────────────────────────────────────────
-const STATS = {
-  totalUsers: 1247, newToday: 23, activeToday: 341,
-  totalPosts: 8932, postsToday: 147, flaggedContent: 12,
-  totalRevenue: 4250000, mrr: 850000,
-  challenges: 4, events: 5, resources: 38, news: 24,
-};
-
-const USERS = [
-  { id:1,  name:"Kaleb Gwalugano",  handle:"kalebu",      email:"kaleb@neurotech.africa", role:"Founder & CEO",  city:"DSM", joined:"Jan 2025", status:"active",   verified:true,  posts:34, badge:"Pro"     },
-  { id:2,  name:"Amina Hassan",     handle:"aminahassan",  email:"amina@gmail.com",         role:"ML Engineer",    city:"DSM", joined:"Jan 2025", status:"active",   verified:true,  posts:67, badge:"Pro"     },
-  { id:3,  name:"Jonas Kimaro",     handle:"jonaskimaro",  email:"jonas@gmail.com",         role:"AI Architect",   city:"Dodoma", joined:"Feb 2025", status:"active", verified:false, posts:45, badge:"Free"    },
-  { id:4,  name:"Fatuma Said",      handle:"fatumasaid",   email:"fatuma@gmail.com",        role:"Data Scientist", city:"Zanzibar", joined:"Feb 2025", status:"active",verified:true,  posts:28, badge:"Basic"   },
-  { id:5,  name:"David Mkwawa",     handle:"davidmkwawa",  email:"david@gmail.com",         role:"AI Dev",         city:"Arusha", joined:"Mar 2025", status:"banned", verified:false, posts:3,  badge:"Free"    },
-  { id:6,  name:"Grace Mushi",      handle:"gracemushi",   email:"grace@gmail.com",         role:"Student",        city:"DSM", joined:"Mar 2025", status:"active",   verified:false, posts:12, badge:"Free"    },
-  { id:7,  name:"Said Omar",        handle:"saidomar",     email:"said@gmail.com",          role:"AI Dev",         city:"Mwanza", joined:"Apr 2025", status:"active", verified:false, posts:19, badge:"Basic"   },
-  { id:8,  name:"Lilian Mbise",     handle:"lilianmbise",  email:"lilian@gmail.com",        role:"Designer",       city:"DSM", joined:"Apr 2025", status:"pending",  verified:false, posts:0,  badge:"Free"    },
-];
-
-const FLAGGED_POSTS = [
-  { id:1, author:"David Mkwawa",  handle:"davidmkwawa", content:"Nunua followers za cheap hapa...", reason:"Spam",        reports:8,  time:"Leo 09:12",  status:"pending"  },
-  { id:2, author:"Unknown123",    handle:"unknwn123",    content:"Tuma pesa upate double...",        reason:"Scam",        reports:15, time:"Leo 07:45",  status:"pending"  },
-  { id:3, author:"Grace Mushi",   handle:"gracemushi",   content:"Hii model yangu iko GitHub...",    reason:"Off-topic",   reports:2,  time:"Jana 18:30", status:"reviewed" },
-  { id:4, author:"Said Omar",     handle:"saidomar",     content:"AI tools za piracy...",            reason:"Prohibited",  reports:6,  time:"Jana 14:20", status:"pending"  },
-];
-
-const CHALLENGES_DATA = [
-  { id:1, title:"Swahili Sentiment Analysis",  org:"JamiiAI + UDSM",    prize:"TZS 5,000,000",  deadline:"Apr 15", status:"open",      participants:34, color:"#4ECDC4" },
-  { id:2, title:"AI kwa Afya: Disease Detect", org:"MOH + JamiiAI",     prize:"TZS 10,000,000", deadline:"May 1",  status:"open",      participants:18, color:"#F87171" },
-  { id:3, title:"AgriBot Wakulima",            org:"FAO Tanzania",       prize:"TZS 3,000,000",  deadline:"Mar 30", status:"judging",   participants:67, color:"#34D399" },
-  { id:4, title:"Fake News Detector",          org:"JamiiAI Community",  prize:"TZS 2,000,000",  deadline:"Feb 28", status:"completed", participants:89, color:"#A78BFA" },
-];
-
-const EVENTS_DATA = [
-  { id:1, name:"Tanzania AI Hackathon 2025",  date:"Mar 15–17", type:"Hackathon", status:"upcoming", rsvp:128, color:"#F5A623" },
-  { id:2, name:"AI for Agriculture Webinar",  date:"Mar 22",    type:"Webinar",   status:"upcoming", rsvp:67,  color:"#4ECDC4" },
-  { id:3, name:"JamiiAI Monthly Meetup DSM",  date:"Apr 1",     type:"Meetup",    status:"upcoming", rsvp:44,  color:"#A78BFA" },
-  { id:4, name:"LLMs & Swahili NLP Workshop", date:"Apr 12",    type:"Workshop",  status:"draft",    rsvp:0,   color:"#F87171" },
-  { id:5, name:"East Africa AI Summit 2025",  date:"May 20–22", type:"Conference",status:"upcoming", rsvp:892, color:"#60A5FA" },
-];
-
-const RESOURCES_DATA = [
-  { id:1, title:"Swahili NLP Dataset — 50K",    type:"Dataset",      author:"UDSM",        downloads:1240, status:"approved", color:"#4ECDC4" },
-  { id:2, title:"Kuanza na Claude API",         type:"Tutorial",     author:"Davy Mwangi", downloads:567,  status:"approved", color:"#F5A623" },
-  { id:3, title:"ML Roadmap Tanzania",          type:"Guide",        author:"JamiiAI",     downloads:2300, status:"approved", color:"#34D399" },
-  { id:4, title:"Agricultural AI Dataset TZ",  type:"Dataset",      author:"FarmSmart",   downloads:340,  status:"pending",  color:"#A78BFA" },
-  { id:5, title:"LangChain + Swahili RAG",      type:"Tutorial",     author:"Jonas K.",    downloads:890,  status:"pending",  color:"#F87171" },
-  { id:6, title:"AI Ethics Afrika",             type:"Research",     author:"NMI",         downloads:430,  status:"approved", color:"#60A5FA" },
-];
-
-const NEWS_DATA = [
-  { id:1, title:"Tanzania inaanza AI Innovation Hub",    category:"Tanzania", status:"published", reads:1240, time:"Leo 09:30"   },
-  { id:2, title:"Claude 4 inabadilisha AI agents",       category:"Global",   status:"published", reads:3450, time:"Jana 15:00"  },
-  { id:3, title:"JamiiAI Hackathon — Registrations wazi",category:"Jamii",   status:"published", reads:892,  time:"Jana 11:00"  },
-  { id:4, title:"Meta wanafungua Llama 4",               category:"Global",   status:"published", reads:5670, time:"Siku 2"      },
-  { id:5, title:"UDSM AI Lab — Apply sasa",              category:"Tanzania", status:"draft",     reads:0,    time:"Draft"       },
-  { id:6, title:"AI Startups Funding Q1 2025 Tanzania",  category:"Tanzania", status:"draft",     reads:0,    time:"Draft"       },
-];
-
-const WEEKLY = [
-  { day:"Jum",  users:34,  posts:89  },
-  { day:"Alh",  users:28,  posts:67  },
-  { day:"Ijm",  users:45,  posts:112 },
-  { day:"Alm",  users:67,  posts:145 },
-  { day:"Jtn",  users:89,  posts:198 },
-  { day:"Jmt",  users:52,  posts:134 },
-  { day:"Leo",  users:73,  posts:147 },
-];
+// ── NAV CONFIG ────────────────────────────────────────────────────
 
 const NAV = [
   { id:"dashboard",      icon:"🏠", label:"Dashboard"                },
@@ -331,43 +264,50 @@ function FormField({ label, value, onChange, type="text", multiline, options }) 
 
 // ── DASHBOARD ─────────────────────────────────────────────────────
 function DashboardPage() {
-  const [stats, setStats] = useState(null);
-  const [recentUsers, setRecentUsers] = useState([]);
+  const [stats,   setStats]   = useState(null);
+  const [weekly,  setWeekly]  = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminAPI.stats().then(r => {
-      setStats(r.data.counts);
-      setRecentUsers(r.data.recentUsers || []);
-    }).catch(() => {});
+    Promise.all([adminAPI.stats(), adminAPI.analytics()])
+      .then(([sRes, aRes]) => {
+        setStats(sRes.data);
+        setWeekly(aRes.data?.weekly || []);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
+
+  const fmtNum = n => n >= 1000000 ? `${(n/1000000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n/1000)}K` : String(n||0);
+
+  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia...</div>;
 
   return (
     <div>
       <SectionHead title="Dashboard" sub="JamiiAI Community — Overview ya leo" />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:20 }}>
-        <StatCard icon="👥" label="Total Members"    value={stats ? Number(stats.users).toLocaleString() : "—"}   sub="Wanachama wote"      color="#F5A623"  delta={8}  />
-        <StatCard icon="📝" label="Posts Zote"       value={stats ? Number(stats.posts).toLocaleString() : "—"}   sub="Jumla ya machapisho" color="#4ECDC4"  delta={12} />
-        <StatCard icon="💼" label="Kazi Active"      value={stats ? Number(stats.jobs).toLocaleString()  : "—"}   sub="Jobs zinazosubiri"   color="#A78BFA"  />
-        <StatCard icon="🏆" label="Challenges Wazi"  value={stats ? Number(stats.challenges).toLocaleString():"—"} sub="Zinazoendelea"      color="#34D399"  delta={5}  />
-        <StatCard icon="💰" label="MRR"              value="850K"    sub="TZS / mwezi"   color="#34D399"  delta={5}  />
+        <StatCard icon="👥" label="Total Members"    value={fmtNum(stats?.totalUsers)}    sub={`+${stats?.newToday||0} leo`}    color="#F5A623" delta={8}  />
+        <StatCard icon="📝" label="Posts Leo"        value={fmtNum(stats?.postsToday)}    sub={`${fmtNum(stats?.totalPosts)} total`} color="#4ECDC4" delta={12} />
+        <StatCard icon="🚩" label="Flagged Content"  value={stats?.flaggedContent||0}     sub="Zinahitaji review"                color="#F87171" />
+        <StatCard icon="💰" label="MRR"              value={fmtNum(stats?.mrr)}           sub="TZS / mwezi"                     color="#34D399" delta={5}  />
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:20 }}>
         <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, padding:18 }}>
           <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.38)", letterSpacing:"0.04em", marginBottom:14 }}>WATUMIAJI WAPYA — WIKI HII</div>
-          <MiniBar data={WEEKLY} valueKey="users" color="#F5A623" />
+          {weekly.length > 0 ? <MiniBar data={weekly} valueKey="users" color="#F5A623" /> : <div style={{ color:"rgba(242,242,245,0.2)", fontSize:12, textAlign:"center", padding:"20px 0" }}>Hakuna data</div>}
         </div>
         <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, padding:18 }}>
           <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.38)", letterSpacing:"0.04em", marginBottom:14 }}>POSTS — WIKI HII</div>
-          <MiniBar data={WEEKLY} valueKey="posts" color="#4ECDC4" />
+          {weekly.length > 0 ? <MiniBar data={weekly} valueKey="posts" color="#4ECDC4" /> : <div style={{ color:"rgba(242,242,245,0.2)", fontSize:12, textAlign:"center", padding:"20px 0" }}>Hakuna data</div>}
         </div>
         <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, padding:18 }}>
           <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.38)", letterSpacing:"0.04em", marginBottom:14 }}>PLATFORM STATS</div>
           {[
-            ["Total Members", stats ? stats.users : "—", "#F5A623"],
-            ["Total Posts",   stats ? stats.posts : "—", "#4ECDC4"],
-            ["Kazi Active",   stats ? stats.jobs  : "—", "#A78BFA"],
-            ["Messages Zote", stats ? stats.messages:"—","#34D399"],
+            ["Challenges Wazi",    stats?.challenges||0,  "#F5A623"],
+            ["Events Yanayokuja",  stats?.events||0,      "#4ECDC4"],
+            ["Rasilimali",         stats?.resources||0,   "#A78BFA"],
+            ["Habari",             stats?.news||0,        "#F87171"],
           ].map(([l,v,c])=>(
             <div key={l} style={{ display:"flex", justifyContent:"space-between", padding:"8px 0", borderBottom:"1px solid #1A1A1C" }}>
               <span style={{ fontSize:13, color:"rgba(242,242,245,0.55)" }}>{l}</span>
@@ -377,15 +317,21 @@ function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Users */}
+      {/* Recent activity placeholder */}
       <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, padding:18 }}>
-        <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.38)", letterSpacing:"0.04em", marginBottom:14 }}>WATUMIAJI WAPYA</div>
-        {recentUsers.length === 0 && <div style={{ color:"rgba(242,242,245,0.3)", fontSize:13 }}>Inapakia...</div>}
-        {recentUsers.map((u,i)=>(
-          <div key={u.handle||i} style={{ display:"flex", gap:12, alignItems:"center", padding:"9px 0", borderBottom: i<recentUsers.length-1?"1px solid #1A1A1C":"none" }}>
-            <div style={{ width:32, height:32, borderRadius:8, background:"#F5A62320", border:"1px solid #F5A62330", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>👤</div>
-            <span style={{ fontSize:13, color:"rgba(242,242,245,0.7)", flex:1 }}>{u.name} <span style={{ color:"rgba(242,242,245,0.35)" }}>@{u.handle}</span></span>
-            <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)", flexShrink:0 }}>{new Date(u.created_at).toLocaleDateString()}</span>
+        <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.38)", letterSpacing:"0.04em", marginBottom:14 }}>PLATFORM SUMMARY</div>
+        {[
+          ["👥", "Watumiaji Wote",     fmtNum(stats?.totalUsers),   "#F5A623"],
+          ["📝", "Posts Zote",         fmtNum(stats?.totalPosts),   "#4ECDC4"],
+          ["🚩", "Content Flagged",    stats?.flaggedContent||0,    "#F87171"],
+          ["🏆", "Changamoto",         stats?.challenges||0,        "#34D399"],
+          ["🗓", "Matukio",            stats?.events||0,            "#A78BFA"],
+          ["📚", "Rasilimali",         stats?.resources||0,         "#60A5FA"],
+        ].map(([icon,label,val,color],i)=>(
+          <div key={label} style={{ display:"flex", gap:12, alignItems:"center", padding:"9px 0", borderBottom:i<5?"1px solid #1A1A1C":"none" }}>
+            <div style={{ width:32, height:32, borderRadius:8, background:`${color}15`, border:`1px solid ${color}25`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, flexShrink:0 }}>{icon}</div>
+            <span style={{ fontSize:13, color:"rgba(242,242,245,0.7)", flex:1 }}>{label}</span>
+            <span style={{ fontFamily:MONO, fontSize:13, fontWeight:700, color }}>{val}</span>
           </div>
         ))}
       </div>
@@ -396,50 +342,47 @@ function DashboardPage() {
 // ── USERS ─────────────────────────────────────────────────────────
 function UsersPage() {
   const [users, setUsers] = useState([]);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("Wote");
-  const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
 
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
 
-  const loadUsers = async (q="", status="Wote") => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (q) params.q = q;
-      if (status !== "Wote") params.status = status;
-      const { data } = await adminAPI.users(params);
-      setUsers(data.users || []);
-      setTotal(data.total || 0);
-    } catch { notify("❌ Hitilafu kupakia watumiaji"); }
-    setLoading(false);
-  };
-
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => {
+    adminAPI.users()
+      .then(r => setUsers(r.data?.users || r.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = users.filter(u => {
-    const matchQ = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.handle?.toLowerCase().includes(search.toLowerCase());
-    return matchQ;
+    const matchQ = u.name.toLowerCase().includes(search.toLowerCase()) || u.handle?.toLowerCase().includes(search.toLowerCase());
+    const matchF = filter==="Wote" || (filter==="Active" && u.status==="active") || (filter==="Banned" && u.status==="banned") || (filter==="Pending" && u.status==="pending") || (filter==="Verified" && u.verified);
+    return matchQ && matchF;
   });
 
   const toggleBan = async id => {
+    const u = users.find(u=>u.id===id);
     try {
-      const { data } = await adminAPI.banUser(id);
-      setUsers(us => us.map(u => u.id===id ? { ...u, is_banned: data.is_banned } : u));
-      notify(data.is_banned ? `🚫 Mtumiaji amebaniwa` : `✅ Mtumiaji ameachiliwa`);
-    } catch { notify("❌ Hitilafu"); }
+      await adminAPI.banUser(id);
+      setUsers(us => us.map(u => u.id===id ? { ...u, status: u.status==="banned" ? "active" : "banned" } : u));
+      notify(u.status==="banned" ? `✅ ${u.name} ameachiliwa` : `🚫 ${u.name} amebaniwa`);
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
+
   const toggleVerify = async id => {
+    const u = users.find(u=>u.id===id);
     try {
-      const { data } = await adminAPI.verifyUser(id);
-      setUsers(us => us.map(u => u.id===id ? { ...u, is_verified: data.is_verified } : u));
-      notify(data.is_verified ? `✅ Mtumiaji ameverified` : `❌ Verification imeondolewa`);
-    } catch { notify("❌ Hitilafu"); }
+      await adminAPI.verifyUser(id);
+      setUsers(us => us.map(u => u.id===id ? { ...u, verified:!u.verified } : u));
+      notify(u.verified ? `❌ Verification imeondolewa — ${u.name}` : `✅ ${u.name} ameverified`);
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
   const STATUS_C = { active:"#34D399", banned:"#F87171", pending:"#F5A623" };
+
+  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia watumiaji...</div>;
 
   return (
     <div>
@@ -448,72 +391,88 @@ function UsersPage() {
 
       <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
         <div style={{ position:"relative", flex:1, minWidth:200 }}>
-          <input value={search} onChange={e=>{setSearch(e.target.value); loadUsers(e.target.value, filter);}} placeholder="Tafuta jina au handle..." style={{ background:"#161618", border:"1px solid #232325", borderRadius:9, padding:"9px 12px 9px 32px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, outline:"none", width:"100%" }} />
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Tafuta jina au handle..." style={{ background:"#161618", border:"1px solid #232325", borderRadius:9, padding:"9px 12px 9px 32px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, outline:"none", width:"100%" }} />
           <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:"rgba(242,242,245,0.28)", fontSize:13 }}>◎</span>
         </div>
-        {["Wote","Active","Banned","Verified"].map(f=>(
-          <button key={f} onClick={()=>{setFilter(f); loadUsers(search,f);}} style={{ padding:"7px 14px", borderRadius:8, cursor:"pointer", fontFamily:MONO, fontSize:11, fontWeight:700, border:`1px solid ${filter===f?"#F5A623":"#232325"}`, background:filter===f?"rgba(245,166,35,0.1)":"transparent", color:filter===f?"#F5A623":"rgba(242,242,245,0.4)", transition:"all 0.18s" }}>{f}</button>
+        {["Wote","Active","Banned","Pending","Verified"].map(f=>(
+          <button key={f} onClick={()=>setFilter(f)} style={{ padding:"7px 14px", borderRadius:8, cursor:"pointer", fontFamily:MONO, fontSize:11, fontWeight:700, border:`1px solid ${filter===f?"#F5A623":"#232325"}`, background:filter===f?"rgba(245,166,35,0.1)":"transparent", color:filter===f?"#F5A623":"rgba(242,242,245,0.4)", transition:"all 0.18s" }}>{f}</button>
         ))}
       </div>
 
-      <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, overflow:"hidden" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 80px 80px 120px", background:"#0C0C0E", borderBottom:"1px solid #232325", padding:"10px 18px" }}>
-          {["MTUMIAJI","JUKUMU / MJI","ROLE","STATUS","VERIFIED","VITENDO"].map(h=>(
-            <div key={h} style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.32)", fontWeight:700, letterSpacing:"0.04em" }}>{h}</div>
-          ))}
+      {filtered.length === 0 ? (
+        <div style={{ textAlign:"center", padding:"48px 0", color:"rgba(242,242,245,0.25)" }}>
+          <div style={{ fontSize:32, marginBottom:10 }}>👥</div>
+          <div style={{ fontSize:14 }}>Hakuna watumiaji wanaolingana na utafutaji</div>
         </div>
-        {loading && <div style={{ padding:24, color:"rgba(242,242,245,0.3)", fontSize:13 }}>Inapakia watumiaji...</div>}
-        {filtered.map((u,i)=>{
-          const COLORS = ["#F5A623","#4ECDC4","#A78BFA","#F87171","#34D399","#60A5FA"];
-          const ci = (u.name||"?").charCodeAt(0) % 6;
-          return (
-          <div key={u.id} style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 80px 80px 120px", padding:"11px 18px", borderBottom:i<filtered.length-1?"1px solid #1A1A1C":"none", alignItems:"center" }}>
-            <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-              <Av i={(u.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2)} c={COLORS[ci]} />
+      ) : (
+        <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, overflow:"hidden" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 80px 80px 120px", background:"#0C0C0E", borderBottom:"1px solid #232325", padding:"10px 18px" }}>
+            {["MTUMIAJI","JUKUMU / MJI","BADGE","STATUS","VERIFIED","VITENDO"].map(h=>(
+              <div key={h} style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.32)", fontWeight:700, letterSpacing:"0.04em" }}>{h}</div>
+            ))}
+          </div>
+          {filtered.map((u,i)=>(
+            <div key={u.id} style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 80px 80px 120px", padding:"11px 18px", borderBottom:i<filtered.length-1?"1px solid #1A1A1C":"none", alignItems:"center" }}>
+              <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                <Av i={u.name.split(" ").map(w=>w[0]).join("").slice(0,2)} c={["#F5A623","#4ECDC4","#A78BFA","#F87171","#34D399","#60A5FA"][u.id%6]} />
+                <div>
+                  <div style={{ fontWeight:600, fontSize:13 }}>{u.name}</div>
+                  <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.32)" }}>@{u.handle}</div>
+                </div>
+              </div>
               <div>
-                <div style={{ fontWeight:600, fontSize:13 }}>{u.name}</div>
-                <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.32)" }}>@{u.handle} · {u.email}</div>
+                <div style={{ fontSize:12, color:"rgba(242,242,245,0.65)" }}>{u.role || u.role_title || "—"}</div>
+                <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>📍{u.city||"—"} · {u.posts_count||0} posts</div>
+              </div>
+              <Badge label={u.plan_name||"Free"} color={u.plan_name==="Pro"?"#F5A623":u.plan_name==="Basic"?"#4ECDC4":"rgba(242,242,245,0.4)"} />
+              <div>
+                <span style={{ fontFamily:MONO, fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:`${STATUS_C[u.status]||"#999"}18`, color:STATUS_C[u.status]||"#999" }}>{u.status||"active"}</span>
+              </div>
+              <div style={{ fontSize:16 }}>{u.verified ? "✅" : "⬜"}</div>
+              <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                <ActionBtn label={u.verified?"Unverify":"Verify"} color="#4ECDC4" small onClick={()=>toggleVerify(u.id)} />
+                <ActionBtn label={u.status==="banned"?"Unban":"Ban"} danger={u.status!=="banned"} color="#34D399" small onClick={()=>toggleBan(u.id)} />
               </div>
             </div>
-            <div>
-              <div style={{ fontSize:12, color:"rgba(242,242,245,0.65)" }}>{u.role||"—"}</div>
-              <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>📍{u.city||"—"} · {u.post_count||0} posts</div>
-            </div>
-            <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.5)" }}>{u.role_name||"member"}</div>
-            <div>
-              <span style={{ fontFamily:MONO, fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:u.is_banned?"#F8717118":"#34D39918", color:u.is_banned?"#F87171":"#34D399" }}>{u.is_banned?"banned":"active"}</span>
-            </div>
-            <div style={{ fontSize:16 }}>{u.is_verified ? "✅" : "⬜"}</div>
-            <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
-              <ActionBtn label={u.is_verified?"Unverify":"Verify"} color="#4ECDC4" small onClick={()=>toggleVerify(u.id)} />
-              <ActionBtn label={u.is_banned?"Unban":"Ban"} danger={!u.is_banned} color="#34D399" small onClick={()=>toggleBan(u.id)} />
-            </div>
-          </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── CONTENT MODERATION ────────────────────────────────────────────
 function ContentPage() {
-  const [posts, setPosts] = useState(FLAGGED_POSTS);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
 
-  const action = (id, act) => {
-    if (act==="delete") {
-      setPosts(ps=>ps.filter(p=>p.id!==id));
-      notify("🗑 Post imefutwa");
-    } else {
-      setPosts(ps=>ps.map(p=>p.id===id?{...p,status:"reviewed"}:p));
-      notify("✅ Post imeruhusiwa — imepitiwa");
-    }
+  useEffect(() => {
+    adminAPI.flaggedContent()
+      .then(r => setPosts(r.data?.posts || r.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const action = async (id, act) => {
+    try {
+      if (act === "delete") {
+        await adminAPI.deleteContent(id);
+        setPosts(ps => ps.filter(p => p.id !== id));
+        notify("🗑 Post imefutwa");
+      } else {
+        await adminAPI.approveContent(id);
+        setPosts(ps => ps.map(p => p.id===id ? {...p, status:"reviewed"} : p));
+        notify("✅ Post imeruhusiwa — imepitiwa");
+      }
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
   const REASON_C = { Spam:"#F5A623", Scam:"#F87171", "Off-topic":"#A78BFA", Prohibited:"#F87171" };
   const pending = posts.filter(p=>p.status==="pending");
+
+  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia maudhui yaliyoripotiwa...</div>;
 
   return (
     <div>
@@ -523,60 +482,84 @@ function ContentPage() {
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
         <StatCard icon="🚩" label="Pending Review" value={pending.length}     color="#F87171" />
         <StatCard icon="✅" label="Zilizopitishwa"  value={posts.filter(p=>p.status==="reviewed").length} color="#34D399" />
-        <StatCard icon="🗑" label="Zilizofutwa"     value="34"  sub="Mwezi huu" color="#A78BFA" />
+        <StatCard icon="🗑" label="Jumla"           value={posts.length}  sub="Zilizoripotiwa" color="#A78BFA" />
       </div>
 
-      <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {posts.map(p=>(
-          <div key={p.id} style={{ background:"#161618", border:`1px solid ${p.status==="pending"?"rgba(248,113,113,0.25)":"#232325"}`, borderRadius:14, padding:"16px 18px" }}>
-            <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
-              <div style={{ flex:1 }}>
-                <div style={{ display:"flex", gap:7, alignItems:"center", flexWrap:"wrap", marginBottom:8 }}>
-                  <Badge label={p.reason} color={REASON_C[p.reason]||"#F87171"} />
-                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>🚩 {p.reports} reports</span>
-                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>{p.time}</span>
-                  {p.status==="reviewed" && <Badge label="✓ Reviewed" color="#34D399" />}
+      {posts.length === 0 ? (
+        <div style={{ textAlign:"center", padding:"48px 0", color:"rgba(242,242,245,0.25)" }}>
+          <div style={{ fontSize:32, marginBottom:10 }}>🛡️</div>
+          <div style={{ fontSize:14 }}>Hakuna maudhui yaliyoripotiwa</div>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {posts.map(p=>(
+            <div key={p.id} style={{ background:"#161618", border:`1px solid ${p.status==="pending"?"rgba(248,113,113,0.25)":"#232325"}`, borderRadius:14, padding:"16px 18px" }}>
+              <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", gap:7, alignItems:"center", flexWrap:"wrap", marginBottom:8 }}>
+                    <Badge label={p.reason} color={REASON_C[p.reason]||"#F87171"} />
+                    <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>🚩 {p.reports||p.reports_count||1} reports</span>
+                    <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>{p.time||p.created_at}</span>
+                    {p.status==="reviewed" && <Badge label="✓ Reviewed" color="#34D399" />}
+                  </div>
+                  <div style={{ fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.4)", marginBottom:6 }}>@{p.handle||p.author_handle}</div>
+                  <p style={{ fontSize:14, color:"rgba(242,242,245,0.75)", lineHeight:1.6, background:"rgba(248,113,113,0.05)", border:"1px solid rgba(248,113,113,0.1)", borderRadius:8, padding:"10px 13px" }}>{p.content}</p>
                 </div>
-                <div style={{ fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.4)", marginBottom:6 }}>@{p.handle}</div>
-                <p style={{ fontSize:14, color:"rgba(242,242,245,0.75)", lineHeight:1.6, background:"rgba(248,113,113,0.05)", border:"1px solid rgba(248,113,113,0.1)", borderRadius:8, padding:"10px 13px" }}>{p.content}</p>
+                {p.status==="pending" && (
+                  <div style={{ display:"flex", flexDirection:"column", gap:7, flexShrink:0 }}>
+                    <ActionBtn label="✓ Approve" color="#34D399" onClick={()=>action(p.id,"approve")} />
+                    <ActionBtn label="🗑 Delete"  danger onClick={()=>action(p.id,"delete")} />
+                  </div>
+                )}
               </div>
-              {p.status==="pending" && (
-                <div style={{ display:"flex", flexDirection:"column", gap:7, flexShrink:0 }}>
-                  <ActionBtn label="✓ Approve" color="#34D399" onClick={()=>action(p.id,"approve")} />
-                  <ActionBtn label="🗑 Delete"  danger onClick={()=>action(p.id,"delete")} />
-                </div>
-              )}
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── CHANGAMOTO ────────────────────────────────────────────────────
 function ChangamotoPage() {
-  const [challenges, setChallenges] = useState(CHALLENGES_DATA);
+  const [challenges, setChallenges] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ title:"", org:"", prize:"", deadline:"", difficulty:"Kati", desc:"" });
   const [toast, setToast] = useState(null);
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
 
+  useEffect(() => {
+    adminAPI.challenges()
+      .then(r => setChallenges(r.data?.challenges || r.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
   const STATUS_C = { open:"#34D399", judging:"#F5A623", completed:"#4ECDC4", closed:"#F87171" };
   const f = k => e => setForm(p=>({...p,[k]:e.target.value}));
 
-  const save = () => {
+  const save = async () => {
     if (!form.title.trim()) return;
-    setChallenges(cs=>[{ id:Date.now(), ...form, status:"open", participants:0, color:["#4ECDC4","#F5A623","#A78BFA","#F87171"][Math.floor(Math.random()*4)] }, ...cs]);
-    setForm({ title:"", org:"", prize:"", deadline:"", difficulty:"Kati", desc:"" });
-    setShowNew(false);
-    notify("✅ Challenge mpya imeundwa!");
+    try {
+      const r = await adminAPI.createChallenge(form);
+      const newCh = r.data?.challenge || { id:Date.now(), ...form, status:"open", participants:0, color:["#4ECDC4","#F5A623","#A78BFA","#F87171"][Math.floor(Math.random()*4)] };
+      setChallenges(cs=>[newCh, ...cs]);
+      setForm({ title:"", org:"", prize:"", deadline:"", difficulty:"Kati", desc:"" });
+      setShowNew(false);
+      notify("✅ Challenge mpya imeundwa!");
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
-  const toggleStatus = (id, next) => {
-    setChallenges(cs=>cs.map(c=>c.id===id?{...c,status:next}:c));
-    notify(`✅ Status imebadilishwa → ${next}`);
+  const toggleStatus = async (id, next) => {
+    try {
+      await adminAPI.updateChallengeStatus(id, next);
+      setChallenges(cs=>cs.map(c=>c.id===id?{...c,status:next}:c));
+      notify(`✅ Status imebadilishwa → ${next}`);
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
+
+  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia changamoto...</div>;
 
   return (
     <div>
@@ -597,15 +580,20 @@ function ChangamotoPage() {
         action={<ActionBtn label="+ Challenge Mpya" onClick={()=>setShowNew(true)} />} />
 
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {challenges.map(ch=>(
-          <div key={ch.id} style={{ background:"#161618", border:`1px solid ${ch.color}30`, borderRadius:14, padding:"16px 18px" }}>
+        {challenges.length === 0 ? (
+          <div style={{ textAlign:"center", padding:"48px 0", color:"rgba(242,242,245,0.25)" }}>
+            <div style={{ fontSize:32, marginBottom:10 }}>🏆</div>
+            <div style={{ fontSize:14 }}>Hakuna changamoto bado — unda moja!</div>
+          </div>
+        ) : challenges.map(ch=>(
+          <div key={ch.id} style={{ background:"#161618", border:`1px solid ${(ch.color||"#4ECDC4")}30`, borderRadius:14, padding:"16px 18px" }}>
             <div style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
-              <div style={{ width:4, borderRadius:2, background:ch.color, alignSelf:"stretch", flexShrink:0 }} />
+              <div style={{ width:4, borderRadius:2, background:ch.color||"#4ECDC4", alignSelf:"stretch", flexShrink:0 }} />
               <div style={{ flex:1 }}>
                 <div style={{ display:"flex", gap:7, flexWrap:"wrap", marginBottom:7, alignItems:"center" }}>
-                  <Badge label={ch.status.toUpperCase()} color={STATUS_C[ch.status]||"#F5A623"} />
+                  <Badge label={(ch.status||"open").toUpperCase()} color={STATUS_C[ch.status]||"#F5A623"} />
                   <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.35)" }}>{ch.org}</span>
-                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>👥 {ch.participants} washiriki</span>
+                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>👥 {ch.participants||0} washiriki</span>
                 </div>
                 <h3 style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{ch.title}</h3>
                 <div style={{ display:"flex", gap:14, fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.4)" }}>
@@ -630,29 +618,52 @@ function ChangamotoPage() {
 
 // ── MATUKIO ───────────────────────────────────────────────────────
 function MatukioPage() {
-  const [events, setEvents] = useState(EVENTS_DATA);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ name:"", date:"", type:"Webinar", loc:"", desc:"" });
   const [toast, setToast] = useState(null);
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
-  const f = k => e => setForm(p=>({...p,[k]:e.target.value}));
+
+  useEffect(() => {
+    adminAPI.events()
+      .then(r => setEvents(r.data?.events || r.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
   const TYPE_C = { Hackathon:"#F5A623", Webinar:"#4ECDC4", Meetup:"#A78BFA", Workshop:"#F87171", Conference:"#60A5FA" };
   const STATUS_C = { upcoming:"#34D399", draft:"#F5A623", past:"rgba(242,242,245,0.3)" };
+  const f = k => e => setForm(p=>({...p,[k]:e.target.value}));
 
-  const save = () => {
+  const save = async () => {
     if (!form.name.trim()) return;
-    setEvents(es=>[{ id:Date.now(), ...form, status:"draft", rsvp:0, color:TYPE_C[form.type]||"#F5A623" }, ...es]);
-    setForm({ name:"", date:"", type:"Webinar", loc:"", desc:"" });
-    setShowNew(false);
-    notify("✅ Event imeundwa — Draft!");
+    try {
+      const r = await adminAPI.createEvent(form);
+      const newEv = r.data?.event || { id:Date.now(), ...form, status:"draft", rsvp:0, color:TYPE_C[form.type]||"#F5A623" };
+      setEvents(es=>[newEv, ...es]);
+      setForm({ name:"", date:"", type:"Webinar", loc:"", desc:"" });
+      setShowNew(false);
+      notify("✅ Event imeundwa — Draft!");
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
-  const publish = id => {
-    setEvents(es=>es.map(e=>e.id===id?{...e,status:"upcoming"}:e));
-    notify("🚀 Event imechapishwa!");
+  const publish = async id => {
+    try {
+      await adminAPI.publishEvent(id);
+      setEvents(es=>es.map(e=>e.id===id?{...e,status:"upcoming"}:e));
+      notify("🚀 Event imechapishwa!");
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
-  const del = id => { setEvents(es=>es.filter(e=>e.id!==id)); notify("🗑 Event imefutwa"); };
+  const del = async id => {
+    try {
+      await adminAPI.deleteEvent(id);
+      setEvents(es=>es.filter(e=>e.id!==id));
+      notify("🗑 Event imefutwa");
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
+  };
+
+  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia matukio...</div>;
 
   return (
     <div>
@@ -672,17 +683,22 @@ function MatukioPage() {
         action={<ActionBtn label="+ Event Mpya" onClick={()=>setShowNew(true)} />} />
 
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {events.map(ev=>(
+        {events.length === 0 ? (
+          <div style={{ textAlign:"center", padding:"48px 0", color:"rgba(242,242,245,0.25)" }}>
+            <div style={{ fontSize:32, marginBottom:10 }}>🗓️</div>
+            <div style={{ fontSize:14 }}>Hakuna matukio bado — unda moja!</div>
+          </div>
+        ) : events.map(ev=>(
           <div key={ev.id} style={{ background:"#161618", border:`1px solid ${ev.status==="draft"?"rgba(245,166,35,0.2)":"#232325"}`, borderRadius:14, padding:"16px 18px" }}>
             <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-              <div style={{ width:48, height:48, borderRadius:11, background:`${ev.color}15`, border:`1px solid ${ev.color}30`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:MONO, fontSize:9, color:ev.color, fontWeight:700, textAlign:"center", lineHeight:1.4, flexShrink:0, padding:"0 4px" }}>{ev.date}</div>
+              <div style={{ width:48, height:48, borderRadius:11, background:`${ev.color||"#F5A623"}15`, border:`1px solid ${ev.color||"#F5A623"}30`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:MONO, fontSize:9, color:ev.color||"#F5A623", fontWeight:700, textAlign:"center", lineHeight:1.4, flexShrink:0, padding:"0 4px" }}>{ev.date}</div>
               <div style={{ flex:1 }}>
                 <div style={{ display:"flex", gap:7, alignItems:"center", marginBottom:5, flexWrap:"wrap" }}>
                   <Badge label={ev.type} color={TYPE_C[ev.type]||"#F5A623"} />
                   <Badge label={ev.status} color={STATUS_C[ev.status]||"#F5A623"} />
-                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.35)" }}>👥 {ev.rsvp} RSVPs</span>
+                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.35)" }}>👥 {ev.rsvp||ev.rsvp_count||0} RSVPs</span>
                 </div>
-                <h3 style={{ fontWeight:700, fontSize:14 }}>{ev.name}</h3>
+                <h3 style={{ fontWeight:700, fontSize:14 }}>{ev.name||ev.title}</h3>
               </div>
               <div style={{ display:"flex", gap:7, flexShrink:0 }}>
                 {ev.status==="draft" && <ActionBtn label="🚀 Publish" color="#34D399" small onClick={()=>publish(ev.id)} />}
@@ -699,9 +715,10 @@ function MatukioPage() {
 
 // ── RASILIMALI ────────────────────────────────────────────────────
 function RasilimaliPage() {
-  const [resources, setResources] = useState(RESOURCES_DATA);
+  const [resources, setResources] = useState([]);
   const [showNew, setShowNew]     = useState(false);
   const [tab, setTab]             = useState("zote");
+  const [loading, setLoading]     = useState(true);
   const [form, setForm]           = useState({ title:"", type:"Dataset", author:"JamiiAI", link:"", tags:"", desc:"" });
   const [toast, setToast]         = useState(null);
 
@@ -709,26 +726,50 @@ function RasilimaliPage() {
   const TYPE_C = { Dataset:"#4ECDC4", Tutorial:"#F5A623", Guide:"#34D399", Research:"#A78BFA" };
   const f = k => e => setForm(p=>({...p,[k]:e.target.value}));
 
-  const approve = id => { setResources(rs=>rs.map(r=>r.id===id?{...r,status:"approved"}:r)); notify("✅ Resource imeidhinishwa!"); };
-  const reject  = id => { setResources(rs=>rs.filter(r=>r.id!==id)); notify("🗑 Resource imekataliwa/imefutwa"); };
+  useEffect(() => {
+    adminAPI.resources()
+      .then(r => setResources(r.data?.resources || r.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-  const save = () => {
+  const approve = async id => {
+    try {
+      await adminAPI.approveResource(id);
+      setResources(rs=>rs.map(r=>r.id===id?{...r,status:"approved"}:r));
+      notify("✅ Resource imeidhinishwa!");
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
+  };
+  const reject = async id => {
+    try {
+      await adminAPI.deleteResource(id);
+      setResources(rs=>rs.filter(r=>r.id!==id));
+      notify("🗑 Resource imekataliwa/imefutwa");
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
+  };
+
+  const save = async () => {
     if (!form.title.trim()) return;
-    const color = TYPE_C[form.type] || "#F5A623";
-    setResources(rs=>[{
-      id: Date.now(), title:form.title, type:form.type,
-      author:form.author, link:form.link,
-      tags: form.tags.split(",").map(t=>t.trim()).filter(Boolean),
-      desc: form.desc, downloads:0, status:"approved", color,
-      source:"admin",
-    }, ...rs]);
-    setForm({ title:"", type:"Dataset", author:"JamiiAI", link:"", tags:"", desc:"" });
-    setShowNew(false);
-    notify("✅ Resource imeongezwa na kuidhinishwa!");
+    try {
+      const r = await adminAPI.createResource(form);
+      const color = TYPE_C[form.type] || "#F5A623";
+      const newRes = r.data?.resource || {
+        id: Date.now(), title:form.title, type:form.type,
+        author:form.author, link:form.link,
+        tags: form.tags.split(",").map(t=>t.trim()).filter(Boolean),
+        desc: form.desc, downloads:0, status:"approved", color, source:"admin",
+      };
+      setResources(rs=>[newRes, ...rs]);
+      setForm({ title:"", type:"Dataset", author:"JamiiAI", link:"", tags:"", desc:"" });
+      setShowNew(false);
+      notify("✅ Resource imeongezwa na kuidhinishwa!");
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
   const pending  = resources.filter(r=>r.status==="pending");
   const filtered = tab==="zote" ? resources : tab==="pending" ? pending : resources.filter(r=>r.status==="approved");
+
+  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia rasilimali...</div>;
 
   return (
     <div>
@@ -839,68 +880,10 @@ function RasilimaliPage() {
 }
 
 // ── HABARI ────────────────────────────────────────────────────────
-// ── APIFY INBOX SEED DATA ─────────────────────────────────────────
-const APIFY_INBOX = [
-  {
-    id:101, title:"Google DeepMind announces Gemini 2.0 Ultra — beats GPT-4o on every benchmark",
-    source:"TechCrunch", sourceUrl:"https://techcrunch.com", scrapedAt:"Leo 08:14",
-    category:"Global", region:"Global",
-    rawSummary:"Google DeepMind has released Gemini 2.0 Ultra, claiming state-of-the-art performance across reasoning, coding, and multimodal benchmarks. The model is now available via Google Cloud API.",
-    aiSummary:"Google DeepMind wametoa Gemini 2.0 Ultra — modeli mpya inayodai kushinda GPT-4o kwenye kila kipimo cha majaribio, ikiwa ni pamoja na ufikiriaji, uandishi wa code, na uchanganuzi wa picha. Inapatikana sasa kwa developers kupitia Google Cloud API.",
-    tags:["LLMs","Google","Benchmark"], hot:true, status:"inbox",
-  },
-  {
-    id:102, title:"Sarufi.io raises $1.2M seed to expand Swahili NLP platform across East Africa",
-    source:"Disrupt Africa", sourceUrl:"https://disrupt-africa.com", scrapedAt:"Leo 07:45",
-    category:"Tanzania", region:"Africa",
-    rawSummary:"Sarufi, the Tanzanian conversational AI platform, has raised $1.2M in seed funding led by pan-African VC Uncovered Fund. The company plans to expand its Swahili language models to Kenya and Uganda.",
-    aiSummary:"Sarufi, kampuni ya AI ya Tanzania inayojengwa na Kaleb Gwalugano, imepata ufadhili wa dola milioni 1.2 kutoka kwa wawekezaji wa Afrika. Fedha hizi zitatumika kupanua modeli za lugha ya Kiswahili kwenye Kenya na Uganda — hatua kubwa kwa teknolojia ya lugha za Afrika.",
-    tags:["Tanzania","Funding","NLP","Swahili"], hot:true, status:"inbox",
-  },
-  {
-    id:103, title:"Anthropic releases Claude 4 Opus with 1M token context window",
-    source:"VentureBeat", sourceUrl:"https://venturebeat.com", scrapedAt:"Leo 06:30",
-    category:"Global", region:"Global",
-    rawSummary:"Anthropic has launched Claude 4 Opus featuring a 1 million token context window, improved reasoning, and new tool use capabilities. Pricing starts at $15 per million input tokens.",
-    aiSummary:"Anthropic wametoa Claude 4 Opus na uwezo wa kusoma hati zenye maneno milioni moja kwa wakati mmoja — mara tano zaidi ya toleo la awali. Hii inamaanisha developers wa Tanzania wanaweza sasa ku-analyze hati ndefu kwa urahisi zaidi.",
-    tags:["Claude","Anthropic","LLMs"], hot:false, status:"inbox",
-  },
-  {
-    id:104, title:"Kenya's AI startup M-Pawa raises $800K to bring ML credit scoring to rural Tanzania",
-    source:"TechMoran", sourceUrl:"https://techmoran.com", scrapedAt:"Jana 22:10",
-    category:"Africa", region:"Africa",
-    rawSummary:"Nairobi-based fintech M-Pawa has secured $800K to expand AI-powered micro-credit services to rural Tanzania, partnering with CRDB Bank.",
-    aiSummary:"Startup ya Kenya, M-Pawa, imepata dola 800K ili kuleta huduma za mikopo ya AI vijijini Tanzania kwa ushirikiano na CRDB Bank. Teknolojia yao inatumia historia ya simu ya mkononi kutathmini uwezo wa mkopo badala ya dhamana ya kawaida.",
-    tags:["FinTech","Africa","ML","Tanzania"], hot:false, status:"inbox",
-  },
-  {
-    id:105, title:"OpenAI launches GPT-5 with real-time web search and autonomous agent mode",
-    source:"The Verge", sourceUrl:"https://theverge.com", scrapedAt:"Jana 18:55",
-    category:"Global", region:"Global",
-    rawSummary:"OpenAI officially released GPT-5, featuring integrated real-time web search, an autonomous agent mode for multi-step tasks, and improved multilingual support including several African languages.",
-    aiSummary:"OpenAI wametoa GPT-5 yenye uwezo wa kutafuta mtandaoni kwa wakati halisi na kufanya kazi ngumu za hatua nyingi bila msaada wa mtu. Toleo hili pia linasaidia lugha zaidi za Kiafrika — habari nzuri kwa watengenezaji programu Afrika.",
-    tags:["OpenAI","GPT-5","Agents"], hot:true, status:"inbox",
-  },
-  {
-    id:106, title:"UDSM AI Lab partners with NVIDIA to provide A100 GPU access to Tanzanian researchers",
-    source:"Daily News TZ", sourceUrl:"https://dailynews.co.tz", scrapedAt:"Jana 14:20",
-    category:"Tanzania", region:"Tanzania",
-    rawSummary:"The University of Dar es Salaam AI Research Lab has signed a partnership with NVIDIA's Academic Program, granting Tanzanian AI researchers access to A100 GPUs via cloud credits worth $250,000.",
-    aiSummary:"Chuo Kikuu cha Dar es Salaam kimeingia makubaliano na NVIDIA — watafiti wa AI Tanzania watapata ufikiaji wa GPU za kisasa zenye thamani ya dola 250,000. Hii ni fursa kubwa kwa utafiti wa lugha za Kiswahili na AI kwa mazingira ya Afrika.",
-    tags:["Tanzania","UDSM","NVIDIA","Research"], hot:false, status:"inbox",
-  },
-];
-
-const PUBLISHED_NEWS = [
-  { id:1, title:"Tanzania inaanza AI Innovation Hub DSM — $2M investment", category:"Tanzania", status:"published", reads:1240, time:"Leo 09:30", source:"Habari Leo", hot:true },
-  { id:2, title:"Claude 4 inabadilisha jinsi ya kujenga AI agents",          category:"Global",   status:"published", reads:3450, time:"Jana 15:00", source:"VentureBeat", hot:true },
-  { id:3, title:"JamiiAI Hackathon — Registrations zimefunguliwa!",           category:"Jamii",    status:"published", reads:892,  time:"Jana 11:00", source:"JamiiAI", hot:false },
-  { id:4, title:"Meta wanafungua Llama 4 — multimodal, open source",          category:"Global",   status:"published", reads:5670, time:"Siku 2",     source:"The Verge", hot:false },
-];
-
 function HabariPage() {
   const [inbox, setInbox]         = useState([]);
   const [published, setPublished] = useState([]);
+  const [loading, setLoading]     = useState(true);
   const [tab, setTab]             = useState("inbox");
   const [expanded, setExpanded]   = useState(null);
   const [editId, setEditId]       = useState(null);
@@ -915,84 +898,80 @@ function HabariPage() {
   const CAT_C  = { Tanzania:"#F5A623", Africa:"#4ECDC4", Global:"#A78BFA", Jamii:"#34D399" };
   const mf = k => e => setManualForm(p=>({...p,[k]:e.target.value}));
 
-  const loadNews = async () => {
-    try {
-      const [inboxRes, pubRes] = await Promise.all([
-        api.get("/api/admin/news?status=inbox"),
-        api.get("/api/admin/news?status=published"),
-      ]);
-      setInbox(inboxRes.data?.news || []);
-      setPublished(pubRes.data?.news || []);
-    } catch { /* show seed data if API not ready */ }
-  };
+  useEffect(() => {
+    Promise.all([adminAPI.news("inbox"), adminAPI.news("published")])
+      .then(([inboxRes, pubRes]) => {
+        setInbox(inboxRes.data?.news || inboxRes.data || []);
+        setPublished(pubRes.data?.news || pubRes.data || []);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
-  useEffect(() => { loadNews(); }, []);
-
-  const runScraper = async () => {
+  // Run Apify scraper via API
+  const runScraper = () => {
     setScraping(true);
-    try {
-      await api.post("/api/admin/apify/run");
-      notify("✅ Apify imewashwa — habari zitaonekana hivi karibuni!");
-      setTimeout(() => loadNews(), 3000);
-    } catch { notify("⚠ Apify haijasanidiwa bado — angalia .env"); }
-    setScraping(false);
+    adminAPI.runApify()
+      .then(r => {
+        const items = r.data?.items || [];
+        setInbox(prev => [...items, ...prev]);
+        notify(`✅ Apify imekimbia — habari ${items.length} mpya imepatikana!`);
+      })
+      .catch(() => notify("❌ Apify imefeli — angalia API token"))
+      .finally(() => setScraping(false));
   };
 
+  // Simulate AI re-summarize
   const reSummarize = (id) => {
     setSummarizing(id);
     setTimeout(() => {
       setInbox(prev => prev.map(n => n.id===id ? {
         ...n,
-        ai_summary: (n.ai_summary||n.aiSummary||"") + " [AI imesasisha muhtasari.]"
+        aiSummary: n.aiSummary + " [AI imesasisha muhtasari — toleo jipya la Kiswahili lenye usahihi zaidi.]"
       } : n));
       setSummarizing(null);
-      notify("🤖 AI imesasisha muhtasari!");
+      notify("🤖 AI imesasisha muhtasari wa Kiswahili!");
     }, 1800);
   };
 
-  const publishFromInbox = async (item) => {
-    const summary = editId===item.id ? editSummary : (item.ai_summary||item.ai_summary||item.aiSummary||"");
-    try {
-      await api.patch(`/api/admin/news/${item.id}/publish`, { ai_summary: summary });
-      setInbox(prev => prev.filter(n => n.id !== item.id));
-      setPublished(prev => [{ ...item, status:"published", reads:0 }, ...prev]);
-      setEditId(null);
-      notify("🚀 Habari imechapishwa kwenye community feed!");
-    } catch { notify("❌ Hitilafu kuchapisha habari"); }
+  // Publish from inbox
+  const publishFromInbox = (item) => {
+    const summary = editId===item.id ? editSummary : item.aiSummary;
+    setPublished(prev => [{
+      id: Date.now(),
+      title: item.title,
+      category: item.category,
+      status: "published",
+      reads: 0,
+      time: "Sasa",
+      source: item.source,
+      hot: item.hot,
+      summary,
+    }, ...prev]);
+    setInbox(prev => prev.filter(n => n.id !== item.id));
+    setEditId(null);
+    notify("🚀 Habari imechapishwa kwenye community feed!");
   };
 
   // Discard from inbox
-  const discard = async (id) => {
-    try {
-      await api.delete(`/api/admin/news/${id}`);
-      setInbox(prev => prev.filter(n => n.id !== id));
-      notify("🗑 Habari imeondolewa kutoka inbox");
-    } catch { setInbox(prev => prev.filter(n => n.id !== id)); notify("🗑 Imeondolewa"); }
+  const discard = (id) => {
+    setInbox(prev => prev.filter(n => n.id !== id));
+    notify("🗑 Habari imeondolewa kutoka inbox");
   };
 
   // Unpublish
-  const unpublish = async (id) => {
-    try {
-      await api.delete(`/api/admin/news/${id}`);
-      setPublished(prev => prev.filter(n => n.id !== id));
-      notify("↩ Habari imefutwa kutoka community");
-    } catch { setPublished(prev => prev.filter(n => n.id !== id)); notify("↩ Imefutwa"); }
+  const unpublish = (id) => {
+    setPublished(prev => prev.filter(n => n.id !== id));
+    notify("↩ Habari imefutwa kutoka community");
   };
 
   // Manual publish
-  const saveManual = async () => {
+  const saveManual = () => {
     if (!manualForm.title.trim()) return;
-    try {
-      const res = await api.post("/api/admin/news", {
-        title: manualForm.title, category: manualForm.category,
-        ai_summary: manualForm.summary, source: manualForm.source,
-      });
-      // auto-publish it
-      await api.patch(`/api/admin/news/${res.data.id}/publish`, { ai_summary: manualForm.summary });
-      setPublished(prev => [{ ...res.data, status:"published", reads:0 }, ...prev]);
-    } catch {
-      setPublished(prev => [{ id: Date.now(), ...manualForm, status:"published", reads:0, time:"Sasa" }, ...prev]);
-    }
+    setPublished(prev => [{
+      id: Date.now(), ...manualForm,
+      status:"published", reads:0, time:"Sasa", hot:false,
+    }, ...prev]);
     setManualForm({ title:"", category:"Tanzania", summary:"", source:"" });
     setShowManual(false);
     notify("✅ Habari ya manual imechapishwa!");
@@ -1047,7 +1026,7 @@ function HabariPage() {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:20 }}>
         <StatCard icon="📥" label="Inbox"           value={inboxCount}     color="#F5A623" />
         <StatCard icon="✅" label="Zilizochapishwa" value={publishedCount}  color="#34D399" />
-        <StatCard icon="🔥" label="Hot Stories"     value={inbox.filter(n=>n.is_hot||n.hot).length} color="#F87171" />
+        <StatCard icon="🔥" label="Hot Stories"     value={inbox.filter(n=>n.hot).length} color="#F87171" />
         <StatCard icon="⏰" label="Scrape Ijayo"    value="02:14"           color="#A78BFA" sub="saa:dakika" />
       </div>
 
@@ -1096,14 +1075,14 @@ function HabariPage() {
             const isSumming   = summarizing===item.id;
             const cc          = CAT_C[item.category]||"#F5A623";
             return (
-              <div key={item.id} style={{ background:"#161618", border:`1px solid ${item.is_hot||item.hot?"rgba(248,113,113,0.25)":"#232325"}`, borderRadius:14, overflow:"hidden", transition:"border-color 0.2s" }}>
+              <div key={item.id} style={{ background:"#161618", border:`1px solid ${item.hot?"rgba(248,113,113,0.25)":"#232325"}`, borderRadius:14, overflow:"hidden", transition:"border-color 0.2s" }}>
                 {/* Item header */}
                 <div style={{ padding:"14px 18px", cursor:"pointer" }} onClick={()=>setExpanded(isExpanded?null:item.id)}>
                   <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8, flexWrap:"wrap" }}>
                     <Badge label={item.category} color={cc} />
                     <Badge label={item.source}   color="rgba(242,242,245,0.35)" />
-                    {item.is_hot||item.hot && <Badge label="🔥 Hot" color="#F87171" />}
-                    <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.28)", marginLeft:"auto" }}>{item.scraped_at||item.scrapedAt||new Date(item.published_at).toLocaleString()}</span>
+                    {item.hot && <Badge label="🔥 Hot" color="#F87171" />}
+                    <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.28)", marginLeft:"auto" }}>{item.scrapedAt}</span>
                   </div>
                   <h3 style={{ fontWeight:700, fontSize:14, lineHeight:1.4, marginBottom:6 }}>{item.title}</h3>
                   {/* AI summary preview */}
@@ -1114,7 +1093,7 @@ function HabariPage() {
                         {isSumming ? "⟳ ..." : "⟳ Sasisha"}
                       </button>
                     </div>
-                    <p style={{ fontSize:12, color:"rgba(242,242,245,0.7)", lineHeight:1.65, margin:0 }}>{item.ai_summary||item.aiSummary||""}</p>
+                    <p style={{ fontSize:12, color:"rgba(242,242,245,0.7)", lineHeight:1.65, margin:0 }}>{item.aiSummary}</p>
                   </div>
                 </div>
 
@@ -1124,8 +1103,8 @@ function HabariPage() {
                     {/* Raw original */}
                     <div style={{ marginBottom:14 }}>
                       <div style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.3)", letterSpacing:"0.04em", marginBottom:6 }}>ORIGINAL (English) — {item.source}</div>
-                      <p style={{ fontSize:12, color:"rgba(242,242,245,0.45)", lineHeight:1.7, fontStyle:"italic" }}>{item.raw_summary||item.rawSummary||""}</p>
-                      <a href={item.source_url||item.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily:MONO, fontSize:10, color:"#4ECDC4", textDecoration:"none", marginTop:4, display:"inline-block" }}>↗ Angalia chanzo asili</a>
+                      <p style={{ fontSize:12, color:"rgba(242,242,245,0.45)", lineHeight:1.7, fontStyle:"italic" }}>{item.rawSummary}</p>
+                      <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily:MONO, fontSize:10, color:"#4ECDC4", textDecoration:"none", marginTop:4, display:"inline-block" }}>↗ Angalia chanzo asili</a>
                     </div>
 
                     {/* Edit AI summary */}
@@ -1133,12 +1112,12 @@ function HabariPage() {
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
                         <div style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.3)", letterSpacing:"0.04em" }}>MUHTASARI WA KISWAHILI — HARIRI KABLA YA KUCHAPISHA</div>
                         {!isEditing && (
-                          <button onClick={e=>{e.stopPropagation();setEditId(item.id);setEditSummary(item.ai_summary||item.aiSummary||"");}} style={{ background:"transparent", border:"1px solid #232325", color:"#A78BFA", borderRadius:6, padding:"3px 10px", cursor:"pointer", fontFamily:MONO, fontSize:9, fontWeight:700 }}>✏ Hariri</button>
+                          <button onClick={e=>{e.stopPropagation();setEditId(item.id);setEditSummary(item.aiSummary);}} style={{ background:"transparent", border:"1px solid #232325", color:"#A78BFA", borderRadius:6, padding:"3px 10px", cursor:"pointer", fontFamily:MONO, fontSize:9, fontWeight:700 }}>✏ Hariri</button>
                         )}
                       </div>
                       {isEditing
                         ? <textarea value={editSummary} onChange={e=>setEditSummary(e.target.value)} rows={4} style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(245,166,35,0.3)", borderRadius:8, padding:"10px 12px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, lineHeight:1.65, outline:"none", resize:"vertical" }} />
-                        : <p style={{ fontSize:13, color:"rgba(242,242,245,0.75)", lineHeight:1.7 }}>{item.ai_summary||item.aiSummary||""}</p>
+                        : <p style={{ fontSize:13, color:"rgba(242,242,245,0.75)", lineHeight:1.7 }}>{item.aiSummary}</p>
                       }
                       {isEditing && (
                         <div style={{ display:"flex", gap:7, marginTop:8 }}>
@@ -1189,7 +1168,7 @@ function HabariPage() {
                   <div style={{ display:"flex", gap:7, marginBottom:7, alignItems:"center", flexWrap:"wrap" }}>
                     <Badge label={n.category} color={CAT_C[n.category]||"#F5A623"} />
                     <Badge label="✓ Published"  color="#34D399" />
-                    {n.is_hot||n.hot && <Badge label="🔥 Hot" color="#F87171" />}
+                    {n.hot && <Badge label="🔥 Hot" color="#F87171" />}
                     <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.28)" }}>{n.time}</span>
                     {n.reads>0 && <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.28)" }}>👁 {n.reads.toLocaleString()}</span>}
                     {n.source && <span style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.22)" }}>· {n.source}</span>}
@@ -1373,47 +1352,44 @@ function RolesPage() {
 }
 
 // ── BILLING ───────────────────────────────────────────────────────
-const INVOICES = [
-  { id:"INV-001", user:"Amina Hassan",  plan:"Pro",   amount:150000, date:"Mar 1, 2025",  status:"paid"    },
-  { id:"INV-002", user:"Jonas Kimaro",  plan:"Basic", amount:50000,  date:"Mar 1, 2025",  status:"paid"    },
-  { id:"INV-003", user:"Fatuma Said",   plan:"Basic", amount:50000,  date:"Mar 1, 2025",  status:"paid"    },
-  { id:"INV-004", user:"Said Omar",     plan:"Basic", amount:50000,  date:"Mar 1, 2025",  status:"pending" },
-  { id:"INV-005", user:"Grace Mushi",   plan:"Pro",   amount:150000, date:"Feb 1, 2025",  status:"paid"    },
-  { id:"INV-006", user:"David Mkwawa",  plan:"Basic", amount:50000,  date:"Feb 1, 2025",  status:"failed"  },
-  { id:"INV-007", user:"Lilian Mbise",  plan:"Pro",   amount:150000, date:"Feb 1, 2025",  status:"paid"    },
-];
-
-const SUBS = [
-  { user:"Amina Hassan",  plan:"Pro",   amount:150000, since:"Jan 2025", nextDate:"Apr 1", status:"active"   },
-  { user:"Jonas Kimaro",  plan:"Basic", amount:50000,  since:"Feb 2025", nextDate:"Apr 1", status:"active"   },
-  { user:"Fatuma Said",   plan:"Basic", amount:50000,  since:"Feb 2025", nextDate:"Apr 1", status:"active"   },
-  { user:"Said Omar",     plan:"Basic", amount:50000,  since:"Mar 2025", nextDate:"Apr 1", status:"past_due" },
-  { user:"Grace Mushi",   plan:"Pro",   amount:150000, since:"Jan 2025", nextDate:"Apr 1", status:"active"   },
-  { user:"Lilian Mbise",  plan:"Pro",   amount:150000, since:"Jan 2025", nextDate:"Apr 1", status:"active"   },
-  { user:"David Mkwawa",  plan:"Basic", amount:50000,  since:"Feb 2025", nextDate:"—",     status:"cancelled"},
-];
-
-const MRR_DATA = [
-  {month:"Oct",mrr:180},{month:"Nov",mrr:280},{month:"Dec",mrr:410},
-  {month:"Jan",mrr:550},{month:"Feb",mrr:710},{month:"Mar",mrr:850},
-];
-
 function BillingPage() {
-  const [tab, setTab]     = useState("overview");
-  const [toast, setToast] = useState(null);
+  const [tab, setTab]         = useState("overview");
+  const [loading, setLoading] = useState(true);
+  const [subs, setSubs]       = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [mrrData, setMrrData] = useState([]);
+  const [kpis, setKpis]       = useState({});
+  const [toast, setToast]     = useState(null);
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2400); };
+
+  useEffect(() => {
+    adminAPI.billing()
+      .then(r => {
+        const d = r.data || {};
+        setSubs(d.subscriptions || []);
+        setInvoices(d.invoices || []);
+        setMrrData(d.mrrData || d.mrr_data || []);
+        setKpis(d.kpis || d);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const PLAN_C  = { Pro:"#F5A623", Basic:"#4ECDC4", Free:"rgba(242,242,245,0.3)" };
   const STAT_C  = { active:"#34D399", past_due:"#F87171", cancelled:"rgba(242,242,245,0.3)", paid:"#34D399", pending:"#F5A623", failed:"#F87171" };
-  const mrr     = 850000;
+  const mrr     = kpis.mrr || 0;
   const arr     = mrr * 12;
-  const proSubs = SUBS.filter(s=>s.plan==="Pro"&&s.status==="active").length;
-  const basicSubs = SUBS.filter(s=>s.plan==="Basic"&&s.status==="active").length;
-  const maxMRR  = Math.max(...MRR_DATA.map(d=>d.mrr));
+  const proSubs = subs.filter(s=>s.plan==="Pro"&&s.status==="active").length;
+  const basicSubs = subs.filter(s=>s.plan==="Basic"&&s.status==="active").length;
+  const maxMRR  = mrrData.length > 0 ? Math.max(...mrrData.map(d=>d.mrr||0)) : 1;
+  const fmtNum  = n => n >= 1000000 ? `${(n/1000000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n/1000)}K` : String(n||0);
+
+  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia billing data...</div>;
 
   return (
     <div>
       {toast && <div style={{position:"fixed",bottom:24,right:24,zIndex:999,background:"#F5A623",color:"#0C0C0E",padding:"12px 20px",borderRadius:10,fontWeight:700,fontSize:13,fontFamily:MONO}}>{toast}</div>}
+
       <SectionHead title="Billing & Subscriptions" sub="Revenue, plans, na malipo ya wanachama" />
 
       {/* Tabs */}
@@ -1426,8 +1402,8 @@ function BillingPage() {
       {/* OVERVIEW */}
       {tab==="overview" && <>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
-          <StatCard icon="💰" label="MRR"       value="850K"    sub="TZS / mwezi"   color="#F5A623" delta={20} />
-          <StatCard icon="📈" label="ARR"       value="10.2M"   sub="TZS / mwaka"   color="#34D399" delta={20} />
+          <StatCard icon="💰" label="MRR"       value={fmtNum(mrr)}   sub="TZS / mwezi"   color="#F5A623" delta={20} />
+          <StatCard icon="📈" label="ARR"       value={fmtNum(arr)}   sub="TZS / mwaka"   color="#34D399" delta={20} />
           <StatCard icon="👑" label="Pro Plans" value={proSubs} sub="@ TZS 150k/mo" color="#A78BFA" />
           <StatCard icon="⭐" label="Basic Plans" value={basicSubs} sub="@ TZS 50k/mo" color="#4ECDC4" />
         </div>
@@ -1436,12 +1412,14 @@ function BillingPage() {
         <div style={{background:"#161618",border:"1px solid #232325",borderRadius:14,padding:"18px 20px",marginBottom:16}}>
           <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",marginBottom:16}}>MRR GROWTH — MIEZI 6</div>
           <div style={{display:"flex",gap:6,alignItems:"flex-end",height:80}}>
-            {MRR_DATA.map((d,i)=>(
+            {mrrData.length === 0 ? (
+              <div style={{color:"rgba(242,242,245,0.2)",textAlign:"center",padding:"20px 0",fontFamily:MONO,fontSize:12}}>Hakuna data ya MRR bado</div>
+            ) : mrrData.map((d,i)=>(
               <div key={d.month} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
                 <span style={{fontFamily:MONO,fontSize:9,color:"#F5A623"}}>
-                  {i===MRR_DATA.length-1?`${d.mrr}K`:""}
+                  {i===mrrData.length-1?`${d.mrr}K`:""}
                 </span>
-                <div style={{width:"100%",borderRadius:"4px 4px 0 0",background:i===MRR_DATA.length-1?"#F5A623":"rgba(245,166,35,0.35)",height:`${(d.mrr/maxMRR)*64}px`,minHeight:6,transition:"height 0.5s ease"}} />
+                <div style={{width:"100%",borderRadius:"4px 4px 0 0",background:i===mrrData.length-1?"#F5A623":"rgba(245,166,35,0.35)",height:`${(d.mrr/maxMRR)*64}px`,minHeight:6,transition:"height 0.5s ease"}} />
                 <span style={{fontFamily:MONO,fontSize:8,color:"rgba(242,242,245,0.3)"}}>{d.month}</span>
               </div>
             ))}
@@ -1476,8 +1454,10 @@ function BillingPage() {
               <div key={h} style={{fontFamily:MONO,fontSize:9,color:"rgba(242,242,245,0.32)",fontWeight:700,letterSpacing:"0.04em"}}>{h}</div>
             ))}
           </div>
-          {SUBS.map((s,i)=>(
-            <div key={s.user} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 100px",padding:"11px 18px",borderBottom:i<SUBS.length-1?"1px solid #1A1A1C":"none",alignItems:"center"}}>
+          {subs.length === 0 ? (
+            <div style={{padding:"32px",textAlign:"center",color:"rgba(242,242,245,0.25)",fontFamily:MONO,fontSize:13}}>Hakuna subscriptions bado</div>
+          ) : subs.map((s,i)=>(
+            <div key={s.user||s.id} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr 100px",padding:"11px 18px",borderBottom:i<subs.length-1?"1px solid #1A1A1C":"none",alignItems:"center"}}>
               <span style={{fontWeight:600,fontSize:13}}>{s.user}</span>
               <Badge label={s.plan} color={PLAN_C[s.plan]||"#F5A623"} />
               <span style={{fontFamily:MONO,fontSize:12,color:"rgba(242,242,245,0.6)"}}>TZS {s.amount.toLocaleString()}</span>
@@ -1496,8 +1476,10 @@ function BillingPage() {
               <div key={h} style={{fontFamily:MONO,fontSize:9,color:"rgba(242,242,245,0.32)",fontWeight:700,letterSpacing:"0.04em"}}>{h}</div>
             ))}
           </div>
-          {INVOICES.map((inv,i)=>(
-            <div key={inv.id} style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr 1fr 1fr 100px",padding:"11px 18px",borderBottom:i<INVOICES.length-1?"1px solid #1A1A1C":"none",alignItems:"center"}}>
+          {invoices.length === 0 ? (
+            <div style={{padding:"32px",textAlign:"center",color:"rgba(242,242,245,0.25)",fontFamily:MONO,fontSize:13}}>Hakuna invoices bado</div>
+          ) : invoices.map((inv,i)=>(
+            <div key={inv.id} style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr 1fr 1fr 100px",padding:"11px 18px",borderBottom:i<invoices.length-1?"1px solid #1A1A1C":"none",alignItems:"center"}}>
               <span style={{fontFamily:MONO,fontSize:11,color:"rgba(242,242,245,0.4)"}}>{inv.id}</span>
               <span style={{fontWeight:600,fontSize:13}}>{inv.user}</span>
               <Badge label={inv.plan} color={PLAN_C[inv.plan]||"#F5A623"} />
@@ -1539,33 +1521,33 @@ function BillingPage() {
 }
 
 // ── ANALYTICS ─────────────────────────────────────────────────────
-const DAILY_USERS = [
-  {d:"M",u:145,p:89},{d:"T",u:198,p:134},{d:"W",u:167,p:102},
-  {d:"T",u:234,p:178},{d:"F",u:289,p:201},{d:"S",u:178,p:123},{d:"S",u:312,p:256},
-];
-const TOP_CONTENT = [
-  {title:"Swahili NLP Dataset — 50K",type:"Resource",views:2340,likes:189,section:"Rasilimali"},
-  {title:"Tanzania AI Hackathon 2025",type:"Event",views:1890,likes:342,section:"Matukio"},
-  {title:"AI kwa Afya challenge",type:"Challenge",views:1456,likes:267,section:"Changamoto"},
-  {title:"Kuanza na Claude API",type:"Tutorial",views:1230,likes:145,section:"Rasilimali"},
-  {title:"JamiiAI imefika watu 1000!",type:"Post",views:987,likes:432,section:"Feed"},
-];
-const TRAFFIC = [
-  {source:"Direct",pct:34,color:"#F5A623"},
-  {source:"Google",pct:28,color:"#4ECDC4"},
-  {source:"Twitter/X",pct:18,color:"#A78BFA"},
-  {source:"LinkedIn",pct:12,color:"#60A5FA"},
-  {source:"WhatsApp",pct:8,color:"#34D399"},
-];
-const RETENTION = [
-  {week:"Wiki 1",rate:100},{week:"Wiki 2",rate:68},{week:"Wiki 3",rate:54},
-  {week:"Wiki 4",rate:47},{week:"Wiki 8",rate:38},{week:"Wiki 12",rate:31},
-];
-
 function AnalyticsPage() {
-  const [range, setRange] = useState("wiki");
-  const maxU = Math.max(...DAILY_USERS.map(d=>d.u));
-  const maxP = Math.max(...DAILY_USERS.map(d=>d.p));
+  const [range, setRange]           = useState("wiki");
+  const [loading, setLoading]       = useState(true);
+  const [dailyUsers, setDailyUsers] = useState([]);
+  const [topContent, setTopContent] = useState([]);
+  const [traffic, setTraffic]       = useState([]);
+  const [retention, setRetention]   = useState([]);
+  const [kpis, setKpis]             = useState({});
+
+  useEffect(() => {
+    adminAPI.analytics()
+      .then(r => {
+        const d = r.data || {};
+        setDailyUsers(d.dailyUsers || d.daily_users || []);
+        setTopContent(d.topContent || d.top_content || []);
+        setTraffic(d.traffic || []);
+        setRetention(d.retention || []);
+        setKpis(d.kpis || d);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const maxU = dailyUsers.length > 0 ? Math.max(...dailyUsers.map(d=>d.u||d.users||0)) : 1;
+  const maxP = dailyUsers.length > 0 ? Math.max(...dailyUsers.map(d=>d.p||d.posts||0)) : 1;
+
+  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia analytics...</div>;
 
   return (
     <div>
@@ -1583,10 +1565,10 @@ function AnalyticsPage() {
 
       {/* KPIs */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
-        <StatCard icon="👥" label="DAU"            value="312"  sub="Daily Active Users"    color="#F5A623" delta={8}  />
-        <StatCard icon="🔁" label="Retention (30d)" value="31%" sub="Wanarudi baada ya mwezi" color="#4ECDC4" delta={3}  />
-        <StatCard icon="📈" label="Conversion"      value="4.2%" sub="Free → Paid"           color="#34D399" delta={1}  />
-        <StatCard icon="⏱" label="Avg Session"      value="8.4m" sub="Dakika per visit"      color="#A78BFA" delta={12} />
+        <StatCard icon="👥" label="DAU"            value={kpis.dau||kpis.dailyActiveUsers||"—"}  sub="Daily Active Users"    color="#F5A623" delta={8}  />
+        <StatCard icon="🔁" label="Retention (30d)" value={kpis.retention30d||kpis.retention||"—"} sub="Wanarudi baada ya mwezi" color="#4ECDC4" delta={3}  />
+        <StatCard icon="📈" label="Conversion"      value={kpis.conversion||kpis.conversionRate||"—"} sub="Free → Paid"           color="#34D399" delta={1}  />
+        <StatCard icon="⏱" label="Avg Session"      value={kpis.avgSession||kpis.avg_session||"—"} sub="Dakika per visit"      color="#A78BFA" delta={12} />
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,marginBottom:14}}>
@@ -1600,13 +1582,15 @@ function AnalyticsPage() {
             </div>
           </div>
           <div style={{display:"flex",gap:5,alignItems:"flex-end",height:90}}>
-            {DAILY_USERS.map(d=>(
-              <div key={d.d} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+            {dailyUsers.length === 0 ? (
+              <div style={{color:"rgba(242,242,245,0.2)",fontSize:12,fontFamily:MONO,margin:"auto"}}>Hakuna data ya wiki hii</div>
+            ) : dailyUsers.map(d=>(
+              <div key={d.d||d.day} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                 <div style={{width:"100%",display:"flex",gap:2,alignItems:"flex-end",height:72}}>
-                  <div style={{flex:1,borderRadius:"3px 3px 0 0",background:"#F5A623",height:`${(d.u/maxU)*72}px`,minHeight:4}} />
-                  <div style={{flex:1,borderRadius:"3px 3px 0 0",background:"#4ECDC4",height:`${(d.p/maxP)*72}px`,minHeight:4}} />
+                  <div style={{flex:1,borderRadius:"3px 3px 0 0",background:"#F5A623",height:`${((d.u||d.users||0)/maxU)*72}px`,minHeight:4}} />
+                  <div style={{flex:1,borderRadius:"3px 3px 0 0",background:"#4ECDC4",height:`${((d.p||d.posts||0)/maxP)*72}px`,minHeight:4}} />
                 </div>
-                <span style={{fontFamily:MONO,fontSize:8,color:"rgba(242,242,245,0.3)"}}>{d.d}</span>
+                <span style={{fontFamily:MONO,fontSize:8,color:"rgba(242,242,245,0.3)"}}>{d.d||d.day}</span>
               </div>
             ))}
           </div>
@@ -1615,14 +1599,16 @@ function AnalyticsPage() {
         {/* Traffic sources */}
         <div style={{background:"#161618",border:"1px solid #232325",borderRadius:14,padding:"18px 20px"}}>
           <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",marginBottom:14}}>TRAFFIC SOURCES</div>
-          {TRAFFIC.map(t=>(
+          {traffic.length === 0 ? (
+            <div style={{color:"rgba(242,242,245,0.2)",fontSize:12,fontFamily:MONO,textAlign:"center",padding:"20px 0"}}>Hakuna data</div>
+          ) : traffic.map(t=>(
             <div key={t.source} style={{marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                 <span style={{fontSize:12,fontWeight:500}}>{t.source}</span>
-                <span style={{fontFamily:MONO,fontSize:11,color:t.color}}>{t.pct}%</span>
+                <span style={{fontFamily:MONO,fontSize:11,color:t.color||"#F5A623"}}>{t.pct}%</span>
               </div>
               <div style={{height:4,borderRadius:2,background:"#232325",overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${t.pct}%`,background:t.color,borderRadius:2,transition:"width 0.6s ease"}} />
+                <div style={{height:"100%",width:`${t.pct}%`,background:t.color||"#F5A623",borderRadius:2,transition:"width 0.6s ease"}} />
               </div>
             </div>
           ))}
@@ -1634,11 +1620,13 @@ function AnalyticsPage() {
         <div style={{background:"#161618",border:"1px solid #232325",borderRadius:14,padding:"18px 20px"}}>
           <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",marginBottom:14}}>USER RETENTION</div>
           <div style={{display:"flex",gap:5,alignItems:"flex-end",height:72}}>
-            {RETENTION.map(r=>(
+            {retention.length === 0 ? (
+              <div style={{color:"rgba(242,242,245,0.2)",fontSize:12,fontFamily:MONO,margin:"auto"}}>Hakuna data</div>
+            ) : retention.map(r=>(
               <div key={r.week} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                 <span style={{fontFamily:MONO,fontSize:8,color:"#4ECDC4"}}>{r.rate}%</span>
                 <div style={{width:"100%",borderRadius:"3px 3px 0 0",background:`rgba(78,205,196,${r.rate/100*0.8+0.1})`,height:`${(r.rate/100)*52}px`,minHeight:4}} />
-                <span style={{fontFamily:MONO,fontSize:7,color:"rgba(242,242,245,0.25)",textAlign:"center",lineHeight:1.2}}>{r.week.replace("Wiki ","W")}</span>
+                <span style={{fontFamily:MONO,fontSize:7,color:"rgba(242,242,245,0.25)",textAlign:"center",lineHeight:1.2}}>{(r.week||"").replace("Wiki ","W")}</span>
               </div>
             ))}
           </div>
@@ -1647,12 +1635,14 @@ function AnalyticsPage() {
         {/* Top content */}
         <div style={{background:"#161618",border:"1px solid #232325",borderRadius:14,padding:"18px 20px"}}>
           <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",marginBottom:14}}>TOP CONTENT — WIKI HII</div>
-          {TOP_CONTENT.map((c,i)=>(
-            <div key={c.title} style={{display:"flex",gap:10,alignItems:"center",padding:"7px 0",borderBottom:i<TOP_CONTENT.length-1?"1px solid #1A1A1C":"none"}}>
+          {topContent.length === 0 ? (
+            <div style={{color:"rgba(242,242,245,0.2)",fontSize:12,fontFamily:MONO,textAlign:"center",padding:"20px 0"}}>Hakuna data</div>
+          ) : topContent.map((c,i)=>(
+            <div key={c.title} style={{display:"flex",gap:10,alignItems:"center",padding:"7px 0",borderBottom:i<topContent.length-1?"1px solid #1A1A1C":"none"}}>
               <span style={{fontFamily:MONO,fontSize:11,color:"rgba(242,242,245,0.2)",width:16,flexShrink:0}}>#{i+1}</span>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:12,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.title}</div>
-                <div style={{fontFamily:MONO,fontSize:9,color:"rgba(242,242,245,0.3)"}}>{c.section} · 👁 {c.views.toLocaleString()} · ♥ {c.likes}</div>
+                <div style={{fontFamily:MONO,fontSize:9,color:"rgba(242,242,245,0.3)"}}>{c.section} · 👁 {(c.views||0).toLocaleString()} · ♥ {c.likes||0}</div>
               </div>
             </div>
           ))}
@@ -1663,15 +1653,9 @@ function AnalyticsPage() {
 }
 
 // ── ANNOUNCEMENTS ─────────────────────────────────────────────────
-const SENT_ANNOUNCEMENTS = [
-  { id:1, title:"Hackathon registrations zimefunguliwa!",  target:"Wote",     channel:"in-app,email", sent:"Leo 10:00",   reach:1247, opens:834  },
-  { id:2, title:"JamiiAI itakuwa down Ijumaa 2AM-4AM",    target:"Wote",     channel:"in-app",       sent:"Jana 16:30",  reach:1247, opens:567  },
-  { id:3, title:"Pro plan yako inaisha kesho",             target:"Pro",      channel:"email",        sent:"Jana 09:00",  reach:6,    opens:5    },
-  { id:4, title:"Challenge mpya: AgriBot Wakulima",        target:"Wote",     channel:"in-app,email", sent:"Siku 3",      reach:1247, opens:923  },
-];
-
 function AnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState(SENT_ANNOUNCEMENTS);
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showNew, setShowNew]   = useState(false);
   const [preview, setPreview]   = useState(false);
   const [toast, setToast]       = useState(null);
@@ -1688,17 +1672,28 @@ function AnnouncementsPage() {
   const TARGETS = ["Wote","Free","Basic","Pro","Wataalamu","Waliojiunga leo"];
   const targetCount = { Wote:1247, Free:1205, Basic:28, Pro:14, Wataalamu:89, "Waliojiunga leo":23 };
 
-  const send = () => {
+  useEffect(() => {
+    adminAPI.getAnnouncements()
+      .then(r => setAnnouncements(r.data?.announcements || r.data || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const send = async () => {
     if (!form.title.trim()||!form.body.trim()) return;
     const chs = Object.entries(form.channels).filter(([,v])=>v).map(([k])=>k==="inapp"?"in-app":k).join(",");
-    setAnnouncements(prev=>[{
-      id:Date.now(), title:form.title, target:form.target,
-      channel:chs, sent:"Sasa hivi",
-      reach:targetCount[form.target]||0, opens:0,
-    },...prev]);
-    setForm({title:"",body:"",target:"Wote",channels:{inapp:true,email:false,whatsapp:false},schedule:"now",scheduleTime:""});
-    setShowNew(false);
-    notify("📣 Tangazo limetumwa!");
+    try {
+      const r = await adminAPI.sendAnnouncement(form);
+      const newAnn = r.data?.announcement || {
+        id:Date.now(), title:form.title, target:form.target,
+        channel:chs, sent:"Sasa hivi",
+        reach:targetCount[form.target]||0, opens:0,
+      };
+      setAnnouncements(prev=>[newAnn,...prev]);
+      setForm({title:"",body:"",target:"Wote",channels:{inapp:true,email:false,whatsapp:false},schedule:"now",scheduleTime:""});
+      setShowNew(false);
+      notify("📣 Tangazo limetumwa!");
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
   const inputS = { background:"rgba(255,255,255,0.04)", border:"1px solid #2C2C2E", borderRadius:9, padding:"10px 13px", color:"#F2F2F5", fontFamily:"'Roboto Mono',monospace", fontSize:13, outline:"none", width:"100%", transition:"border-color 0.2s" };
@@ -1882,24 +1877,8 @@ function SettingsPage() {
     maxFreeMessages: "50",
   });
 
+  // Sections state
   const [section, setSection] = useState("api");
-
-  // Load settings from API
-  useEffect(() => {
-    adminAPI.getSettings().then(({ data }) => {
-      if (!data) return;
-      if (data.apify_schedule) setApify(p=>({...p, schedule:data.apify_schedule}));
-      if (data.apify_keywords_tz) setApify(p=>({...p, keywords_tz:data.apify_keywords_tz}));
-      if (data.apify_keywords_af) setApify(p=>({...p, keywords_af:data.apify_keywords_af}));
-      if (data.site_name) setPlatform(p=>({...p, siteName:data.site_name}));
-      if (data.smtp_host) setPlatform(p=>({...p, smtpHost:data.smtp_host}));
-      if (data.smtp_port) setPlatform(p=>({...p, smtpPort:data.smtp_port}));
-      if (data.smtp_user) setPlatform(p=>({...p, smtpUser:data.smtp_user}));
-      if (data.registration_open) setPlatform(p=>({...p, registrationOpen:data.registration_open==="true"}));
-      if (data.maintenance_mode) setPlatform(p=>({...p, maintenanceMode:data.maintenance_mode==="true"}));
-      if (data.jobs_require_approval) setPlatform(p=>({...p, requireApproval:data.jobs_require_approval==="true"}));
-    }).catch(()=>{});
-  }, []);
 
   const toggleVisible = k => setKeys(prev=>({...prev,[k]:{...prev[k],visible:!prev[k].visible}}));
   const updateKey     = (k,v) => setKeys(prev=>({...prev,[k]:{...prev[k],value:v}}));
@@ -1908,39 +1887,6 @@ function SettingsPage() {
     setTimeout(()=>setSaved(s=>({...s,[k]:false})),2000);
     notify(`✅ ${keys[k].label} imehifadhiwa!`);
   };
-
-  const savePlatform = async () => {
-    try {
-      await adminAPI.saveSettings({
-        site_name: platform.siteName,
-        site_url: platform.siteUrl,
-        admin_email: platform.adminEmail,
-        smtp_host: platform.smtpHost,
-        smtp_port: platform.smtpPort,
-        smtp_user: platform.smtpUser,
-        maintenance_mode: String(platform.maintenanceMode),
-        registration_open: String(platform.registrationOpen),
-        jobs_require_approval: String(platform.requireApproval),
-        max_free_messages: platform.maxFreeMessages,
-      });
-      notify("✅ Mipangilio ya platform imehifadhiwa!");
-    } catch { notify("❌ Hitilafu kuhifadhi mipangilio"); }
-  };
-
-  const saveApify = async () => {
-    try {
-      await adminAPI.saveSettings({
-        apify_schedule: apify.schedule,
-        apify_keywords_tz: apify.keywords_tz,
-        apify_keywords_af: apify.keywords_af,
-        apify_keywords_gl: apify.keywords_gl,
-        apify_auto_publish: String(apify.autoPublish),
-        apify_summary_lang: apify.summaryLang,
-      });
-      notify("✅ Mipangilio ya Apify imehifadhiwa!");
-    } catch { notify("❌ Hitilafu kuhifadhi mipangilio"); }
-  };
-
   const testConnection = k => notify(`🔄 Testing ${keys[k].label}... Connected ✅`);
   const ap = k => e => setApify(p=>({...p,[k]:e.target.value}));
   const pp = k => e => setPlatform(p=>({...p,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value}));
@@ -2117,7 +2063,7 @@ function SettingsPage() {
                 sub="Chapisha habari moja kwa moja bila admin review — HATARI, usiwashe bila makini"
               />
 
-              <button onClick={saveApify} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
+              <button onClick={()=>notify("✅ Mipangilio ya Apify imehifadhiwa!")} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
                 Hifadhi Mipangilio →
               </button>
             </div>
@@ -2144,7 +2090,7 @@ function SettingsPage() {
               <Toggle checked={platform.registrationOpen} onChange={()=>setPlatform(p=>({...p,registrationOpen:!p.registrationOpen}))} label="Usajili Wazi" sub="Ruhusu watu wapya kujisajili JamiiAI" />
               <Toggle checked={platform.requireApproval}  onChange={()=>setPlatform(p=>({...p,requireApproval:!p.requireApproval}))} label="Idhini ya Admin kwa Wanachama Wapya" sub="Kila mwanachama mpya anahitaji idhini yako kabla ya kutumia platform" />
               <Toggle checked={platform.maintenanceMode}  onChange={()=>setPlatform(p=>({...p,maintenanceMode:!p.maintenanceMode}))} label="Maintenance Mode" sub="Zuia ufikiaji wa platform — inaonyesha ukurasa wa 'Tunafanya kazi'" />
-              <button onClick={savePlatform} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
+              <button onClick={()=>notify("✅ Platform settings zimehifadhiwa!")} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14, marginTop:20 }}>
                 Hifadhi Mipangilio →
               </button>
             </div>
@@ -2226,20 +2172,6 @@ function SettingsPage() {
 }
 
 // ── KAZI / JOBS ───────────────────────────────────────────────────
-const JOBS_INBOX = [
-  { id:"i1", title:"Senior ML Engineer", type:"full_time", company_name:"Vodacom Tanzania", location:"Dar es Salaam", is_remote:false, salary_min:3000000, salary_max:7000000, salary_currency:"TZS", salary_visible:true, description:"Tunatafuta ML Engineer mwenye uzoefu wa kujenga mifano ya AI kwa bidhaa zetu za mobile money na network optimization. Utafanya kazi na team ya data scientists.", requirements:"Python, TensorFlow, MLOps, miaka 3+, SQL na data pipelines", tags:["Python","TensorFlow","MLOps","SQL"], apply_internal:true, deadline:"2026-04-15", is_hot:true, is_featured:false, poster_name:"HR Vodacom", poster_email:"hr@vodacom.co.tz", source:"direct", created_at:"2026-03-06" },
-  { id:"i2", title:"NLP Research Assistant", type:"remote", company_name:"Sarufi NLP", location:"Remote", is_remote:true, salary_min:1500000, salary_max:3000000, salary_currency:"TZS", salary_visible:true, description:"Tunatengeneza NLP tools za Kiswahili. Tunatafuta mtu wa kutusaidia kukusanya data na ku-annotate datasets za lugha za Kiswahili na Kibongo.", requirements:"Python basics, Kiswahili fluent, makini kwenye annotation", tags:["Python","NLP","Kiswahili","Annotation"], apply_internal:true, deadline:"2026-04-20", is_hot:false, is_featured:false, poster_name:"Neema Osoro", poster_email:"neema@sarufi.io", source:"direct", created_at:"2026-03-05" },
-  { id:"i3", title:"Data Science Intern", type:"internship", company_name:"CRDB Bank", location:"Dar es Salaam", is_remote:false, salary_min:500000, salary_max:1000000, salary_currency:"TZS", salary_visible:true, description:"Internship ya miezi 3 kwenye team ya Data Science. Utajifunza Python, SQL, na jinsi ya kuchanganua data za benki za kweli.", requirements:"Mwanafunzi au aliyehitimu, Python au Excel, hamu ya kujifunza", tags:["Python","SQL","Excel","Power BI"], apply_internal:true, deadline:"2026-03-25", is_hot:false, is_featured:false, poster_name:"CRDB HR", poster_email:"careers@crdb.co.tz", source:"direct", created_at:"2026-03-04" },
-  { id:"i4", title:"AI Research Engineer — Kiswahili NLP", type:"full_time", company_name:"Google Research Africa", location:"Nairobi / Remote", is_remote:true, salary_min:8000000, salary_max:15000000, salary_currency:"KES", salary_visible:true, description:"Google Research Africa inatafuta AI Engineer wa kufanya kazi kwenye lugha za Kiafrika, hasa Kiswahili na Amharic.", requirements:"PhD au uzoefu sawa, NLP, PyTorch, publications", tags:["NLP","Research","Kiswahili","PyTorch"], apply_internal:false, apply_url:"https://careers.google.com", deadline:"2026-05-01", is_hot:true, is_featured:false, poster_name:"Google Careers", poster_email:"noreply@google.com", source:"linkedin", created_at:"2026-03-07" },
-];
-
-const JOBS_ACTIVE = [
-  { id:"a1", title:"AI Product Manager", type:"full_time", company_name:"Selcom Fintech", location:"Dar es Salaam", is_remote:false, salary_min:4000000, salary_max:8000000, salary_currency:"TZS", salary_visible:true, tags:["Product","AI Strategy","Agile"], is_featured:true, is_hot:true, views:201, applications_count:9, deadline:"2026-04-01", created_at:"2026-03-01" },
-  { id:"a2", title:"Computer Vision Engineer", type:"contract", company_name:"AfriSight Labs", location:"Arusha", is_remote:true, salary_min:2500000, salary_max:5000000, salary_currency:"TZS", salary_visible:true, tags:["OpenCV","PyTorch","YOLO"], is_featured:false, is_hot:false, views:67, applications_count:5, deadline:"2026-03-31", created_at:"2026-03-02" },
-  { id:"a3", title:"Data Engineer", type:"full_time", company_name:"Tanzania Revenue Authority", location:"Dodoma", is_remote:false, salary_min:2000000, salary_max:4500000, salary_currency:"TZS", salary_visible:true, tags:["Apache Spark","Airflow","PostgreSQL"], is_featured:false, is_hot:false, views:134, applications_count:23, deadline:"2026-04-10", created_at:"2026-02-28" },
-  { id:"a4", title:"Senior ML Engineer", type:"full_time", company_name:"Vodacom Tanzania", location:"Dar es Salaam", is_remote:false, salary_min:3000000, salary_max:7000000, salary_currency:"TZS", salary_visible:true, tags:["Python","TensorFlow","MLOps"], is_featured:true, is_hot:false, views:342, applications_count:18, deadline:"2026-04-15", created_at:"2026-03-01" },
-];
-
 const KAZI_TYPE_C = {
   full_time:  { label:"Full-time",  color:"#4ADE80" },
   internship: { label:"Internship", color:"#60A5FA" },
@@ -2403,6 +2335,7 @@ function JobDetailPanel({ job, isInbox, onClose, onApprove, onReject, onToggleFe
 function KaziPage() {
   const [inbox,   setInbox]    = useState([]);
   const [active,  setActive]   = useState([]);
+  const [loading, setLoading]  = useState(true);
   const [tab,     setTab]      = useState("inbox");
   const [selected,setSelected] = useState(null);
   const [fetching,setFetching] = useState(false);
@@ -2410,28 +2343,26 @@ function KaziPage() {
 
   const notify = msg => { setToast(msg); setTimeout(() => setToast(null), 2800); };
 
-  const loadJobs = async () => {
-    try {
-      const [inboxRes, activeRes] = await Promise.all([
-        adminAPI.jobs("inbox"),
-        adminAPI.jobs("active"),
-      ]);
-      setInbox(inboxRes.data.jobs || []);
-      setActive(activeRes.data.jobs || []);
-    } catch { notify("❌ Hitilafu kupakia kazi"); }
-  };
-
-  useEffect(() => { loadJobs(); }, []);
+  useEffect(() => {
+    Promise.all([adminAPI.jobs("pending"), adminAPI.jobs("active")])
+      .then(([inboxRes, activeRes]) => {
+        setInbox(inboxRes.data?.jobs || inboxRes.data || []);
+        setActive(activeRes.data?.jobs || activeRes.data || []);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const approveJob = async id => {
+    const job = inbox.find(j => j.id === id);
+    if (!job) return;
     try {
       await adminAPI.approveJob(id);
-      const job = inbox.find(j => j.id === id);
       setInbox(p => p.filter(j => j.id !== id));
-      if (job) setActive(p => [{ ...job, status:"active" }, ...p]);
+      setActive(p => [{ ...job, status:"active", views:0, applications_count:0 }, ...p]);
       setSelected(null);
       notify("✅ Kazi imechapishwa na inaonekana kwenye community!");
-    } catch { notify("❌ Hitilafu"); }
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
   const rejectJob = async id => {
@@ -2440,7 +2371,7 @@ function KaziPage() {
       setInbox(p => p.filter(j => j.id !== id));
       setSelected(null);
       notify("🗑 Kazi imekataliwa na kufutwa.");
-    } catch { notify("❌ Hitilafu"); }
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
   const toggleFeature = async id => {
@@ -2449,7 +2380,7 @@ function KaziPage() {
       setActive(p => p.map(j => j.id === id ? {...j, is_featured:!j.is_featured} : j));
       if (selected?.id === id) setSelected(p => ({...p, is_featured:!p.is_featured}));
       notify("⭐ Featured status imebadilishwa!");
-    } catch { notify("❌ Hitilafu"); }
+    } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
   const toggleHot = id => {
@@ -2458,26 +2389,39 @@ function KaziPage() {
     notify("🔥 Hot status imebadilishwa!");
   };
 
-  const closeJob = async id => {
-    try {
-      await adminAPI.rejectJob(id);
-      setActive(p => p.filter(j => j.id !== id));
-      setSelected(null);
-      notify("🔒 Kazi imefungwa.");
-    } catch { notify("❌ Hitilafu"); }
+  const closeJob = id => {
+    setActive(p => p.filter(j => j.id !== id));
+    setSelected(null);
+    notify("🔒 Kazi imefungwa.");
   };
 
   const fetchJobs = () => {
     setFetching(true);
-    loadJobs().then(() => {
-      setFetching(false);
-      notify("✅ Kazi zimesasishwa!");
-    });
+    adminAPI.runApify()
+      .then(r => {
+        const newJobs = r.data?.jobs || [];
+        if (newJobs.length > 0) {
+          setInbox(p => [...newJobs, ...p]);
+          notify(`✅ Kazi ${newJobs.length} mpya imepatikana — inasubiri review yako!`);
+        } else {
+          notify("ℹ️ Hakuna kazi mpya kwa sasa");
+        }
+      })
+      .catch(() => {
+        // Fallback: just refresh inbox
+        adminAPI.jobs("pending")
+          .then(r => setInbox(r.data?.jobs || r.data || []))
+          .catch(console.error);
+        notify("ℹ️ Refresh imefanywa");
+      })
+      .finally(() => setFetching(false));
   };
 
   const totalViews = active.reduce((s,j) => s + (j.views||0), 0);
   const totalApps  = active.reduce((s,j) => s + (j.applications_count||0), 0);
   const isInboxSelected = selected && inbox.some(j => j.id === selected.id);
+
+  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia kazi...</div>;
 
   return (
     <div style={{ position:"relative" }}>
