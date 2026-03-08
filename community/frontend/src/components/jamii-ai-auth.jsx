@@ -389,7 +389,7 @@ function OnboardStep3({ data, setData, onFinish, token }) {
   const handleFinish = async () => {
     setLoading(true);
     try {
-      await axios.patch(`${API_URL}/auth/onboard`, {
+      const res = await axios.patch(`${API_URL}/auth/onboard`, {
         handle: data.handle,
         role: data.role,
         city: data.city,
@@ -405,10 +405,11 @@ function OnboardStep3({ data, setData, onFinish, token }) {
         headers: { Authorization: `Bearer ${token}` }
       });
       setLoading(false);
-      onFinish();
+      // Backend sasa inarudisha { success: true, user: safeUser }
+      onFinish(res.data.user);
     } catch (error) {
       setLoading(false);
-      alert("Hitilafu imetokea wakati wa ku-onboard.");
+      alert(error.response?.data?.error || "Hitilafu imetokea wakati wa ku-onboard.");
     }
   };
 
@@ -520,6 +521,11 @@ export default function JamiiAIAuth({ onAuthSuccess, onBack }) {
     } else {
       setScreen("onboard1");
     }
+  };
+
+  const handleOnboardSuccess = (updatedUser) => {
+    setAuthData(prev => ({ ...prev, user: updatedUser }));
+    setScreen("success");
   };
 
   const handleOnboardFinish = () => {

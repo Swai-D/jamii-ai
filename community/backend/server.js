@@ -600,7 +600,19 @@ authRouter.patch("/onboard", auth, async (req, res) => {
        notification_prefs=$6, onboarded=true, updated_at=NOW() WHERE id=$7`,
       [handle, role, city, bio, JSON.stringify(interests), JSON.stringify(notifications), req.user.id]
     );
-    res.json({ success: true });
+
+    const { rows:[user] } = await db.query(
+      `SELECT u.*, r.name as role_name,
+        (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS post_count,
+        (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
+        (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following
+       FROM users u
+       LEFT JOIN user_roles ur ON u.id = ur.user_id
+       LEFT JOIN roles r ON ur.role_id = r.id
+       WHERE u.id = $1`, [req.user.id]
+    );
+    const { password_hash, ...safe } = user;
+    res.json({ success: true, user: safe });
   } catch (err) {
     console.error("❌ Onboard error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
@@ -1557,8 +1569,8 @@ app.get("/api/search", optionalAuth, async (req, res) => {
       (type==="all"||type==="users") ? db.query(
         `SELECT id,name,handle,avatar_url,role,city,is_verified,
           (SELECT COUNT(*) FROM follows WHERE following_id=users.id) AS followers
-         FROM users WHERE name IS NOT NULL
-           AND (name ILIKE $1 OR handle ILIKE $1 OR role ILIKE $1 OR bio ILIKE $1)
+         FROM users WHERE onboarded=true
+           AND (name ILIKE $1 OR handle ILIKE $1 OR (role IS NOT NULL AND role ILIKE $1) OR (bio IS NOT NULL AND bio ILIKE $1))
          ORDER BY is_verified DESC LIMIT $2 OFFSET $3`,
         [likeQ, parseInt(limit), off]
       ) : { rows:[] },
@@ -1614,7 +1626,7 @@ app.get("/api/search/suggestions", optionalAuth, async (req, res) => {
     if (!q || q.trim().length < 1) return res.json({ suggestions:[] });
     const likeQ = `%${q.trim()}%`;
     const [users, posts] = await Promise.all([
-      db.query(`SELECT id,name,handle,avatar_url,role,'user' AS type FROM users WHERE name IS NOT NULL AND (name ILIKE $1 OR handle ILIKE $1) LIMIT 3`, [likeQ]),
+      db.query(`SELECT id,name,handle,avatar_url,role,'user' AS type FROM users WHERE onboarded=true AND (name ILIKE $1 OR handle ILIKE $1) LIMIT 3`, [likeQ]),
       db.query(`SELECT p.id, LEFT(p.content,60) AS name, 'post' AS type, u.handle AS author_handle FROM posts p JOIN users u ON u.id=p.user_id WHERE p.content ILIKE $1 LIMIT 3`, [likeQ]),
     ]);
     res.json({ suggestions:[...users.rows, ...posts.rows] });
