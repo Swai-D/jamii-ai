@@ -1646,7 +1646,7 @@ export default function JamiiAICommunity({ user, onLogout, lang = 'sw', toggleLa
                     onChange={(e) => { setExpertRole(e.target.value); setExpertPage(1); }}
                     style={{ background: "#0A0F1C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", color: "#DCE6F0", fontSize: 13, outline: "none", cursor: "pointer" }}
                   >
-                    {["Zote", "ML Engineer", "AI Architect", "Data Scientist", "AI Dev", "AI Researcher", "MLOps Engineer"].map(r => <option key={r} value={r}>{r}</option>)}
+                    {["Zote", "ML Engineer", "Data Scientist", "AI Architect", "AI Developer", "AI Researcher", "MLOps Engineer", "AI Enthusiast", "Student"].map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
 

@@ -4,7 +4,7 @@ import axios from "axios";
 const API_URL = "http://localhost:4000/api";
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
-const ROLES = ["AI Developer", "ML Engineer", "Data Scientist", "AI Researcher", "Student", "AI Enthusiast", "Startup Founder", "Product Manager"];
+const ROLES = ["ML Engineer", "Data Scientist", "AI Architect", "AI Developer", "AI Researcher", "MLOps Engineer", "AI Enthusiast", "Student"];
 const CITIES = ["Dar es Salaam", "Arusha", "Mwanza", "Dodoma", "Zanzibar", "Moshi", "Tanga", "Morogoro", "Tabora", "Nyingine"];
 const INTERESTS = ["NLP / Swahili AI", "Computer Vision", "LLMs & Agents", "MLOps", "AI for Agriculture", "AI for Health", "Data Science", "AI Ethics", "Startups", "Research"];
 

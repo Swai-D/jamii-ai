@@ -643,17 +643,28 @@ app.use("/api/auth", authRouter);
 // GET /api/users — list (wataalamu)
 app.get("/api/users", optionalAuth, async (req, res) => {
   try {
-    const { role, city, available, q, page = 1, limit = 20 } = req.query;
+    const { role, city, available, q, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
-    const conditions = ["u.name IS NOT NULL"]; // Relaxed condition
+    const conditions = ["u.onboarded = true"]; // Only show onboarded users
     const params = [];
 
-    if (role)      { params.push(role);      conditions.push(`u.role = $${params.length}`); }
-    if (city)      { params.push(city);      conditions.push(`u.city = $${params.length}`); }
-    if (available) {                          conditions.push(`u.available = true`); }
-    if (q)         { params.push(`%${q}%`);  conditions.push(`(u.name ILIKE $${params.length} OR u.handle ILIKE $${params.length} OR u.bio ILIKE $${params.length})`); }
+    if (role && role !== "Zote") { 
+      params.push(role); 
+      conditions.push(`u.role = $${params.length}`); 
+    }
+    if (city && city !== "Zote") { 
+      params.push(city); 
+      conditions.push(`u.city = $${params.length}`); 
+    }
+    if (available === "true") { 
+      conditions.push(`u.available = true`); 
+    }
+    if (q) { 
+      params.push(`%${q}%`); 
+      conditions.push(`(u.name ILIKE $${params.length} OR u.handle ILIKE $${params.length} OR u.bio ILIKE $${params.length})`); 
+    }
 
-    params.push(limit, offset);
+    const finalParams = [...params, parseInt(limit), parseInt(offset)];
     const sql = `
       SELECT u.id, u.name, u.handle, u.avatar_url, u.role, u.city, u.bio,
              u.skills, u.hourly_rate, u.available, u.rating, u.project_count, u.is_verified,
@@ -661,11 +672,12 @@ app.get("/api/users", optionalAuth, async (req, res) => {
       FROM users u
       WHERE ${conditions.join(" AND ")}
       ORDER BY u.rating DESC NULLS LAST, u.created_at DESC
-      LIMIT $${params.length - 1} OFFSET $${params.length}`;
+      LIMIT $${finalParams.length - 1} OFFSET $${finalParams.length}`;
 
-    const result = await db.query(sql, params);
+    const result = await db.query(sql, finalParams);
     res.json({ users: result.rows, page: +page, limit: +limit });
   } catch (err) {
+    console.error("❌ GET /api/users error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
