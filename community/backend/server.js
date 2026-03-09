@@ -24,6 +24,16 @@ require("dotenv").config();
 
 // ── APP SETUP ───────────────────────────────────────────────────────
 const app  = express();
+const http = require("http");
+const { Server } = require("socket.io");
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Adjust for production
+    methods: ["GET", "POST"]
+  }
+});
+
 const PORT = process.env.PORT || 4000;
 
 const allowedOrigins = [
@@ -954,8 +964,26 @@ app.post("/api/posts", auth, async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7, false, false, NOW(), NOW()) RETURNING *`,
       [uuid(), req.user.id, content?.trim() || "", category, image_url || null, source_url || null, source_title || null]
     );
-    res.status(201).json(result.rows[0]);
+
+    const post = result.rows[0];
+    const authorRes = await db.query(
+      "SELECT name AS author_name, handle AS author_handle, avatar_url AS author_avatar, is_verified AS author_verified FROM users WHERE id = $1",
+      [req.user.id]
+    );
+    const fullPost = { 
+      ...post, 
+      ...authorRes.rows[0], 
+      like_count: 0, 
+      comment_count: 0, 
+      user_liked: false 
+    };
+
+    // Broadcast to everyone
+    io.emit("new_post", fullPost);
+
+    res.status(201).json(fullPost);
   } catch (err) {
+    console.error("Error creating post:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });

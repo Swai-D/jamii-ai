@@ -1396,6 +1396,32 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
 
   const notify = msg => { setNotification(msg); setTimeout(() => setNotification(null), 2500); };
 
+  // ── REAL-TIME POST UPDATES ──────────────────────────────────────
+  useEffect(() => {
+    if (!socket) return;
+    console.log("🔌 Socket connected in JamiiAICommunity");
+    
+    const onNewPost = (post) => {
+      console.log("📥 New post received via socket:", post);
+      
+      setPosts(prev => {
+        // Avoid duplicates (e.g. if the creator also receives the socket event)
+        if (prev.some(p => p.id === post.id)) {
+          console.log("⏭️ Post already exists, skipping duplicate.");
+          return prev;
+        }
+        console.log("✨ Adding new post to state");
+        return [post, ...prev];
+      });
+    };
+
+    socket.on("new_post", onNewPost);
+    return () => {
+      console.log("🔌 Cleaning up socket listeners");
+      socket.off("new_post", onNewPost);
+    };
+  }, [socket]);
+
   const fetchData = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
@@ -1454,14 +1480,7 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
         { content: composerText, category: composerCat, image_url: composerImage || undefined },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setPosts([{
-        ...res.data,
-        author_name: ME.name, author_handle: ME.handle, 
-        author_avatar: user?.avatar_url, author_role: user?.role || ME.role,
-        author_verified: user?.is_verified,
-        like_count: 0, comment_count: 0, bookmark_count: 0,
-        user_liked: false, user_bookmarked: false
-      }, ...posts]);
+      setPosts([res.data, ...posts]);
       setComposerText(""); setComposerImage(null); setShowOptions(false);
       notify("✓ Imetumwa!");
     } catch { notify("Hitilafu imetokea."); }

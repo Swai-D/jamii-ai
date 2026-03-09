@@ -1,21 +1,10 @@
 @echo off
 echo ═══════════════════════════════════════════════════════════════
-echo   JamiiAI — Database Reset ^& Seeding Utility
+echo   JamiiAI — Admin Account Seeder
 echo ═══════════════════════════════════════════════════════════════
 
-echo [1/3] Kusafisha Database (Dropping all tables)...
+echo [1/1] Inatengeneza Admin Account (Davy Swai)...
 cd community/backend
-node reset-db.js
-
-if %errorlevel% neq 0 (
-    echo.
-    echo ❌ Hitilafu imetokea wakati wa kusafisha database!
-    pause
-    exit /b %errorlevel%
-)
-
-echo.
-echo [2/3] Kuingiza Admin Account (Davy Swai)...
 node seed-admin.js
 
 if %errorlevel% neq 0 (
@@ -26,19 +15,10 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [3/3] Kuingiza Data ya Bots (Seeding fake data)...
-node seed.js
-
-if %errorlevel% neq 0 (
-    echo.
-    echo ❌ Hitilafu imetokea wakati wa seeding!
-    pause
-    exit /b %errorlevel%
-)
-
-echo.
 echo ═══════════════════════════════════════════════════════════════
-echo   ✅ DATABASE IMESAFISHWA NA KUINGIZWA DATA MPYA VIZURI!
+echo   ✅ ADMIN ACCOUNT IMETENGENEZWA VIZURI!
+echo   Handle:   davyswai
+echo   Password: davyswai1995
 echo ═══════════════════════════════════════════════════════════════
 echo.
 pause

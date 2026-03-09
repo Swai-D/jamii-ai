@@ -155,13 +155,16 @@ async function seed() {
   `);
   console.log("  ✅ Columns ziko tayari\n");
 
-  const passwordHash = await bcrypt.hash(SEED_PASSWORD, 12);
   const userIds = {};
 
   // ── 1. INSERT USERS ───────────────────────────────────────────
   console.log("👤 Inaingiza users...");
   for (const u of FAKE_USERS) {
     const id = uuid();
+    // Use custom password if provided, else use default
+    const plainPassword = u.password || SEED_PASSWORD;
+    const currentHash = await bcrypt.hash(plainPassword, 12);
+    
     try {
       await db.query(
         `INSERT INTO users (
@@ -176,18 +179,19 @@ async function seed() {
           $6,$7,$8,$9::jsonb,$10::jsonb,
           $11,$12,$13,$14,
           $15,$16,$17,
-          $18,false,true,'active','free',
+          $18,$19,true,'active','free',
           NOW() - (random()*interval'90 days'),
           NOW()
         ) ON CONFLICT (handle) DO UPDATE SET
           name=EXCLUDED.name, role=EXCLUDED.role, city=EXCLUDED.city,
           bio=EXCLUDED.bio, skills=EXCLUDED.skills, rating=EXCLUDED.rating,
+          is_admin=EXCLUDED.is_admin, password_hash=EXCLUDED.password_hash,
           avatar_url=EXCLUDED.avatar_url, onboarded=true`,
         [
           id,
           u.name, u.handle,
           u.email || `${u.handle}@jamii.ai`,
-          passwordHash,
+          currentHash,
           u.role, u.city, u.bio,
           JSON.stringify(u.skills || []),
           JSON.stringify(u.interests || ["NLP","AI","Machine Learning"]),
@@ -199,6 +203,7 @@ async function seed() {
           u.github_url || null,
           u.linkedin_url || null,
           u.is_verified || false,
+          u.is_admin || false,
         ]
       );
       // Get the actual ID (in case handle existed)
