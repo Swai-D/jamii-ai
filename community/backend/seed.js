@@ -58,7 +58,7 @@ const FAKE_USERS = [
 // ─── SEED POSTS ───────────────────────────────────────────────────
 // handle → who posts it; category: swali/mradi/habari/kazi
 const SEED_POSTS = [
-  { handle:"mahaDiamipawa",  category:"habari",  content:"Tanzania Data Lab imefungua intake mpya! Tunatoa mafunzo ya data science kwa wasomi na wafanyakazi. Apply kabla ya Aprili 15. 🇹🇿 #DataScience #TanzaniaAI" },
+  { handle:"mahadiamipawa",  category:"habari",  content:"Tanzania Data Lab imefungua intake mpya! Tunatoa mafunzo ya data science kwa wasomi na wafanyakazi. Apply kabla ya Aprili 15. 🇹🇿 #DataScience #TanzaniaAI" },
   { handle:"denismonko",     category:"mradi",   content:"Nimekamilisha model ya kudetect diabetic retinopathy kutoka fundus images — accuracy 91% kwenye Tanzanian patient dataset. Nitashare code GitHub wiki. Mnafikiria nini?" },
   { handle:"neemamonko",     category:"swali",   content:"Swali kwa ML engineers: mnasuggest framework gani kwa production deployment kwenye low-resource environment kama Tanzania? FastAPI + Docker au kuna njia nzuri zaidi?" },
   { handle:"gideonmsasalaga",category:"mradi",   content:"Nimefine-tune Llama-3 kwa Kiswahili na imeonyesha matokeo mazuri sana! BLEU score 0.67 kwenye translation tasks. Hii ni hatua kubwa kwa Swahili NLP. 🔥" },

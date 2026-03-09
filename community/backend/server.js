@@ -600,19 +600,7 @@ authRouter.patch("/onboard", auth, async (req, res) => {
        notification_prefs=$6, onboarded=true, updated_at=NOW() WHERE id=$7`,
       [handle, role, city, bio, JSON.stringify(interests), JSON.stringify(notifications), req.user.id]
     );
-
-    const { rows:[user] } = await db.query(
-      `SELECT u.*, r.name as role_name,
-        (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS post_count,
-        (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
-        (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following
-       FROM users u
-       LEFT JOIN user_roles ur ON u.id = ur.user_id
-       LEFT JOIN roles r ON ur.role_id = r.id
-       WHERE u.id = $1`, [req.user.id]
-    );
-    const { password_hash, ...safe } = user;
-    res.json({ success: true, user: safe });
+    res.json({ success: true });
   } catch (err) {
     console.error("❌ Onboard error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
@@ -643,28 +631,17 @@ app.use("/api/auth", authRouter);
 // GET /api/users — list (wataalamu)
 app.get("/api/users", optionalAuth, async (req, res) => {
   try {
-    const { role, city, available, q, page = 1, limit = 50 } = req.query;
+    const { role, city, available, q, page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
-    const conditions = ["u.onboarded = true"]; // Only show onboarded users
+    const conditions = ["u.onboarded = true"];
     const params = [];
 
-    if (role && role !== "Zote") { 
-      params.push(role); 
-      conditions.push(`u.role = $${params.length}`); 
-    }
-    if (city && city !== "Zote") { 
-      params.push(city); 
-      conditions.push(`u.city = $${params.length}`); 
-    }
-    if (available === "true") { 
-      conditions.push(`u.available = true`); 
-    }
-    if (q) { 
-      params.push(`%${q}%`); 
-      conditions.push(`(u.name ILIKE $${params.length} OR u.handle ILIKE $${params.length} OR u.bio ILIKE $${params.length})`); 
-    }
+    if (role)      { params.push(role);      conditions.push(`u.role = $${params.length}`); }
+    if (city)      { params.push(city);      conditions.push(`u.city = $${params.length}`); }
+    if (available) {                          conditions.push(`u.available = true`); }
+    if (q)         { params.push(`%${q}%`);  conditions.push(`(u.name ILIKE $${params.length} OR u.handle ILIKE $${params.length} OR u.bio ILIKE $${params.length})`); }
 
-    const finalParams = [...params, parseInt(limit), parseInt(offset)];
+    params.push(limit, offset);
     const sql = `
       SELECT u.id, u.name, u.handle, u.avatar_url, u.role, u.city, u.bio,
              u.skills, u.hourly_rate, u.available, u.rating, u.project_count, u.is_verified,
@@ -672,12 +649,11 @@ app.get("/api/users", optionalAuth, async (req, res) => {
       FROM users u
       WHERE ${conditions.join(" AND ")}
       ORDER BY u.rating DESC NULLS LAST, u.created_at DESC
-      LIMIT $${finalParams.length - 1} OFFSET $${finalParams.length}`;
+      LIMIT $${params.length - 1} OFFSET $${params.length}`;
 
-    const result = await db.query(sql, finalParams);
+    const result = await db.query(sql, params);
     res.json({ users: result.rows, page: +page, limit: +limit });
   } catch (err) {
-    console.error("❌ GET /api/users error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
@@ -891,7 +867,7 @@ app.post("/api/users/:id/follow", auth, async (req, res) => {
       await db.query("INSERT INTO follows (id,follower_id,following_id,created_at) VALUES ($1,$2,$3,NOW())",[uuid(), req.user.id, targetId]);
       // Notify mtumiaji aliyefuatwa
       await db.query(
-        `INSERT INTO notifications (id,user_id,type_str,title,actor_id,actor_handle,is_read,created_at)
+        `INSERT INTO notifications (id,user_id,type,title,actor_id,actor_handle,is_read,created_at)
          VALUES($1,$2,'follow','Anakufuata',$3,$4,false,NOW())`,
         [uuid(), targetId, req.user.id, req.user.handle]
       );
@@ -931,7 +907,6 @@ app.get("/api/posts", optionalAuth, async (req, res) => {
       `SELECT p.*,
         u.name AS author_name, u.handle AS author_handle,
         u.avatar_url AS author_avatar, u.is_verified AS author_verified,
-        u.role AS author_role,
         (SELECT COUNT(*) FROM post_likes WHERE post_id=p.id) AS like_count,
         (SELECT COUNT(*) FROM comments   WHERE post_id=p.id) AS comment_count
         ${req.user ? `,(SELECT COUNT(*)>0 FROM post_likes WHERE post_id=p.id AND user_id='${req.user.id}') AS user_liked` : ""}
@@ -942,6 +917,27 @@ app.get("/api/posts", optionalAuth, async (req, res) => {
     );
     res.json({ posts:rows });
   } catch (err) { res.status(500).json({ error:err.message }); }
+});
+
+// GET /api/posts/:id — single post (inatumiwa na bots na frontend)
+app.get("/api/posts/:id", async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT p.*,
+        u.name AS author_name, u.handle AS author_handle,
+        u.avatar_url AS author_avatar, u.role AS author_role,
+        u.is_verified AS author_verified,
+        (SELECT COUNT(*) FROM post_likes WHERE post_id=p.id) AS like_count,
+        (SELECT COUNT(*) FROM comments   WHERE post_id=p.id) AS comment_count
+       FROM posts p JOIN users u ON u.id = p.user_id
+       WHERE p.id = $1 AND p.is_deleted = false`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: "Post haipatikani" });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // POST /api/posts
@@ -1054,7 +1050,7 @@ app.post("/api/posts/:id/comments", auth, async (req, res) => {
     const { rows:[post] } = await db.query("SELECT user_id FROM posts WHERE id=$1", [req.params.id]);
     if (post && post.user_id !== req.user.id) {
       await db.query(
-        `INSERT INTO notifications (id, user_id, type_str, title, body, actor_id, actor_handle, link, is_read, created_at)
+        `INSERT INTO notifications (id, user_id, type, title, body, actor_id, actor_handle, link, is_read, created_at)
          VALUES ($1,$2,'comment',$3,$4,$5,$6,$7,false,NOW())
          ON CONFLICT DO NOTHING`,
         [
@@ -1527,22 +1523,12 @@ app.post("/api/upload/avatar", auth, async (req, res) => {
     await handleUpload(uploadAvatar, req, res);
     if (!req.file) return res.status(400).json({ error:"Picha haikupokewa" });
     const url = getUploadedUrl(req, "avatars");
+    const { rows:[old] } = await db.query("SELECT avatar_url FROM users WHERE id=$1",[req.user.id]);
+    if (old?.avatar_url && !USE_LOCAL_STORAGE) await deleteCloudinaryImage(old.avatar_url);
     await db.query("UPDATE users SET avatar_url=$1, updated_at=NOW() WHERE id=$2",[url, req.user.id]);
     res.json({ success:true, avatarUrl: url });
   } catch (err) {
     if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error:"Picha ni kubwa. Max 2MB" });
-    res.status(500).json({ error:err.message });
-  }
-});
-
-app.post("/api/upload/cover", auth, async (req, res) => {
-  try {
-    await handleUpload(uploadPostImage, req, res);
-    if (!req.file) return res.status(400).json({ error:"Picha haikupokewa" });
-    const url = getUploadedUrl(req, "posts");
-    await db.query("UPDATE users SET cover_image=$1, updated_at=NOW() WHERE id=$2",[url, req.user.id]);
-    res.json({ success:true, coverUrl: url });
-  } catch (err) {
     res.status(500).json({ error:err.message });
   }
 });
@@ -1592,7 +1578,7 @@ app.get("/api/search", optionalAuth, async (req, res) => {
         `SELECT id,name,handle,avatar_url,role,city,is_verified,
           (SELECT COUNT(*) FROM follows WHERE following_id=users.id) AS followers
          FROM users WHERE onboarded=true
-           AND (name ILIKE $1 OR handle ILIKE $1 OR (role IS NOT NULL AND role ILIKE $1) OR (bio IS NOT NULL AND bio ILIKE $1))
+           AND (name ILIKE $1 OR handle ILIKE $1 OR role ILIKE $1 OR bio ILIKE $1)
          ORDER BY is_verified DESC LIMIT $2 OFFSET $3`,
         [likeQ, parseInt(limit), off]
       ) : { rows:[] },
@@ -2128,8 +2114,8 @@ app.post("/api/admin/announcements", adminAuth, async (req, res) => {
       );
       for (const u of targetUsers.slice(0, 200)) {
         await db.query(
-          `INSERT INTO notifications (id,user_id,type,type_str,title,is_read,created_at)
-           VALUES (uuid_generate_v4(),$1,'announcement','announcement',$2,false,NOW())`,
+          `INSERT INTO notifications (id,user_id,type,title,is_read,created_at)
+           VALUES (uuid_generate_v4(),$1,'announcement',$2,false,NOW())`,
           [u.id, title]
         );
         io.to(`user:${u.id}`).emit("notification", { type:"announcement", title, body });

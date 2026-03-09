@@ -67,7 +67,7 @@ const TABS = [
 ];
 
 // ─── MAIN ─────────────────────────────────────────────────────────
-export default function ProfilePage({ user, lang, onLogout }) {
+export default function ProfilePage({ user, lang, onLogout, onUpdateUser }) {
   const [profile, setProfile]   = useState({});
   const [projects, setProjects] = useState([]);
   const [posts, setPosts]       = useState([]);
@@ -193,6 +193,18 @@ export default function ProfilePage({ user, lang, onLogout }) {
         skills:       draft.skills,
         interests:    draft.interests,
       }, { headers: { Authorization: `Bearer ${token}` } });
+      
+      if (onUpdateUser) {
+        onUpdateUser({ 
+          ...user, 
+          ...draft, 
+          avatar_url: draft.avatar, 
+          hourly_rate: draft.hourlyRate,
+          github_url: draft.github,
+          linkedin_url: draft.linkedin,
+          website_url: draft.website
+        });
+      }
       notify("✅ Profile imehifadhiwa!");
     } catch (err) { 
       console.warn("API save failed, profile updated locally only");
@@ -326,8 +338,11 @@ export default function ProfilePage({ user, lang, onLogout }) {
       }
       setProfile(p => ({ ...p, [field]: remoteUrl }));
       
-      // Update the main user object in parent if needed
-      // (This assumes user object has avatar_url/cover_image)
+      // Update the main user object in parent
+      if (onUpdateUser) {
+        const field_key = type === 'avatar' ? 'avatar_url' : 'cover_image';
+        onUpdateUser({ ...user, [field_key]: remoteUrl });
+      }
       
       notify(`✅ ${type === 'avatar' ? 'Picha' : 'Cover'} imesasishwa!`);
     }

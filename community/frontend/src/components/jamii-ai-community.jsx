@@ -1116,7 +1116,7 @@ function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention, onAut
       const res = await axios.post(`${API_URL}/posts/${post.id}/comments`, { text: newComment }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setComments([...comments, { ...res.data, author_name: me.name, author_handle: me.handle }]);
+      setComments([...comments, { ...res.data, author_name: me.name, author_handle: me.handle, avatar_url: me.avatar_url }]);
       setNewComment("");
     } catch { alert("Ingia kwanza ili kutoa maoni."); }
   };
@@ -1267,7 +1267,7 @@ function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention, onAut
               )}
               {comments.map((c, i) => (
                 <div key={i} style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                  <Av initials={c.author_name ? c.author_name.split(" ").map(w => w[0]).join("") : "?"} userId={c.user_id || c.author_handle} size={28} />
+                  <Av initials={c.author_name ? c.author_name.split(" ").map(w => w[0]).join("") : "?"} userId={c.user_id || c.author_handle} size={28} src={c.avatar_url} />
                   <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "9px 13px", flex: 1 }}>
                     <span style={{ fontWeight: 700, fontSize: 11, color: "#A78BFA" }}>{c.author_name}</span>
                     <p style={{ fontSize: 13, color: "rgba(220,230,240,0.7)", marginTop: 3, lineHeight: 1.5 }}>{c.text}</p>
@@ -1304,6 +1304,7 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
     name: user?.name || "Mgeni", 
     handle: user?.handle || "mgeni", 
     avatar: user?.name ? user.name.split(" ").map(w => w[0]).join("") : "??", 
+    avatar_url: user?.avatar_url,
     color: "#F5A623", 
     role: user?.role || "AI Enthusiast"
   };

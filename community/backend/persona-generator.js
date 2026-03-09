@@ -121,29 +121,48 @@ KANUNI ZA KUANDIKA:
 JIBU NA POST TU — hakuna kitu kingine. Mistari 2-4, bila nafasi kati yao.`;
 }
 
-function buildCommentPrompt(user, postContent) {
+function buildCommentPrompt(user, postCtx) {
   const persona = getPersona(user);
-  const year = new Date().getFullYear();
-  
+  const year    = new Date().getFullYear();
+
+  // Accept either plain string (backward compat) or rich object
+  const content     = typeof postCtx === "string" ? postCtx : postCtx?.content;
+  const authorName  = typeof postCtx === "object"  ? postCtx?.authorName  : null;
+  const authorRole  = typeof postCtx === "object"  ? postCtx?.authorRole  : null;
+  const comments    = typeof postCtx === "object"  ? postCtx?.comments    : [];
+
   const styleGuides = {
-    analytical:   "Ongeza insight ya technical au swali la kina. Comment iwe na value halisi.",
-    curious:      "Uliza swali moja fupi au shirkisha enthusiasm yako kwa uhalisi.",
-    strategic:    "Ongeza angle ya biashara au impact ya practical.",
-    enthusiastic: "Comment fupi ya kuchangamsha — supportive na ya kweli.",
+    analytical:   "Ongeza insight ya technical au uliza swali moja la kina. Comment iwe na value halisi.",
+    curious:      "Uliza swali moja fupi au specific — kuhusu kitu kilichosemwa kwenye post hiyo hasa.",
+    strategic:    "Ongeza angle ya biashara au impact ya practical — kulingana na post hiyo.",
+    enthusiastic: "Comment fupi ya kweli — supportive lakini specific kwa post, si generic.",
   };
 
-  return `Wewe ni ${user.name}, ${user.role} kutoka ${user.city || "Tanzania"}.
+  const commentsBlock = comments?.length
+    ? `\nCOMMENTS ZILIZOPO:\n${comments.join("\n")}\n(Usirudie kile kilichosemwa tayari.)`
+    : "";
+
+  return `Wewe ni ${user.name} (@${user.handle}), ${user.role} kutoka ${user.city || "Tanzania"}.
 STYLE YAKO: ${persona.vibe}
-MWAKA WA LEO: ${year} — usirejee matukio ya 2024 au 2025 kana kwamba ni ya "sasa hivi".
+MWAKA: ${year}
 
-POST UNAPIGIA COMMENT:
-"${postContent?.slice(0, 200)}"
+POST UNAYOPIGIA COMMENT:
+━━━━━━━━━━━━━━━━━━━━━━━━
+Mwandishi: ${authorName || "mtu"}${authorRole ? ` (${authorRole})` : ""}
+"${content?.trim().slice(0, 300)}"
+━━━━━━━━━━━━━━━━━━━━━━━━${commentsBlock}
 
-KAZI: Andika comment moja fupi (mistari 1-2) kwenye post hii.
+KAZI: Andika comment MOJA fupi (mstari 1-2) kuhusu post hiyo HASA.
 STYLE: ${styleGuides[persona.commentStyle]}
-KANUNI: Hakuna Markdown. Hakuna "Great post!" generic. Iwe ya kweli na specific kwa post.
 
-JIBU NA COMMENT TU.`;
+KANUNI ZA LAZIMA:
+1. Comment lazima iwe SPECIFIC — itaje kitu halisi kilichosemwa kwenye post.
+2. USISEME tu "Nakubaliana nawe" au "Vizuri sana" bila kuongeza kitu kipya.
+3. Usiseme maneno ambayo HAYAKO kwenye post (usihallucinate mada).
+4. Hakuna Markdown, hakuna alama za *** au ##.
+5. Mistari 1-2 tu — fupi na yenye nguvu.
+
+JIBU NA COMMENT TU — hakuna kitu kingine.`;
 }
 
 module.exports = {
