@@ -28,7 +28,321 @@ function Av({ initials, color, size = 36 }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────
+function OnlineCount() {
+  const [count, setCount] = useState(null);
+  useEffect(() => {
+    const API = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+    fetch(`${API}/users?limit=1`)
+      .then(r => {
+        if (!r.ok) throw new Error('API not available');
+        return r.json();
+      })
+      .then(d => {
+        const total = d.total || d.count || 30;
+        const online = Math.max(12, Math.floor(total * (0.08 + Math.random() * 0.07)));
+        setCount(online);
+      })
+      .catch(() => setCount(Math.floor(12 + Math.random() * 8)));
+  }, []);
+  if (!count) return null;
+  return (
+    <span style={{fontWeight:800,color:"#4ECDC4"}}>{count} online •&nbsp;</span>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  AUTENTIKASHONI PREVIEW
+// ═══════════════════════════════════════════════════════════════════
+
+function AuthPreview({ mode, onSwitch, onSuccess, onBack }) {
+  const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const [loading, setLoading] = useState(false);
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handle = async () => {
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 1100));
+    setLoading(false);
+    onSuccess();
+  };
+
+  return (
+    <div style={{ fontFamily: "'Roboto Mono',monospace", background: "#0A0F1C", color: "#DCE6F0", minHeight: "100vh", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap');*{margin:0;padding:0;box-sizing:border-box}input,button{font-family:inherit}input:focus,button:focus{outline:none}@keyframes fup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.fin{animation:fup 0.3s ease both}`}</style>
+
+      {/* Left branding */}
+      <div style={{ background: "linear-gradient(160deg,#0D1322,#0A0F1C)", borderRight: "1px solid rgba(255,255,255,0.06)", padding: "48px 56px", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(245,166,35,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.04) 1px,transparent 1px)", backgroundSize: "50px 50px", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", width: 350, height: 350, borderRadius: "50%", background: "rgba(245,166,35,0.05)", filter: "blur(90px)", top: -100, left: -100 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
+          <span onClick={onBack} style={{ cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontSize: 12, color: "rgba(220,230,240,0.4)", marginRight: 10 }}>← Rudi</span>
+          <div style={{ width: 32, height: 32, background: "#F5A623", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>🌍</div>
+          <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.03em" }}>Jamii<span style={{ color: "#F5A623" }}>AI</span></span>
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 1 }}>
+          <div style={{ fontSize: 64, textAlign: "center", marginBottom: 24 }}>🇹🇿</div>
+          <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.1, marginBottom: 18 }}>Tanzania's AI <span style={{ color: "#F5A623" }}>Community</span></h2>
+          <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 14, lineHeight: 1.8 }}>Jiunge na 2,000+ AI developers, researchers, na enthusiasts wa Tanzania.</p>
+          <div style={{ display: "flex", gap: 28, marginTop: 36 }}>
+            {[["2K+","Wanachama"],["500+","AI Devs"],["20M+","Prize TZS"]].map(([n,l])=>(
+              <div key={l}><div style={{fontSize:22,fontWeight:800,color:"#F5A623",fontFamily:"'Roboto Mono',monospace"}}>{n}</div><div style={{fontFamily:"'Roboto Mono',monospace",fontSize:9,color:"rgba(220,230,240,0.35)",marginTop:2}}>{l}</div></div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right auth form */}
+      <div style={{ padding: "48px 56px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="fin" style={{ width: "100%", maxWidth: 380 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.04em", marginBottom: 8 }}>
+            {mode === "login" ? "Karibu tena 👋" : "Jiunge na JamiiAI 🌍"}
+          </h2>
+          <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 13, marginBottom: 32 }}>
+            {mode === "login" ? "Ingia kwenye community ya AI Tanzania" : "Community ya AI Tanzania — bure kabisa"}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {mode === "register" && (
+              <input value={form.name} onChange={set("name")} placeholder="Jina lako kamili" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "13px 16px", color: "#DCE6F0", fontSize: 14 }} />
+            )}
+            <input value={form.email} onChange={set("email")} placeholder="Barua Pepe" type="email" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "13px 16px", color: "#DCE6F0", fontSize: 14 }} />
+            <input value={form.password} onChange={set("password")} placeholder="Nywila" type="password" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "13px 16px", color: "#DCE6F0", fontSize: 14 }} />
+            <button onClick={handle} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "14px", borderRadius: 10, cursor: "pointer", fontFamily: "'Roboto Mono',monospace", fontWeight: 800, fontSize: 15, transition: "all 0.2s" }}>
+              {loading ? "Inaendelea..." : mode === "login" ? "Ingia →" : "Jiandikishe →"}
+            </button>
+          </div>
+          <p style={{ marginTop: 24, textAlign: "center", color: "rgba(220,230,240,0.4)", fontSize: 13 }}>
+            {mode === "login" ? "Huna akaunti? " : "Una akaunti? "}
+            <span onClick={() => onSwitch(mode === "login" ? "register" : "login")} style={{ color: "#F5A623", fontWeight: 700, cursor: "pointer" }}>
+              {mode === "login" ? "Jiandikishe bure →" : "Ingia →"}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  JAMII DASHBOARD PREVIEW
+// ═══════════════════════════════════════════════════════════════════
+
+function CommunityPreview({ activeNav, setActiveNav, onLogout, user }) {
+  const NAV = [
+    { id: "nyumbani",    icon: "🏠", label: "Nyumbani" },
+    { id: "gundua",     icon: "🧭", label: "Gundua" },
+    { id: "wataalamu",  icon: "👨‍💻", label: "Wataalamu" },
+    { id: "startups",   icon: "🚀", label: "Startups" },
+    { id: "vyuo",       icon: "🎓", label: "Vyuo & Taasisi" },
+    { id: "changamoto", icon: "🏆", label: "Changamoto" },
+    { id: "rasilimali", icon: "📚", label: "Rasilimali" },
+    { id: "kazi",       icon: "💼", label: "Kazi" },
+    { id: "habari",     icon: "📰", label: "Habari" },
+  ];
+
+  const labels = { 
+    nyumbani: "Nyumbani 🏠", gundua: "Gundua 🧭", wataalamu: "Wataalamu 👨‍💻",
+    startups: "Startups 🚀", vyuo: "Vyuo & Taasisi 🎓", changamoto: "Changamoto 🏆",
+    rasilimali: "Rasilimali 📚", kazi: "Kazi 💼", habari: "Habari 📰" 
+  };
+
+  // MOCK DATA GENERATOR
+  const renderContent = () => {
+    switch(activeNav) {
+      case "wataalamu":
+        return (
+          <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:20}}>
+            {[
+              { name: "Dr. Elias N.", role: "Computer Vision Expert", loc: "Dar es Salaam", tags: ["PyTorch", "OpenCV"], av: "EN", color: "#4ECDC4" },
+              { name: "Fatuma Ally", role: "ML Engineer", loc: "Arusha", tags: ["LLMs", "RAG Systems"], av: "FA", color: "#F5A623" },
+              { name: "Kelvin Mshana", role: "Data Scientist", loc: "Mwanza", tags: ["NLP", "TensorFlow"], av: "KM", color: "#A78BFA" },
+              { name: "Sarah John", role: "AI Ethicist", loc: "Zanzibar", tags: ["Policy", "Bias Detection"], av: "SJ", color: "#F87171" }
+            ].map(p => (
+              <div key={p.name} style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, padding:20, display:"flex", gap:15, alignItems:"center"}}>
+                <Av initials={p.av} color={p.color} size={50} />
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700, fontSize:15}}>{p.name}</div>
+                  <div style={{fontSize:12, color:"#F5A623", marginBottom:4}}>{p.role}</div>
+                  <div style={{fontSize:11, opacity:0.5}}>📍 {p.loc}</div>
+                  <div style={{display:"flex", gap:6, marginTop:10}}>
+                    {p.tags.map(t => <span key={t} style={{fontSize:9, background:"rgba(255,255,255,0.05)", padding:"3px 8px", borderRadius:4}}>{t}</span>)}
+                  </div>
+                </div>
+                <div style={{fontSize:12, cursor:"pointer", color:"#4ECDC4", fontWeight:700}}>Connect</div>
+              </div>
+            ))}
+          </div>
+        );
+      case "changamoto":
+        return (
+          <div style={{display:"flex", flexDirection:"column", gap:16}}>
+            {[
+              { title: "Swahili Sentiment Analysis Challenge", prize: "TZS 5,000,000", days: "12 left", participants: 142 },
+              { title: "AI for Agriculture Hackathon 🇹🇿", prize: "TZS 10,000,000", days: "24 left", participants: 86 }
+            ].map(c => (
+              <div key={c.title} style={{background:"linear-gradient(90deg, rgba(245,166,35,0.05) 0%, transparent 100%)", border:"1px solid rgba(245,166,35,0.2)", borderRadius:16, padding:24, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                <div>
+                  <h3 style={{fontSize:18, fontWeight:800, marginBottom:8}}>{c.title}</h3>
+                  <div style={{display:"flex", gap:20, fontSize:13, opacity:0.7}}>
+                    <span>💰 Zawadi: <b style={{color:"#F5A623"}}>{c.prize}</b></span>
+                    <span>👥 {c.participants} Washiriki</span>
+                  </div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:11, color:"#F87171", fontWeight:700, marginBottom:8}}>⏳ {c.days}</div>
+                  <button style={{background:"#F5A623", border:"none", padding:"8px 20px", borderRadius:8, fontWeight:800, fontSize:12, cursor:"pointer", color:"#0A0F1C"}}>Shiriki Sasa</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      case "startups":
+        return (
+          <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:16}}>
+            {[
+              { name: "KilimoAI", desc: "Using AI to detect crop diseases via smartphone photos.", tag: "AgriTech" },
+              { name: "AfyaIntel", desc: "Swahili NLP for processing hospital records automatically.", tag: "Health" },
+              { name: "BodaBot", desc: "Optimizing logistics for delivery riders in Dar.", tag: "Logistics" }
+            ].map(s => (
+              <div key={s.name} style={{background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:16, padding:20}}>
+                <div style={{width:40, height:40, background:"rgba(255,255,255,0.05)", borderRadius:8, marginBottom:12, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20}}>🚀</div>
+                <div style={{fontWeight:800, fontSize:16, marginBottom:6}}>{s.name}</div>
+                <div style={{fontSize:10, color:"#4ECDC4", textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:10}}>{s.tag}</div>
+                <p style={{fontSize:12, lineHeight:1.5, opacity:0.6}}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        );
+      default: // Nyumbani (Feed)
+        return (
+          <div style={{display:"grid", gridTemplateColumns:"2fr 1fr", gap:28}}>
+            <div>
+              {/* Post Box */}
+              <div style={{background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:16, padding:16, marginBottom:24}}>
+                <div style={{display:"flex", gap:12}}>
+                  <div style={{width:36, height:36, borderRadius:"50%", background:"#F5A623", display:"flex", alignItems:"center", justifyContent: "center", fontWeight:800, color:"#0A0F1C"}}>JD</div>
+                  <div style={{flex:1, background:"rgba(255,255,255,0.05)", borderRadius:20, padding:"10px 16px", fontSize:13, color:"rgba(220,230,240,0.4)", cursor:"text"}}>Unawaza nini leo?</div>
+                </div>
+                <div style={{display:"flex", gap:16, marginTop:14, paddingLeft:48}}>
+                  <span style={{fontSize:12, opacity:0.6, cursor:"pointer"}}>🖼️ Picha</span>
+                  <span style={{fontSize:12, opacity:0.6, cursor:"pointer"}}>🎞️ Video</span>
+                  <span style={{fontSize:12, opacity:0.6, cursor:"pointer"}}>📊 Poll</span>
+                </div>
+              </div>
+
+              {/* Mock Feed Items */}
+              {[
+                { name: "Amina Mohammed", role: "AI Researcher", time: "Saa 1 lililopita", text: "Nimemaliza kufanya finetuning ya model yangu ya kwanza ya Swahili NLP! 🚀 Inafanya kazi vizuri sana kwenye datasets za habari za Tanzania. Nani anataka kuona demo?", likes: 24, cmts: 8, av: "AM", color: "#4ECDC4" },
+                { name: "Juma Bakari", role: "ML Engineer", time: "Saa 3 zilizopita", text: "Natafuta dataset ya picha za mazao (pamba na korosho) kwa ajili ya project ya chuo. Kuna mtu ana link au anaweza kushare?", likes: 12, cmts: 15, av: "JB", color: "#F5A623" },
+                { name: "Sarah K.", role: "Software Dev", time: "Saa 5 zilizopita", text: "Nimechapisha 'Swahili-Voice' — open-source TTS model ya kwanza kabisa ya kiswahili sanifu! Ipo GitHub, cheki link kwenye bio yangu.", likes: 156, cmts: 42, av: "SK", color: "#A78BFA" }
+              ].map(post => (
+                <div key={post.name} style={{background:"rgba(255,255,255,0.025)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:16, padding:20, marginBottom:20}}>
+                  <div style={{display:"flex", gap:12, marginBottom:16}}>
+                    <Av initials={post.av} color={post.color} size={42} />
+                    <div>
+                      <div style={{fontWeight:700, fontSize:14}}>{post.name} <span style={{color:"#F5A623"}}>●</span></div>
+                      <div style={{fontSize:11, opacity:0.4, marginTop:2}}>{post.role} · {post.time}</div>
+                    </div>
+                  </div>
+                  <p style={{fontSize:14, lineHeight:1.6, color:"rgba(220,230,240,0.8)", marginBottom:16}}>{post.text}</p>
+                  <div style={{display:"flex", gap:16, borderTop:"1px solid rgba(255,255,255,0.05)", paddingTop:14}}>
+                    <span style={{fontSize:12, opacity:0.5, cursor:"pointer"}}>❤️ {post.likes} Likes</span>
+                    <span style={{fontSize:12, opacity:0.5, cursor:"pointer"}}>💬 {post.cmts} Comments</span>
+                    <span style={{fontSize:12, opacity:0.5, cursor:"pointer", marginLeft:"auto"}}>🔖 Save</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Column: Trending */}
+            <div>
+              <div style={{fontFamily:"'Roboto Mono',monospace", fontSize:11, color:"#F5A623", letterSpacing:"0.1em", marginBottom:16, textTransform:"uppercase", fontWeight:700}}>Trending Sasa</div>
+              <div style={{background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:16, padding:18}}>
+                {["#SwahiliNLP", "#TanzaniaAI", "#ClaudeAPI", "#AIJobs", "#RAGSystem"].map((t,i)=>(
+                  <div key={t} style={{padding:"8px 0", borderBottom:i<4?"1px solid rgba(255,255,255,0.04)":"none", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center"}} onMouseEnter={e=>e.currentTarget.style.color="#F5A623"} onMouseLeave={e=>e.currentTarget.style.color="inherit"}>
+                    <span style={{fontSize:13, fontWeight:600}}>{t}</span>
+                    <span style={{fontSize:10, opacity:0.3}}>{Math.floor(Math.random()*100+10)} posts</span>
+                  </div>
+                ))}
+              </div>
+              
+              <div style={{marginTop:24, background:"rgba(78,205,196,0.05)", border:"1px solid rgba(78,205,196,0.15)", borderRadius:16, padding:18}}>
+                <div style={{fontSize:13, fontWeight:700, marginBottom:10, color:"#4ECDC4"}}>Msaada wa AI 🤖</div>
+                <p style={{fontSize:11, lineHeight:1.5, opacity:0.6}}>Tumia AI Assistant yetu kusaidia kuandika code au kutafuta rasilimali haraka zaidi.</p>
+                <button style={{width:"100%", marginTop:12, background:"rgba(78,205,196,0.15)", border:"1px solid rgba(78,205,196,0.3)", color:"#4ECDC4", padding:"8px", borderRadius:8, fontSize:11, fontWeight:700, cursor:"pointer"}}>Anza Chat</button>
+              </div>
+
+              <button onClick={onLogout} style={{width:"100%", marginTop:24, background:"rgba(245,166,35,0.12)", border:"1px solid rgba(245,166,35,0.3)", color:"#F5A623", padding:"12px", borderRadius:12, fontSize:13, fontWeight:700, cursor:"pointer", transition:"0.2s"}}>
+                ← Rudi Landing Page
+              </button>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div style={{fontFamily:"'Roboto Mono',monospace", background:"#0A0F1C", color:"#DCE6F0", minHeight:"100vh", display:"flex"}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        ::-webkit-scrollbar{width:3px}
+        ::-webkit-scrollbar-thumb{background:#F5A623;border-radius:2px}
+        .nv{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:all 0.18s;margin-bottom:2px}
+        .nv:hover{background:rgba(255,255,255,0.04)}
+        .nv.active{background:rgba(245,166,35,0.1);color:#F5A623}
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
+      
+      {/* SIDEBAR */}
+      <aside style={{width:240, flexShrink:0, height:"100vh", position:"sticky", top:0, borderRight:"1px solid rgba(255,255,255,0.06)", padding:"20px 14px", display:"flex", flexDirection:"column", background:"#0A0F1C"}}>
+        <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:28, paddingLeft:6}}>
+          <div style={{width:32, height:32, background:"#F5A623", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15}}>🌍</div>
+          <span style={{fontWeight:800, fontSize:19, letterSpacing:"-0.02em"}}>Jamii<span style={{color:"#F5A623"}}>AI</span></span>
+        </div>
+        <div style={{flex:1, overflowY:"auto"}} className="hide-scrollbar">
+          {NAV.map(item=>(
+            <div key={item.id} className={`nv ${activeNav===item.id?"active":""}`} onClick={()=>setActiveNav(item.id)}>
+              <span style={{fontSize:16}}>{item.icon}</span>
+              <span style={{fontSize:13, fontWeight:activeNav===item.id?700:500, opacity:activeNav===item.id?1:0.7}}>{item.label}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{borderTop:"1px solid rgba(255,255,255,0.06)", paddingTop:16, marginTop:10}}>
+          <div onClick={onLogout} style={{display:"flex", gap:10, alignItems:"center", padding:"10px 12px", borderRadius:10, cursor:"pointer", color:"rgba(220,230,240,0.4)", transition:"0.2s"}} onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.03)"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            <span style={{fontSize:14}}>🚪</span>
+            <span style={{fontSize:13, fontWeight:600}}>Toka kwenye Demo</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main style={{flex:1, height:"100vh", overflowY:"auto", background:"linear-gradient(180deg, rgba(245,166,35,0.02) 0%, rgba(10,15,28,0) 100%)"}}>
+        <div style={{position:"sticky", top:0, background:"rgba(10,15,28,0.85)", backdropFilter:"blur(20px)", borderBottom:"1px solid rgba(255,255,255,0.06)", padding:"16px 28px", zIndex:10, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+          <span style={{fontWeight:800, fontSize:18, letterSpacing:"-0.01em"}}>{labels[activeNav]||activeNav}</span>
+          <div style={{display:"flex", gap:12}}>
+            <div style={{width:34, height:34, borderRadius:"50%", background:"rgba(255,255,255,0.05)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, cursor:"pointer"}}>🔔</div>
+            <div style={{width:34, height:34, borderRadius:"50%", background:"#F5A623", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, color:"#0A0F1C", fontSize:13, cursor:"pointer"}}>JD</div>
+          </div>
+        </div>
+
+        <div style={{padding:"32px 40px", maxWidth:1000, margin:"0 auto"}}>
+          {/* Welcome Banner */}
+          {activeNav === "nyumbani" && (
+            <div style={{background:"linear-gradient(135deg, rgba(245,166,35,0.1) 0%, rgba(78,205,196,0.05) 100%)", border:"1px solid rgba(245,166,35,0.15)", borderRadius:20, padding:"32px", marginBottom:32, position:"relative", overflow:"hidden"}}>
+              <div style={{position:"absolute", right:-20, top:-20, fontSize:120, opacity:0.05}}>🌍</div>
+              <h2 style={{fontSize:28, fontWeight:900, marginBottom:10, letterSpacing:"-0.02em"}}>Karibu <span style={{color:"#F5A623"}}>JamiiAI</span> Demo! 🇹🇿</h2>
+              <p style={{color:"rgba(220,230,240,0.6)", fontSize:15, lineHeight:1.6, maxWidth:550}}>
+                Huu ni muonekano wa awali wa jinsi platform yetu inavyofanya kazi. Hapa unaweza kuona feed, wataalamu, changamoto, na rasilimali zote za AI nchini Tanzania.
+              </p>
+            </div>
+          )}
+
+          {renderContent()}
+        </div>
+      </main>
+    </div>
+  );
+}
 
 export default function JamiiAILanding({ initialPage = "landing", user, onLogin, onRegister, onLogout }) {
   // page: "landing" | "auth" | "community"
@@ -64,14 +378,14 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
     setPage("community"); 
   };
 
-  // ── AUTH STUB ─────────────────────────────────────────────────
+  // ── AUTENTIKASHONI ──
   if (page === "auth") {
-    return <AuthStub mode={authMode} onSwitch={m => setAuthMode(m)} onSuccess={() => goCommunity()} onBack={() => setPage("landing")} />;
+    return <AuthPreview mode={authMode} onSwitch={m => setAuthMode(m)} onSuccess={() => goCommunity()} onBack={() => setPage("landing")} />;
   }
 
-  // ── COMMUNITY STUB ────────────────────────────────────────────
+  // ── DASHBOARD PREVIEW ──
   if (page === "community") {
-    return <CommunityStub activeNav={activeNav} setActiveNav={setActiveNav} onLogout={onLogout || (() => setPage("landing"))} user={user} />;
+    return <CommunityPreview activeNav={activeNav} setActiveNav={setActiveNav} onLogout={onLogout || (() => setPage("landing"))} user={user} />;
   }
 
   // ── LANDING ───────────────────────────────────────────────────
@@ -102,7 +416,7 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
         .fu4{animation:fadeUp 0.7s 0.46s ease both}
         @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
         .mtrack{display:flex;gap:56px;animation:marquee 22s linear infinite;white-space:nowrap}
-        .slabel{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#F5A623;display:flex;align-items:center;gap:8px}
+        .slabel{font-family:'Roboto Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#F5A623;display:flex;align-items:center;gap:8px}
         .slabel::before{content:'';display:block;width:22px;height:1px;background:#F5A623}
         button:focus,input:focus{outline:none}
       `}</style>
@@ -132,9 +446,9 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
       {/* ── HERO ── */}
       <section style={{ minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", padding: "120px 80px 80px", position: "relative", zIndex: 1 }}>
         <div className="fu1" style={{ marginBottom: 28 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(78,205,196,0.1)", border: "1px solid rgba(78,205,196,0.22)", color: "#4ECDC4", padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono',monospace" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(78,205,196,0.1)", border: "1px solid rgba(78,205,196,0.22)", color: "#4ECDC4", padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: "'Roboto Mono',monospace" }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ECDC4", animation: "pulse 2s infinite" }} />
-            Tanzania's First AI Community Platform
+            <OnlineCount /> Tanzania's First AI Community Platform
           </span>
         </div>
 
@@ -160,14 +474,14 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
         <div className="fu4" style={{ display: "flex", gap: 44, paddingTop: 44, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
           {STATS.map(([num, label]) => (
             <div key={label}>
-              <div style={{ fontSize: 30, fontWeight: 800, color: "#F5A623", letterSpacing: "-0.03em", fontFamily: "'Space Mono',monospace" }}>{num}</div>
-              <div style={{ fontSize: 11, color: "rgba(232,237,245,0.38)", marginTop: 4, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "'Space Mono',monospace" }}>{label}</div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: "#F5A623", letterSpacing: "-0.03em", fontFamily: "'Roboto Mono',monospace" }}>{num}</div>
+              <div style={{ fontSize: 11, color: "rgba(232,237,245,0.38)", marginTop: 4, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "'Roboto Mono',monospace" }}>{label}</div>
             </div>
           ))}
         </div>
 
         <div style={{ position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, opacity: 0.35 }}>
-          <span style={{ fontSize: 9, letterSpacing: "0.12em", fontFamily: "'Space Mono',monospace" }}>SCROLL</span>
+          <span style={{ fontSize: 9, letterSpacing: "0.12em", fontFamily: "'Roboto Mono',monospace" }}>SCROLL</span>
           <div style={{ width: 1, height: 36, background: "linear-gradient(to bottom,rgba(245,166,35,0.8),transparent)" }} />
         </div>
       </section>
@@ -176,7 +490,7 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
       <div style={{ overflow: "hidden", padding: "18px 0", borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)", position: "relative", zIndex: 1 }}>
         <div className="mtrack">
           {["Machine Learning","LLMs","AI Agents","Computer Vision","NLP","RAG Systems","Claude API","TensorFlow","PyTorch","Swahili AI","Tanzania AI","Open Source","Machine Learning","LLMs","AI Agents","Computer Vision","NLP","RAG Systems","Claude API","TensorFlow","PyTorch","Swahili AI","Tanzania AI","Open Source"].map((item, i) => (
-            <span key={i} style={{ fontSize: 12, fontFamily: "'Space Mono',monospace", color: i % 3 === 0 ? "#F5A623" : "rgba(232,237,245,0.2)", letterSpacing: "0.08em" }}>
+            <span key={i} style={{ fontSize: 12, fontFamily: "'Roboto Mono',monospace", color: i % 3 === 0 ? "#F5A623" : "rgba(232,237,245,0.2)", letterSpacing: "0.08em" }}>
               {item} <span style={{ opacity: 0.25, margin: "0 8px" }}>◆</span>
             </span>
           ))}
@@ -198,7 +512,7 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
           {FEATURES.map(f => (
             <div key={f.title} className="fcard" onClick={() => goCommunity(f.nav)}>
               <div style={{ fontSize: 32, marginBottom: 18 }}>{f.icon}</div>
-              <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 9, color: f.color, letterSpacing: "0.14em", marginBottom: 7, textTransform: "uppercase" }}>{f.swahili}</div>
+              <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 9, color: f.color, letterSpacing: "0.14em", marginBottom: 7, textTransform: "uppercase" }}>{f.swahili}</div>
               <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 10, letterSpacing: "-0.02em" }}>{f.title}</h3>
               <p style={{ color: "rgba(232,237,245,0.48)", fontSize: 13, lineHeight: 1.75 }}>{f.desc}</p>
               <div style={{ marginTop: 20, color: f.color, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Angalia →</div>
@@ -220,7 +534,7 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#34D399" }} />
-                <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(232,237,245,0.4)" }}>LIVE</span>
+                <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(232,237,245,0.4)" }}>LIVE</span>
               </div>
             </div>
             {RECENT_ACTIVITY.map((act, i) => (
@@ -230,7 +544,7 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
                   <span style={{ fontWeight: 700, fontSize: 13, color: act.color }}>{act.user}</span>
                   <span style={{ fontSize: 13, color: "rgba(232,237,245,0.6)", marginLeft: 6 }}>{act.msg}</span>
                 </div>
-                <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(232,237,245,0.28)", flexShrink: 0 }}>{act.time}</span>
+                <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(232,237,245,0.28)", flexShrink: 0 }}>{act.time}</span>
               </div>
             ))}
             <button className="btn-g" style={{ width: "100%", marginTop: 20, fontSize: 13, padding: "11px" }} onClick={() => goCommunity("nyumbani")}>
@@ -244,7 +558,7 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
               <div className="slabel" style={{ marginBottom: 16 }}>Trending</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {TRENDING_TAGS.map((tag, i) => (
-                  <span key={tag} onClick={() => goCommunity("gundua")} style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, fontWeight: 700, padding: "7px 13px", borderRadius: 20, background: i < 2 ? "rgba(245,166,35,0.1)" : "rgba(255,255,255,0.05)", color: i < 2 ? "#F5A623" : "rgba(232,237,245,0.55)", cursor: "pointer", border: `1px solid ${i < 2 ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.08)"}`, transition: "all 0.2s" }}>{tag}</span>
+                  <span key={tag} onClick={() => goCommunity("gundua")} style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, fontWeight: 700, padding: "7px 13px", borderRadius: 20, background: i < 2 ? "rgba(245,166,35,0.1)" : "rgba(255,255,255,0.05)", color: i < 2 ? "#F5A623" : "rgba(232,237,245,0.55)", cursor: "pointer", border: `1px solid ${i < 2 ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.08)"}`, transition: "all 0.2s" }}>{tag}</span>
                 ))}
               </div>
             </div>
@@ -258,10 +572,10 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
                 { icon: "◉", label: "Startups",   sub: "6 Tanzania AI Startups", color: "#A78BFA", nav: "startups"   },
               ].map(item => (
                 <div key={item.label} onClick={() => goCommunity(item.nav)} style={{ display: "flex", gap: 12, alignItems: "center", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer", transition: "padding 0.2s" }}>
-                  <span style={{ color: item.color, fontSize: 16, fontFamily: "'Space Mono',monospace" }}>{item.icon}</span>
+                  <span style={{ color: item.color, fontSize: 16, fontFamily: "'Roboto Mono',monospace" }}>{item.icon}</span>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{item.label}</div>
-                    <div style={{ fontFamily: "'Space Mono',monospace", fontSize: 10, color: "rgba(232,237,245,0.35)" }}>{item.sub}</div>
+                    <div style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(232,237,245,0.35)" }}>{item.sub}</div>
                   </div>
                   <span style={{ marginLeft: "auto", color: "rgba(232,237,245,0.2)", fontSize: 12 }}>→</span>
                 </div>
@@ -297,157 +611,13 @@ export default function JamiiAILanding({ initialPage = "landing", user, onLogin,
           <div style={{ width: 28, height: 28, background: "#F5A623", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🌍</div>
           <span style={{ fontWeight: 800, fontSize: 16 }}>Jamii<span style={{ color: "#F5A623" }}>AI</span></span>
         </div>
-        <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "rgba(232,237,245,0.25)" }}>Built with ❤️ Tanzania · 2025</span>
+        <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(232,237,245,0.25)" }}>Built with ❤️ Tanzania · 2025</span>
         <div style={{ display: "flex", gap: 20 }}>
           {["Twitter", "LinkedIn", "GitHub", "Discord"].map(s => (
-            <span key={s} style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: "rgba(232,237,245,0.3)", cursor: "pointer" }}>{s}</span>
+            <span key={s} style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(232,237,245,0.3)", cursor: "pointer" }}>{s}</span>
           ))}
         </div>
       </footer>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  AUTH STUB (inline preview — production uses jamii-ai-auth.jsx)
-// ═══════════════════════════════════════════════════════════════════
-
-function AuthStub({ mode, onSwitch, onSuccess, onBack }) {
-  const [form, setForm] = useState({ email: "", password: "", name: "" });
-  const [loading, setLoading] = useState(false);
-  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
-
-  const handle = async () => {
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 1100));
-    setLoading(false);
-    onSuccess();
-  };
-
-  return (
-    <div style={{ fontFamily: "'Syne',sans-serif", background: "#0A0F1C", color: "#DCE6F0", minHeight: "100vh", display: "grid", gridTemplateColumns: "1fr 1fr" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');*{margin:0;padding:0;box-sizing:border-box}input,button{font-family:inherit}input:focus,button:focus{outline:none}@keyframes fup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}.fin{animation:fup 0.3s ease both}`}</style>
-
-      {/* Left branding */}
-      <div style={{ background: "linear-gradient(160deg,#0D1322,#0A0F1C)", borderRight: "1px solid rgba(255,255,255,0.06)", padding: "48px 56px", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(245,166,35,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,0.04) 1px,transparent 1px)", backgroundSize: "50px 50px", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", width: 350, height: 350, borderRadius: "50%", background: "rgba(245,166,35,0.05)", filter: "blur(90px)", top: -100, left: -100 }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
-          <span onClick={onBack} style={{ cursor: "pointer", fontFamily: "'Space Mono',monospace", fontSize: 12, color: "rgba(220,230,240,0.4)", marginRight: 10 }}>← Rudi</span>
-          <div style={{ width: 32, height: 32, background: "#F5A623", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>🌍</div>
-          <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.03em" }}>Jamii<span style={{ color: "#F5A623" }}>AI</span></span>
-        </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 1 }}>
-          <div style={{ fontSize: 64, textAlign: "center", marginBottom: 24 }}>🇹🇿</div>
-          <h2 style={{ fontSize: 38, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.1, marginBottom: 18 }}>Tanzania's AI <span style={{ color: "#F5A623" }}>Community</span></h2>
-          <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 14, lineHeight: 1.8 }}>Jiunge na 2,000+ AI developers, researchers, na enthusiasts wa Tanzania.</p>
-          <div style={{ display: "flex", gap: 28, marginTop: 36 }}>
-            {[["2K+","Wanachama"],["500+","AI Devs"],["20M+","Prize TZS"]].map(([n,l])=>(
-              <div key={l}><div style={{fontSize:22,fontWeight:800,color:"#F5A623",fontFamily:"'Space Mono',monospace"}}>{n}</div><div style={{fontFamily:"'Space Mono',monospace",fontSize:9,color:"rgba(220,230,240,0.35)",marginTop:2}}>{l}</div></div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Right auth form */}
-      <div style={{ padding: "48px 56px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div className="fin" style={{ width: "100%", maxWidth: 380 }}>
-          <h2 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.04em", marginBottom: 8 }}>
-            {mode === "login" ? "Karibu tena 👋" : "Jiunge na JamiiAI 🌍"}
-          </h2>
-          <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 13, marginBottom: 32 }}>
-            {mode === "login" ? "Ingia kwenye community ya AI Tanzania" : "Community ya AI Tanzania — bure kabisa"}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {mode === "register" && (
-              <input value={form.name} onChange={set("name")} placeholder="Jina lako kamili" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "13px 16px", color: "#DCE6F0", fontSize: 14 }} />
-            )}
-            <input value={form.email} onChange={set("email")} placeholder="Barua Pepe" type="email" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "13px 16px", color: "#DCE6F0", fontSize: 14 }} />
-            <input value={form.password} onChange={set("password")} placeholder="Nywila" type="password" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "13px 16px", color: "#DCE6F0", fontSize: 14 }} />
-            <button onClick={handle} style={{ background: "#F5A623", color: "#0A0F1C", border: "none", padding: "14px", borderRadius: 10, cursor: "pointer", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 15, transition: "all 0.2s" }}>
-              {loading ? "Inaendelea..." : mode === "login" ? "Ingia →" : "Jiandikishe →"}
-            </button>
-          </div>
-          <p style={{ marginTop: 24, textAlign: "center", color: "rgba(220,230,240,0.4)", fontSize: 13 }}>
-            {mode === "login" ? "Huna akaunti? " : "Una akaunti? "}
-            <span onClick={() => onSwitch(mode === "login" ? "register" : "login")} style={{ color: "#F5A623", fontWeight: 700, cursor: "pointer" }}>
-              {mode === "login" ? "Jiandikishe bure →" : "Ingia →"}
-            </span>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  COMMUNITY STUB (inline preview — production uses jamii-ai-community.jsx)
-// ═══════════════════════════════════════════════════════════════════
-
-function CommunityStub({ activeNav, setActiveNav, onLogout }) {
-  const NAV = [
-    {id:"nyumbani",icon:"⌂",label:"Nyumbani"},{id:"wataalamu",icon:"◈",label:"Wataalamu"},
-    {id:"startups",icon:"◉",label:"Startups"},{id:"changamoto",icon:"◆",label:"Changamoto"},
-    {id:"rasilimali",icon:"◧",label:"Rasilimali"},{id:"habari",icon:"◉",label:"Habari"},
-    {id:"vyuo",icon:"◫",label:"Vyuo & Taasisi"},
-  ];
-  const labels = { nyumbani:"Nyumbani 🏠",wataalamu:"Wataalamu ◈",startups:"Startups",changamoto:"Changamoto ◆",rasilimali:"Rasilimali ◧",habari:"Habari 📡",vyuo:"Vyuo & Taasisi" };
-  return (
-    <div style={{fontFamily:"'Syne',sans-serif",background:"#0A0F1C",color:"#DCE6F0",minHeight:"100vh",display:"flex"}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');*{margin:0;padding:0;box-sizing:border-box}::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#F5A623;border-radius:2px}.nv{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;transition:all 0.18s}.nv:hover{background:rgba(255,255,255,0.04)}.nv.active{background:rgba(245,166,35,0.1);color:#F5A623}`}</style>
-      <aside style={{width:228,flexShrink:0,height:"100vh",position:"sticky",top:0,borderRight:"1px solid rgba(255,255,255,0.06)",padding:"20px 12px",display:"flex",flexDirection:"column",gap:2}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:22,paddingLeft:6}}>
-          <div style={{width:32,height:32,background:"#F5A623",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🌍</div>
-          <span style={{fontWeight:800,fontSize:18,letterSpacing:"-0.03em"}}>Jamii<span style={{color:"#F5A623"}}>AI</span></span>
-        </div>
-        {NAV.map(item=>(
-          <div key={item.id} className={`nv ${activeNav===item.id?"active":""}`} onClick={()=>setActiveNav(item.id)}>
-            <span style={{fontSize:13,fontFamily:"'Space Mono',monospace",opacity:activeNav===item.id?1:0.4}}>{item.icon}</span>
-            <span style={{fontSize:12,fontWeight:activeNav===item.id?800:600,color:activeNav===item.id?"#F5A623":"rgba(220,230,240,0.72)"}}>{item.label}</span>
-          </div>
-        ))}
-        <div style={{flex:1}}/>
-        <div style={{borderTop:"1px solid rgba(255,255,255,0.06)",paddingTop:14}}>
-          <div onClick={onLogout} style={{display:"flex",gap:10,alignItems:"center",padding:"9px 6px",borderRadius:9,cursor:"pointer",color:"rgba(220,230,240,0.4)"}}>
-            <span style={{fontFamily:"'Space Mono',monospace",fontSize:11}}>← Toka</span>
-          </div>
-        </div>
-      </aside>
-      <main style={{flex:1,height:"100vh",overflowY:"auto"}}>
-        <div style={{position:"sticky",top:0,background:"rgba(10,15,28,0.93)",backdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"15px 24px",zIndex:10}}>
-          <span style={{fontWeight:800,fontSize:17,letterSpacing:"-0.02em"}}>{labels[activeNav]||activeNav}</span>
-        </div>
-        <div style={{padding:"40px 32px",textAlign:"center"}}>
-          <div style={{fontSize:52,marginBottom:20}}>✅</div>
-          <h2 style={{fontWeight:800,fontSize:24,letterSpacing:"-0.03em",marginBottom:12}}>
-            Umeunganishwa na <span style={{color:"#F5A623"}}>JamiiAI</span>!
-          </h2>
-          <p style={{color:"rgba(220,230,240,0.45)",lineHeight:1.8,maxWidth:400,margin:"0 auto 28px",fontSize:14}}>
-            Landing → Auth → Community flow inafanya kazi vizuri. Katika production, hii itaonyesha jamii-ai-community.jsx yenye yaliyomo yote.
-          </p>
-          <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap",marginBottom:32}}>
-            {NAV.map(n=>(
-              <span key={n.id} onClick={()=>setActiveNav(n.id)} style={{padding:"7px 14px",borderRadius:20,fontSize:11,cursor:"pointer",border:`1px solid ${activeNav===n.id?"#F5A623":"rgba(255,255,255,0.1)"}`,background:activeNav===n.id?"rgba(245,166,35,0.12)":"transparent",color:activeNav===n.id?"#F5A623":"rgba(220,230,240,0.5)",fontFamily:"'Space Mono',monospace",fontWeight:700,transition:"all 0.2s"}}>{n.label}</span>
-            ))}
-          </div>
-          <div style={{background:"rgba(255,255,255,0.025)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:14,padding:"20px 24px",maxWidth:500,margin:"0 auto",textAlign:"left"}}>
-            <div style={{fontFamily:"'Space Mono',monospace",fontSize:10,color:"#F5A623",letterSpacing:"0.1em",marginBottom:12}}>MUUNDO WA FILES</div>
-            {[
-              ["jamii-ai-landing.jsx",   "#F5A623", "Landing Page (hii hapa)"],
-              ["jamii-ai-auth.jsx",      "#4ECDC4", "Auth: Login + Register + Onboarding"],
-              ["jamii-ai-community.jsx", "#A78BFA", "Community: Feed + Sections zote"],
-              ["server.js",              "#34D399", "Backend: Express + JWT + Routes"],
-              ["schema.sql",             "#F87171", "Database: PostgreSQL tables 12"],
-              [".env.example",           "#60A5FA", "Environment variables"],
-            ].map(([file, color, desc])=>(
-              <div key={file} style={{display:"flex",gap:12,alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                <span style={{fontFamily:"'Space Mono',monospace",fontSize:11,color,minWidth:200}}>{file}</span>
-                <span style={{fontSize:12,color:"rgba(220,230,240,0.45)"}}>{desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
     </div>
   );
 }
