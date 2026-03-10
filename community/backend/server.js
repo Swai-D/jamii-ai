@@ -541,18 +541,51 @@ authRouter.post("/register", async (req, res) => {
 
 authRouter.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, login, identifier, password } = req.body;
+    let rawIden = identifier || login || email;
+
+    if (!rawIden || !password) {
+      return res.status(400).json({ error: "Ingiza barua pepe/handle na nywila" });
+    }
+
+    // Safisha identifier
+    let iden = String(rawIden).trim().toLowerCase();
+    // Ondoa @ ikiwa ipo (handles huhifadhiwa bila @)
+    if (iden.startsWith("@")) iden = iden.substring(1);
+
+    console.log(`[AUTH] Jaribio la Login: input="${rawIden}", processed="${iden}"`);
+
+    // Tafuta mtumiaji kwa email AU handle
+    // Tunatumia LOWER() na TRIM() kuhakikisha mechi kamili
     const result = await db.query(
       `SELECT u.*, r.name as role_name 
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        LEFT JOIN roles r ON ur.role_id = r.id
-       WHERE u.email = $1`, [email?.toLowerCase()]
+       WHERE LOWER(TRIM(u.email)) = $1 OR LOWER(TRIM(u.handle)) = $1`, [iden]
     );
+    
     const user = result.rows[0];
-    if (!user || !(await bcrypt.compare(password, user.password_hash)))
-      return res.status(401).json({ error: "Barua pepe au nywila si sahihi" });
+    if (!user) {
+      console.log(`[AUTH] Mtumiaji hajapatikana kwa: "${iden}"`);
+      return res.status(401).json({ error: "Barua pepe/handle au nywila si sahihi" });
+    }
 
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) {
+      console.log(`[AUTH] Nywila si sahihi kwa: "${user.handle || user.email}"`);
+      return res.status(401).json({ error: "Barua pepe/handle au nywila si sahihi" });
+    }
+
+    // Angalia kama akaunti imezuiwa (Banned)
+    if (user.status === "banned") {
+      console.log(`[AUTH] Login imekataliwa: Mtumiaji @${user.handle} amebaniwa.`);
+      return res.status(403).json({ 
+        error: "Akaunti yako imezuiwa (banned). Tafadhali wasiliana na usimamizi wa JamiiAI kwa msaada zaidi." 
+      });
+    }
+
+    console.log(`[AUTH] Login imefanikiwa: @${user.handle} (${user.email})`);
     const { password_hash, ...safe } = user;
     res.json({ token: signToken(user), user: safe });
   } catch (err) {
@@ -567,11 +600,21 @@ authRouter.post("/forgot-password", async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Barua pepe inahitajika" });
 
-    const result = await db.query("SELECT id FROM users WHERE email = $1", [email.toLowerCase()]);
+    const result = await db.query("SELECT id, status FROM users WHERE email = $1", [email.toLowerCase()]);
     
     if (!result.rows.length) {
       console.log("User not found for email:", email);
       return res.status(400).json({ error: "Barua pepe haijapatikana kwenye mfumo wetu." });
+    }
+
+    const user = result.rows[0];
+
+    // Zuia reset kama mtumiaji amebaniwa
+    if (user.status === "banned") {
+      console.log(`[AUTH] Password reset imekataliwa: Mtumiaji ${email} amebaniwa.`);
+      return res.status(403).json({ 
+        error: "Akaunti yako imezuiwa (banned). Huwezi kubadilisha nywila kwa sasa. Tafadhali wasiliana na usimamizi." 
+      });
     }
 
     const token = Math.floor(100000 + Math.random() * 900000).toString();

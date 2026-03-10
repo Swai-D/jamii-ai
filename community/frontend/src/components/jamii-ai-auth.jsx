@@ -50,18 +50,21 @@ function Btn({ children, onClick, variant = "primary", disabled, full }) {
 // ─── PANELS ──────────────────────────────────────────────────────────────────
 
 function LoginPanel({ onSwitch, onSuccess, onForgot }) {
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ identifier: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleLogin = async () => {
-    if (!form.email || !form.password) { setErr("Jaza fields zote."); return; }
+    const iden = form.identifier?.trim();
+    if (!iden || !form.password) { setErr("Jaza fields zote."); return; }
     setLoading(true); setErr("");
     try {
+      // Tunatuma 'identifier' na 'email' (kama alias) kwa compatibility ya server
       const res = await axios.post(`${API_URL}/auth/login`, {
-        email: form.email,
+        identifier: iden,
+        email: iden, 
         password: form.password
       });
       setLoading(false);
@@ -80,8 +83,8 @@ function LoginPanel({ onSwitch, onSuccess, onForgot }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        <FloatLabel label="Barua Pepe">
-          <Input value={form.email} onChange={set("email")} placeholder="wewe@mfano.com" type="email" />
+        <FloatLabel label="Barua Pepe au Handle">
+          <Input value={form.identifier} onChange={set("identifier")} placeholder="wewe@mfano.com au handle_yako" />
         </FloatLabel>
         <FloatLabel label="Nywila">
           <Input value={form.password} onChange={set("password")} placeholder="••••••••" type="password" />
