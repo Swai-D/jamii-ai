@@ -491,75 +491,135 @@ function ContentPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [limit] = useState(15);
+  const [total, setTotal] = useState(0);
+
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
 
-  useEffect(() => {
-    adminAPI.flaggedContent()
-      .then(r => setPosts(r.data?.posts || r.data || []))
+  const fetchFlagged = useCallback(() => {
+    setLoading(true);
+    adminAPI.flaggedContent({ page, limit })
+      .then(r => {
+        setPosts(r.data?.posts || []);
+        setTotal(r.data?.total || 0);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, limit]);
+
+  useEffect(() => {
+    fetchFlagged();
+  }, [fetchFlagged]);
 
   const action = async (id, act) => {
     try {
       if (act === "delete") {
         await adminAPI.deleteContent(id);
         setPosts(ps => ps.filter(p => p.id !== id));
+        setTotal(t => t - 1);
         notify("🗑 Post imefutwa");
       } else {
         await adminAPI.approveContent(id);
-        setPosts(ps => ps.map(p => p.id===id ? {...p, status:"reviewed"} : p));
+        setPosts(ps => ps.filter(p => p.id !== id));
+        setTotal(t => t - 1);
         notify("✅ Post imeruhusiwa — imepitiwa");
       }
     } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
-  const REASON_C = { Spam:"#F5A623", Scam:"#F87171", "Off-topic":"#A78BFA", Prohibited:"#F87171" };
-  const pending = posts.filter(p=>p.status==="pending");
-
-  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia maudhui yaliyoripotiwa...</div>;
+  const REASON_C = { 
+    Spam: "#F5A623", 
+    Harassment: "#F87171", 
+    "Hate Speech": "#F87171", 
+    "False Information": "#A78BFA", 
+    Inappropriate: "#F87171",
+    Other: "#94A3B8"
+  };
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div>
       {toast && <div style={{ position:"fixed", bottom:24, right:24, zIndex:999, background:"#F5A623", color:"#0C0C0E", padding:"11px 18px", borderRadius:9, fontWeight:700, fontSize:13, fontFamily:MONO }}>{toast}</div>}
-      <SectionHead title="Content Moderation" sub={`${pending.length} zinasubiri review`} />
+      <SectionHead title="Content Moderation" sub={`${total} zinasubiri review`} />
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
-        <StatCard icon="🚩" label="Pending Review" value={pending.length}     color="#F87171" />
-        <StatCard icon="✅" label="Zilizopitishwa"  value={posts.filter(p=>p.status==="reviewed").length} color="#34D399" />
-        <StatCard icon="🗑" label="Jumla"           value={posts.length}  sub="Zilizoripotiwa" color="#A78BFA" />
+        <StatCard icon="🚩" label="Flagged Content" value={total} color="#F87171" />
+        <StatCard icon="🔍" label="In-Review" value={posts.length} color="#F5A623" sub="Ukurasa huu" />
+        <StatCard icon="✓"  label="Reviewed" value="—" color="#34D399" sub="Mwezi huu" />
       </div>
 
-      {posts.length === 0 ? (
+      {loading && posts.length === 0 ? (
+        <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia maudhui...</div>
+      ) : posts.length === 0 ? (
         <div style={{ textAlign:"center", padding:"48px 0", color:"rgba(242,242,245,0.25)" }}>
           <div style={{ fontSize:32, marginBottom:10 }}>🛡️</div>
           <div style={{ fontSize:14 }}>Hakuna maudhui yaliyoripotiwa</div>
         </div>
       ) : (
-        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          {posts.map(p=>(
-            <div key={p.id} style={{ background:"#161618", border:`1px solid ${p.status==="pending"?"rgba(248,113,113,0.25)":"#232325"}`, borderRadius:14, padding:"16px 18px" }}>
-              <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+        <>
+          <div style={{ display:"flex", flexDirection:"column", gap:12, opacity: loading ? 0.6 : 1, transition:"opacity 0.2s" }}>
+            {posts.map((p, i)=>(
+              <div key={p.id} style={{ background:"#161618", border:`1px solid ${p.is_flagged?"rgba(248,113,113,0.25)":"#232325"}`, borderRadius:14, padding:"16px 18px", display:"flex", gap:15 }}>
+                <div style={{ fontFamily:MONO, fontSize:12, color:"rgba(242,242,245,0.2)", width:30 }}>#{(page-1)*limit + i + 1}</div>
                 <div style={{ flex:1 }}>
-                  <div style={{ display:"flex", gap:7, alignItems:"center", flexWrap:"wrap", marginBottom:8 }}>
-                    <Badge label={p.reason} color={REASON_C[p.reason]||"#F87171"} />
-                    <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>🚩 {p.reports||p.reports_count||1} reports</span>
-                    <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>{p.time||p.created_at}</span>
-                    {p.status==="reviewed" && <Badge label="✓ Reviewed" color="#34D399" />}
+                  <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:"flex", gap:7, alignItems:"center", flexWrap:"wrap", marginBottom:8 }}>
+                        <Badge label={p.reason || "Flagged"} color={REASON_C[p.reason]||"#F87171"} />
+                        <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(248,113,113,0.8)", fontWeight:700 }}>
+                          Reported by {p.reporter_name || "Mtumiaji"} (@{p.reporter_handle || "anon"})
+                        </span>
+                        <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>· {p.report_count||1} reports</span>
+                        <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>· {new Date(p.reported_at || p.created_at).toLocaleString()}</span>
+                      </div>
+                      <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8 }}>
+                        <Av i={(p.author_handle||"U")[0]} c="#A78BFA" />
+                        <div>
+                          <div style={{ fontSize:12, fontWeight:700 }}>{p.author_name}</div>
+                          <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.4)" }}>against @{p.author_handle || "mtumiaji"}</div>
+                        </div>
+                      </div>
+                      <p style={{ fontSize:14, color:"rgba(220,230,240,0.8)", lineHeight:1.6, background:"rgba(255,255,255,0.02)", border:"1px solid #232325", borderRadius:8, padding:"12px 15px" }}>{p.content}</p>
+                      {p.image_url && (
+                        <img src={p.image_url} alt="Content" style={{ marginTop:10, borderRadius:8, maxWidth:"100%", maxHeight:200, border:"1px solid #232325" }} />
+                      )}
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:7, flexShrink:0 }}>
+                      <ActionBtn label="✓ Approve" color="#34D399" onClick={()=>action(p.id,"approve")} />
+                      <ActionBtn label="🗑 Delete"  danger onClick={()=>action(p.id,"delete")} />
+                    </div>
                   </div>
-                  <div style={{ fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.4)", marginBottom:6 }}>@{p.handle||p.author_handle}</div>
-                  <p style={{ fontSize:14, color:"rgba(242,242,245,0.75)", lineHeight:1.6, background:"rgba(248,113,113,0.05)", border:"1px solid rgba(248,113,113,0.1)", borderRadius:8, padding:"10px 13px" }}>{p.content}</p>
                 </div>
-                {p.status==="pending" && (
-                  <div style={{ display:"flex", flexDirection:"column", gap:7, flexShrink:0 }}>
-                    <ActionBtn label="✓ Approve" color="#34D399" onClick={()=>action(p.id,"approve")} />
-                    <ActionBtn label="🗑 Delete"  danger onClick={()=>action(p.id,"delete")} />
-                  </div>
-                )}
               </div>
+            ))}
+          </div>
+
+          {/* Pagination UI */}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:20, fontFamily:MONO, fontSize:12 }}>
+            <div style={{ color:"rgba(242,242,245,0.3)" }}>
+              Ukusa wa {page} kati ya {totalPages || 1}
             </div>
-          ))}
-        </div>
+            <div style={{ display:"flex", gap:6 }}>
+              <button 
+                disabled={page === 1}
+                onClick={() => setPage(p => p - 1)}
+                style={{ background:"#161618", border:"1px solid #232325", color: page===1 ? "rgba(242,242,245,0.1)" : "#F5A623", padding:"6px 14px", borderRadius:8, cursor: page===1 ? "default" : "pointer", fontWeight:700, outline:"none" }}
+              >
+                ← Prev
+              </button>
+              <button 
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+                style={{ background:"#161618", border:"1px solid #232325", color: page>=totalPages ? "rgba(242,242,245,0.1)" : "#F5A623", padding:"6px 14px", borderRadius:8, cursor: page>=totalPages ? "default" : "pointer", fontWeight:700, outline:"none" }}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

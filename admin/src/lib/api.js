@@ -36,9 +36,9 @@ export const adminAPI = {
   rejectJob:              (id)      => api.delete(`/api/admin/jobs/${id}`),
 
   // Content Moderation
-  flaggedContent:         ()        => api.get("/api/admin/content"),
-  deleteContent:          (id)      => api.delete(`/api/admin/content/${id}`),
-  approveContent:         (id)      => api.post(`/api/admin/content/${id}/approve`),
+  flaggedContent:         (p)       => api.get("/api/admin/flagged", { params: p }),
+  deleteContent:          (id)      => api.delete(`/api/admin/posts/${id}`),
+  approveContent:         (id)      => api.patch(`/api/admin/posts/${id}/approve`),
 
   // Challenges
   challenges:             ()        => api.get("/api/challenges"),

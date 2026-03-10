@@ -1144,6 +1144,32 @@ app.post("/api/posts", auth, async (req, res) => {
   }
 });
 
+// POST /api/posts/:id/report
+app.post("/api/posts/:id/report", auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    // Flag the post
+    await db.query(
+      "UPDATE posts SET is_flagged = true, updated_at = NOW() WHERE id = $1",
+      [id]
+    );
+
+    // Optional: Log who reported (uncomment if you have a reports table)
+    /*
+    await db.query(
+      "INSERT INTO reports (id, post_id, user_id, reason, created_at) VALUES ($1,$2,$3,$4,NOW())",
+      [uuid(), id, req.user.id, reason || "Reported by user"]
+    );
+    */
+
+    res.json({ success: true, message: "Post imeripotiwa kwa usimamizi." });
+  } catch (err) {
+    res.status(500).json({ error: "Hitilafu ya server" });
+  }
+});
+
 // DELETE /api/posts/:id
 app.delete("/api/posts/:id", auth, async (req, res) => {
   try {
@@ -2038,24 +2064,52 @@ app.patch("/api/admin/users/:id/verify", adminAuth, async (req, res) => {
 //  ADMIN: CONTENT MODERATION
 // ════════════════════════════════════════════════════════════════════
 
+// Ensure reports table exists
+db.query(`
+  CREATE TABLE IF NOT EXISTS reports (
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id     UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    reporter_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reason      VARCHAR(255) NOT NULL,
+    details     TEXT,
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS idx_reports_post_id ON reports(post_id);
+`).catch(err => console.error("❌ Error creating reports table:", err));
+
 app.get("/api/admin/flagged", adminAuth, async (req, res) => {
   try {
+    const { page=1, limit=20 } = req.query;
+    const off = (parseInt(page)-1) * parseInt(limit);
+
     const { rows } = await db.query(
       `SELECT p.id, p.content, p.image_url, p.created_at, p.is_flagged,
               u.name AS author_name, u.handle AS author_handle, u.avatar_url,
-              'Flagged' AS reason,
-              (SELECT COUNT(*) FROM post_likes WHERE post_id=p.id) AS reports
-       FROM posts p JOIN users u ON u.id=p.user_id
+              r.reason, r.created_at AS reported_at,
+              rep.name AS reporter_name, rep.handle AS reporter_handle,
+              (SELECT COUNT(*) FROM reports WHERE post_id=p.id) AS report_count
+       FROM posts p 
+       JOIN users u ON u.id=p.user_id
+       LEFT JOIN reports r ON r.post_id = p.id
+       LEFT JOIN users rep ON rep.id = r.reporter_id
        WHERE p.is_flagged=true AND p.is_deleted=false
-       ORDER BY p.created_at DESC`
+       ORDER BY r.created_at DESC NULLS LAST, p.created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [parseInt(limit), off]
     );
-    res.json({ posts: rows });
+
+    const { rows:[{count}] } = await db.query(
+      "SELECT COUNT(*) FROM posts WHERE is_flagged=true AND is_deleted=false"
+    );
+
+    res.json({ posts: rows, total: parseInt(count) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.patch("/api/admin/posts/:id/approve", adminAuth, async (req, res) => {
   try {
     await db.query("UPDATE posts SET is_flagged=false WHERE id=$1", [req.params.id]);
+    await db.query("DELETE FROM reports WHERE post_id=$1", [req.params.id]);
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

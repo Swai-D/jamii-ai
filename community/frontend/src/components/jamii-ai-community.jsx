@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Heart, MessageSquare, Bookmark, Share2, Send, Languages, Star, Users, MapPin, Briefcase, ExternalLink, Zap, Github, Linkedin, Twitter, Mail, Phone, CheckCircle2, Trophy, Calendar, Globe, Clock, Search, ChevronRight, LogOut, UserPlus, UserCheck } from "lucide-react";
+import { Heart, MessageSquare, Bookmark, Share2, Send, Languages, Star, Users, MapPin, Briefcase, ExternalLink, Zap, Github, Linkedin, Twitter, Mail, Phone, CheckCircle2, Trophy, Calendar, Globe, Clock, Search, ChevronRight, LogOut, UserPlus, UserCheck, MoreHorizontal, Flag, Link2 } from "lucide-react";
 import { translations } from "../translations";
 import ProfilePage from "./jamii-ai-profile";
 import SearchBar from "./SearchBar";
@@ -1093,7 +1093,7 @@ function ImageLightbox({ src, onClose }) {
   );
 }
 
-function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention, onAuthorClick }) {
+function PostCard({ post, onLike, onBookmark, onReport, me, t, onHashtag, onMention, onAuthorClick }) {
   const [showComments,    setShowComments]    = useState(false);
   const [newComment,      setNewComment]      = useState("");
   const [comments,        setComments]        = useState([]);
@@ -1101,6 +1101,18 @@ function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention, onAut
   const [imgLoaded,       setImgLoaded]       = useState(false);
   const [imgError,        setImgError]        = useState(false);
   const [lightbox,        setLightbox]        = useState(false);
+  const [showMenu,        setShowMenu]        = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const ts = TAG_COLORS[post.category] || TAG_COLORS.swali;
 
@@ -1140,38 +1152,74 @@ function PostCard({ post, onLike, onBookmark, me, t, onHashtag, onMention, onAut
         borderRadius: 16, marginBottom: 12,
         overflow: "hidden",
         transition: "border-color 0.2s",
+        position: "relative"
       }}>
         {/* ── Card body — padding top ── */}
         <div style={{ padding: "18px 20px 14px" }}>
 
           {/* Author row */}
-          <div 
-            onClick={() => onAuthorClick?.({ id: post.user_id, name: post.author_name, handle: post.author_handle, avatar_url: post.author_avatar, role: post.author_role, is_verified: post.author_verified })}
-            style={{ display: "flex", gap: 12, marginBottom: hasText ? 12 : 8, cursor: "pointer" }}
-          >
-            {post.author_avatar ? (
-              <img 
-                src={post.author_avatar} 
-                alt={post.author_name} 
-                style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} 
-              />
-            ) : (
-              <Av
-                initials={post.author_name ? post.author_name.split(" ").map(w => w[0]).join("") : "??"}
-                userId={post.user_id || post.author_handle}
-                size={40}
-              />
-            )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontWeight: 700, fontSize: 14 }}>{post.author_name}</span>
-                {post.author_verified && <VerifiedBadge size={14} />}
-                <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.3)" }}>@{post.author_handle}</span>
-                <Pill label={t[post.category] || post.category} bg={ts.bg} color={ts.color} />
+          <div style={{ display: "flex", gap: 12, marginBottom: hasText ? 12 : 8, alignItems: "flex-start" }}>
+            <div 
+              onClick={() => onAuthorClick?.({ id: post.user_id, name: post.author_name, handle: post.author_handle, avatar_url: post.author_avatar, role: post.author_role, is_verified: post.author_verified })}
+              style={{ display: "flex", gap: 12, cursor: "pointer", flex: 1, minWidth: 0 }}
+            >
+              {post.author_avatar ? (
+                <img 
+                  src={post.author_avatar} 
+                  alt={post.author_name} 
+                  style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} 
+                />
+              ) : (
+                <Av
+                  initials={post.author_name ? post.author_name.split(" ").map(w => w[0]).join("") : "??"}
+                  userId={post.user_id || post.author_handle}
+                  size={40}
+                />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>{post.author_name}</span>
+                  {post.author_verified && <VerifiedBadge size={14} />}
+                  <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "rgba(220,230,240,0.3)" }}>@{post.author_handle}</span>
+                  <Pill label={t[post.category] || post.category} bg={ts.bg} color={ts.color} />
+                </div>
+                <div style={{ fontSize: 11, color: "rgba(220,230,240,0.35)", marginTop: 2, fontFamily: "'Roboto Mono',monospace" }}>
+                  {post.author_role || "Mwanachama"} · {timeAgo(post.created_at)}
+                </div>
               </div>
-              <div style={{ fontSize: 11, color: "rgba(220,230,240,0.35)", marginTop: 2, fontFamily: "'Roboto Mono',monospace" }}>
-                {post.author_role || "Mwanachama"} · {timeAgo(post.created_at)}
-              </div>
+            </div>
+
+            {/* 3 DOTS MENU */}
+            <div style={{ position: "relative" }} ref={menuRef}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                style={{ background: "none", border: "none", color: "rgba(220,230,240,0.3)", cursor: "pointer", padding: 4, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                onMouseLeave={e => e.currentTarget.style.background = "none"}
+              >
+                <MoreHorizontal size={20} />
+              </button>
+
+              {showMenu && (
+                <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, background: "#161B2C", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: 6, zIndex: 100, width: 160, boxShadow: "0 10px 25px rgba(0,0,0,0.4)" }}>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setShowMenu(false); navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`); alert("Link imenakiliwa!"); }}
+                    style={{ width: "100%", textAlign: "left", background: "none", border: "none", color: "#DCE6F0", padding: "8px 10px", borderRadius: 8, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}
+                  >
+                    <Link2 size={14} /> Nakili Link
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setShowMenu(false); onReport(post.id); }}
+                    style={{ width: "100%", textAlign: "left", background: "none", border: "none", color: "#F87171", padding: "8px 10px", borderRadius: 8, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}
+                    onMouseEnter={e => e.currentTarget.style.background = "rgba(248,113,113,0.1)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}
+                  >
+                    <Flag size={14} /> Ripoti Post
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1493,6 +1541,24 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
     setIsPosting(false);
   };
 
+  const handleReport = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) { notify("Ingia kwanza ili kuripoti."); return; }
+      
+      const confirmReport = window.confirm("Je, una uhakika unataka kuripoti post hii kwa kukiuka kanuni za jamii?");
+      if (!confirmReport) return;
+
+      await axios.post(`${API_URL}/posts/${id}/report`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      notify("🚩 Post imeripotiwa kwa usimamizi.");
+    } catch (err) {
+      notify("Hitilafu imetokea wakati wa kuripoti.");
+    }
+  };
+
   const localizedNav = NAV_ITEMS.map(item => ({ ...item, label: t[item.id] || item.label }));
   const localizedFilters = FILTER_TABS.map(tab => ({ ...tab, label: t[tab.id] || (tab.id === 'habari' ? t.habari_filter : tab.label) }));
 
@@ -1696,7 +1762,8 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
                 </div>
                 {loading ? <div style={{ opacity: 0.4 }}>{t.inapakia}</div> : posts.map(p => <PostCard
                   key={p.id} post={p}
-                  onLike={handleLike} onBookmark={handleBookmark}
+                  onLike={handleLike} onBookmark={handleBookmark} 
+                  onReport={() => setReportingPostId(p.id)}
                   me={ME} t={t}
                   onHashtag={(tag) => { setActiveFilter("zote"); setComposerText(`#${tag} `); notify(`#${tag}`); }}
                   onMention={(handle) => { notify(`@${handle}`); }}
