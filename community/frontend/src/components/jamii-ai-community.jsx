@@ -109,29 +109,35 @@ function TypeBadge({ type }) {
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
-function Av({ initials, color, size = 40, userId, src }) {
-  // Derive consistent color from userId, initials, or fallback
-  const seed = userId || initials || "x";
+function Av({ initials, color, size = 40, userId, src, name }) {
+  // Ensure we have initials if name is provided but initials are missing
+  const finalInitials = initials || (name ? name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() : "?");
+  
+  // Derive consistent color from userId, finalInitials, or fallback
+  const seed = userId || finalInitials || "x";
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash);
   const derived = AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
   const bg = color || derived;
   const textColor = ["#F5A623","#FBBF24","#34D399","#60A5FA"].includes(bg) ? "#0A0F1C" : "#fff";
   
+  // Check if src is valid (not empty, not just whitespace)
+  const hasImage = src && src.trim().length > 0;
+
   return (
     <div style={{ 
       width: size, height: size, borderRadius: "50%", 
-      background: src ? "transparent" : bg, 
+      background: hasImage ? "transparent" : bg, 
       display: "flex", alignItems: "center", justifyContent: "center", 
       fontFamily: "'Roboto Mono',monospace", fontWeight: 700, 
       fontSize: size * 0.35, color: textColor, flexShrink: 0,
       overflow: "hidden",
-      border: src ? `1.5px solid rgba(255,255,255,0.1)` : "none"
+      border: hasImage ? `1.5px solid rgba(255,255,255,0.1)` : "none"
     }}>
-      {src ? (
+      {hasImage ? (
         <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
-        initials
+        finalInitials
       )}
     </div>
   );

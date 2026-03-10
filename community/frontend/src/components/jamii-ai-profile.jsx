@@ -19,12 +19,31 @@ function deriveColor(seed) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function Av({ initials, color, size = 80, src, userId }) {
-  const bg = color || deriveColor(userId || initials || "x");
+function Av({ initials, color, size = 80, src, userId, name }) {
+  // Ensure we have initials if name is provided but initials are missing
+  const finalInitials = initials || (name ? name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() : "?");
+  
+  const bg = color || deriveColor(userId || finalInitials || "x");
   const textColor = ["#F5A623","#FBBF24","#34D399","#60A5FA"].includes(bg) ? "#0A0F1C" : "#fff";
+  
+  // Check if src is valid (not empty, not just whitespace)
+  const hasImage = src && src.trim().length > 0;
+
   return (
-    <div style={{ width: size, height: size, borderRadius: "50%", background: src ? "transparent" : bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Roboto Mono',monospace", fontWeight: 700, fontSize: size * 0.28, color: textColor, flexShrink: 0, overflow: "hidden", border: `3px solid ${bg}40` }}>
-      {src ? <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
+    <div style={{ 
+      width: size, height: size, borderRadius: "50%", 
+      background: hasImage ? "transparent" : bg, 
+      display: "flex", alignItems: "center", justifyContent: "center", 
+      fontFamily: "'Roboto Mono',monospace", fontWeight: 700, 
+      fontSize: size * 0.28, color: textColor, flexShrink: 0, 
+      overflow: "hidden", 
+      border: hasImage ? `1.5px solid rgba(255,255,255,0.1)` : `3px solid ${bg}40` 
+    }}>
+      {hasImage ? (
+        <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        finalInitials
+      )}
     </div>
   );
 }

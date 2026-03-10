@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { authAPI, adminAPI } from "./lib/api";
 import { LogOut, Globe, Shield, Activity, Users, Settings, Bell, Briefcase, FileText, BarChart3, Star, Layers, Zap } from "lucide-react";
 
@@ -269,12 +269,15 @@ function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([adminAPI.stats(), adminAPI.analytics()])
       .then(([sRes, aRes]) => {
         setStats(sRes.data);
         setWeekly(aRes.data?.weekly || []);
       })
-      .catch(console.error)
+      .catch(err => {
+        console.error("Dashboard load error:", err);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -346,21 +349,36 @@ function UsersPage() {
   const [filter, setFilter] = useState("Wote");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [total, setTotal] = useState(0);
 
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
 
-  useEffect(() => {
-    adminAPI.users()
-      .then(r => setUsers(r.data?.users || r.data || []))
+  const fetchUsers = useCallback(() => {
+    setLoading(true);
+    adminAPI.users({ search, status: filter, page, limit })
+      .then(r => {
+        setUsers(r.data?.users || []);
+        setTotal(r.data?.total || 0);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [search, filter, page, limit]);
 
-  const filtered = users.filter(u => {
-    const matchQ = u.name.toLowerCase().includes(search.toLowerCase()) || u.handle?.toLowerCase().includes(search.toLowerCase());
-    const matchF = filter==="Wote" || (filter==="Active" && u.status==="active") || (filter==="Banned" && u.status==="banned") || (filter==="Pending" && u.status==="pending") || (filter==="Verified" && u.verified);
-    return matchQ && matchF;
-  });
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchUsers();
+    }, 400); // Debounce search
+    return () => clearTimeout(handler);
+  }, [fetchUsers]);
+
+  // Reset page when search or filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, filter]);
 
   const toggleBan = async id => {
     const u = users.find(u=>u.id===id);
@@ -375,19 +393,18 @@ function UsersPage() {
     const u = users.find(u=>u.id===id);
     try {
       await adminAPI.verifyUser(id);
-      setUsers(us => us.map(u => u.id===id ? { ...u, verified:!u.verified } : u));
-      notify(u.verified ? `❌ Verification imeondolewa — ${u.name}` : `✅ ${u.name} ameverified`);
+      setUsers(us => us.map(u => u.id===id ? { ...u, is_verified:!u.is_verified } : u));
+      notify(u.is_verified ? `❌ Verification imeondolewa — ${u.name}` : `✅ ${u.name} ameverified`);
     } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
   const STATUS_C = { active:"#34D399", banned:"#F87171", pending:"#F5A623" };
-
-  if (loading) return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia watumiaji...</div>;
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div>
       {toast && <div style={{ position:"fixed", bottom:24, right:24, zIndex:999, background:"#F5A623", color:"#0C0C0E", padding:"11px 18px", borderRadius:9, fontWeight:700, fontSize:13, fontFamily:MONO }}>{toast}</div>}
-      <SectionHead title="Watumiaji" sub={`Wanachama ${users.length} wote wa JamiiAI`} />
+      <SectionHead title="Watumiaji" sub={`Wanachama ${total.toLocaleString()} wote wa JamiiAI`} />
 
       <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
         <div style={{ position:"relative", flex:1, minWidth:200 }}>
@@ -399,43 +416,71 @@ function UsersPage() {
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading && users.length === 0 ? (
+         <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia watumiaji...</div>
+      ) : users.length === 0 ? (
         <div style={{ textAlign:"center", padding:"48px 0", color:"rgba(242,242,245,0.25)" }}>
           <div style={{ fontSize:32, marginBottom:10 }}>👥</div>
           <div style={{ fontSize:14 }}>Hakuna watumiaji wanaolingana na utafutaji</div>
         </div>
       ) : (
-        <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, overflow:"hidden" }}>
-          <div style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 80px 80px 120px", background:"#0C0C0E", borderBottom:"1px solid #232325", padding:"10px 18px" }}>
-            {["MTUMIAJI","JUKUMU / MJI","BADGE","STATUS","VERIFIED","VITENDO"].map(h=>(
-              <div key={h} style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.32)", fontWeight:700, letterSpacing:"0.04em" }}>{h}</div>
-            ))}
-          </div>
-          {filtered.map((u,i)=>(
-            <div key={u.id} style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 80px 80px 120px", padding:"11px 18px", borderBottom:i<filtered.length-1?"1px solid #1A1A1C":"none", alignItems:"center" }}>
-              <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                <Av i={u.name.split(" ").map(w=>w[0]).join("").slice(0,2)} c={["#F5A623","#4ECDC4","#A78BFA","#F87171","#34D399","#60A5FA"][u.id%6]} />
+        <>
+          <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, overflow:"hidden", opacity: loading ? 0.6 : 1, transition: "opacity 0.2s" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"50px 2fr 1.5fr 1fr 80px 80px 140px", background:"#0C0C0E", borderBottom:"1px solid #232325", padding:"10px 18px" }}>
+              {["#","MTUMIAJI","JUKUMU / MJI","BADGE","STATUS","VERIFIED","VITENDO"].map(h=>(
+                <div key={h} style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.32)", fontWeight:700, letterSpacing:"0.04em" }}>{h}</div>
+              ))}
+            </div>
+            {users.map((u,i)=>(
+              <div key={u.id} style={{ display:"grid", gridTemplateColumns:"50px 2fr 1.5fr 1fr 80px 80px 140px", padding:"11px 18px", borderBottom:i<users.length-1?"1px solid #1A1A1C":"none", alignItems:"center" }}>
+                <div style={{ fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.25)" }}>{(page-1)*limit + i + 1}</div>
+                <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+                  <Av i={u.name.split(" ").map(w=>w[0]).join("").slice(0,2)} c={["#F5A623","#4ECDC4","#A78BFA","#F87171","#34D399","#60A5FA"][i%6]} />
+                  <div>
+                    <div style={{ fontWeight:600, fontSize:13 }}>{u.name}</div>
+                    <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.32)" }}>@{u.handle}</div>
+                  </div>
+                </div>
                 <div>
-                  <div style={{ fontWeight:600, fontSize:13 }}>{u.name}</div>
-                  <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.32)" }}>@{u.handle}</div>
+                  <div style={{ fontSize:12, color:"rgba(242,242,245,0.65)" }}>{u.role || u.role_title || "—"}</div>
+                  <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>📍{u.city||"—"} · {u.posts||0} posts</div>
+                </div>
+                <Badge label={u.plan||"Free"} color={u.plan==="Pro"?"#F5A623":u.plan==="Basic"?"#4ECDC4":"rgba(242,242,245,0.4)"} />
+                <div>
+                  <span style={{ fontFamily:MONO, fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:`${STATUS_C[u.status]||"#999"}18`, color:STATUS_C[u.status]||"#999" }}>{u.status||"active"}</span>
+                </div>
+                <div style={{ fontSize:16, cursor: "pointer" }} onClick={() => toggleVerify(u.id)}>{u.is_verified ? "✅" : "⬜"}</div>
+                <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                  <ActionBtn label={u.is_verified?"Unverify":"Verify"} color="#4ECDC4" small onClick={()=>toggleVerify(u.id)} />
+                  <ActionBtn label={u.status==="banned"?"Unban":"Ban"} danger={u.status!=="banned"} color="#34D399" small onClick={()=>toggleBan(u.id)} />
                 </div>
               </div>
-              <div>
-                <div style={{ fontSize:12, color:"rgba(242,242,245,0.65)" }}>{u.role || u.role_title || "—"}</div>
-                <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>📍{u.city||"—"} · {u.posts_count||0} posts</div>
-              </div>
-              <Badge label={u.plan_name||"Free"} color={u.plan_name==="Pro"?"#F5A623":u.plan_name==="Basic"?"#4ECDC4":"rgba(242,242,245,0.4)"} />
-              <div>
-                <span style={{ fontFamily:MONO, fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:`${STATUS_C[u.status]||"#999"}18`, color:STATUS_C[u.status]||"#999" }}>{u.status||"active"}</span>
-              </div>
-              <div style={{ fontSize:16 }}>{u.verified ? "✅" : "⬜"}</div>
-              <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
-                <ActionBtn label={u.verified?"Unverify":"Verify"} color="#4ECDC4" small onClick={()=>toggleVerify(u.id)} />
-                <ActionBtn label={u.status==="banned"?"Unban":"Ban"} danger={u.status!=="banned"} color="#34D399" small onClick={()=>toggleBan(u.id)} />
-              </div>
+            ))}
+          </div>
+
+          {/* Pagination UI */}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:16, fontFamily:MONO, fontSize:12 }}>
+            <div style={{ color:"rgba(242,242,245,0.3)" }}>
+              Ukusa wa {page} kati ya {totalPages || 1}
             </div>
-          ))}
-        </div>
+            <div style={{ display:"flex", gap:6 }}>
+              <button 
+                disabled={page === 1}
+                onClick={() => setPage(p => p - 1)}
+                style={{ background:"#161618", border:"1px solid #232325", color: page===1 ? "rgba(242,242,245,0.1)" : "#F5A623", padding:"6px 14px", borderRadius:8, cursor: page===1 ? "default" : "pointer", fontWeight:700 }}
+              >
+                ← Prev
+              </button>
+              <button 
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+                style={{ background:"#161618", border:"1px solid #232325", color: page>=totalPages ? "rgba(242,242,245,0.1)" : "#F5A623", padding:"6px 14px", borderRadius:8, cursor: page>=totalPages ? "default" : "pointer", fontWeight:700 }}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

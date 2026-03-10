@@ -113,6 +113,125 @@ db.connect()
         ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_url TEXT;
 
         -- Missing tables
+        CREATE TABLE IF NOT EXISTS events (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          name VARCHAR(255),
+          date TIMESTAMPTZ,
+          type VARCHAR(50),
+          location TEXT,
+          is_online BOOLEAN DEFAULT false,
+          description TEXT,
+          color VARCHAR(20) DEFAULT '#F5A623',
+          status VARCHAR(20) DEFAULT 'upcoming',
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS challenges (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          title VARCHAR(255),
+          org VARCHAR(255) DEFAULT 'JamiiAI',
+          prize_display VARCHAR(255),
+          deadline TIMESTAMPTZ,
+          description TEXT,
+          difficulty VARCHAR(20) DEFAULT 'Kati',
+          tags JSONB DEFAULT '[]',
+          status VARCHAR(20) DEFAULT 'open',
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS resources (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          title VARCHAR(255),
+          type VARCHAR(50) DEFAULT 'Dataset',
+          link TEXT,
+          tags JSONB DEFAULT '[]',
+          description TEXT,
+          author_name VARCHAR(255),
+          status VARCHAR(20) DEFAULT 'approved',
+          source VARCHAR(20) DEFAULT 'admin',
+          downloads INTEGER DEFAULT 0,
+          stars INTEGER DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS news (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          title VARCHAR(255),
+          summary TEXT,
+          ai_summary TEXT,
+          category VARCHAR(50) DEFAULT 'Tanzania',
+          source VARCHAR(100) DEFAULT 'JamiiAI',
+          source_url TEXT,
+          is_hot BOOLEAN DEFAULT false,
+          status VARCHAR(20) DEFAULT 'published',
+          published_at TIMESTAMPTZ DEFAULT NOW(),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS jobs (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          posted_by UUID REFERENCES users(id) ON DELETE CASCADE,
+          title VARCHAR(255),
+          type VARCHAR(50) DEFAULT 'full_time',
+          company_name VARCHAR(100),
+          company_logo TEXT,
+          description TEXT,
+          requirements TEXT,
+          benefits TEXT,
+          location VARCHAR(100),
+          country VARCHAR(100) DEFAULT 'Tanzania',
+          is_remote BOOLEAN DEFAULT false,
+          salary_min INTEGER,
+          salary_max INTEGER,
+          salary_currency VARCHAR(10) DEFAULT 'TZS',
+          salary_visible BOOLEAN DEFAULT true,
+          apply_url TEXT,
+          apply_email VARCHAR(255),
+          apply_internal BOOLEAN DEFAULT false,
+          tags JSONB DEFAULT '[]',
+          deadline TIMESTAMPTZ,
+          status VARCHAR(20) DEFAULT 'active',
+          views INTEGER DEFAULT 0,
+          poster_name VARCHAR(100),
+          poster_email VARCHAR(255),
+          reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          reviewed_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS subscriptions (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          plan VARCHAR(50) DEFAULT 'free',
+          status VARCHAR(20) DEFAULT 'active',
+          amount INTEGER DEFAULT 0,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS platform_settings (
+          key VARCHAR(100) PRIMARY KEY,
+          value TEXT,
+          updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS roles (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          name VARCHAR(50) UNIQUE,
+          permissions JSONB DEFAULT '[]',
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS user_roles (
+          user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+          role_id UUID REFERENCES roles(id) ON DELETE CASCADE,
+          PRIMARY KEY (user_id, role_id)
+        );
+
+        INSERT INTO roles (name, permissions) VALUES ('super_admin', '["*"]') ON CONFLICT DO NOTHING;
+        INSERT INTO roles (name, permissions) VALUES ('admin', '["manage_users", "manage_content"]') ON CONFLICT DO NOTHING;
+
         CREATE TABLE IF NOT EXISTS follows (
           id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
           follower_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -374,12 +493,6 @@ const adminAuth = async (req, res, next) => {
 };
 
 // ── SOCKET.IO ─────────────────────────────────────────────────────
-const http = require("http");
-const server = http.createServer(app);
-const { Server } = require("socket.io");
-const io = new Server(server, {
-  cors: { origin: allowedOrigins, credentials:true }
-});
 global.io = io;
 
 io.on("connection", (socket) => {
@@ -1751,20 +1864,34 @@ app.delete("/api/messages/:messageId", auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error:err.message }); }
 });
 
-// ── ADMIN DASHBOARD ──────────────────────────────────────────────
+// ── ADMIN DASHBOARD ───────────────────────────────────────────────
 app.get("/api/admin/stats", adminAuth, async (req, res) => {
   try {
-    const [u, p, j, c, m] = await Promise.all([
+    const [users,postsToday,flagged,mrr,jobs,newToday,totalPosts,challenges,events,resources,news] = await Promise.all([
       db.query("SELECT COUNT(*) FROM users"),
-      db.query("SELECT COUNT(*) FROM posts"),
+      db.query("SELECT COUNT(*) FROM posts WHERE created_at>NOW()-INTERVAL '1 day' AND is_deleted=false"),
+      db.query("SELECT COUNT(*) FROM posts WHERE is_flagged=true AND is_deleted=false"),
+      db.query("SELECT COALESCE(SUM(amount),0) AS mrr FROM subscriptions WHERE status='active'"),
       db.query("SELECT COUNT(*) FROM jobs WHERE status='active'"),
+      db.query("SELECT COUNT(*) FROM users WHERE created_at>NOW()-INTERVAL '1 day'"),
+      db.query("SELECT COUNT(*) FROM posts WHERE is_deleted=false"),
       db.query("SELECT COUNT(*) FROM challenges WHERE status='open'"),
-      db.query("SELECT COUNT(*) FROM messages")
+      db.query("SELECT COUNT(*) FROM events WHERE date > NOW()"),
+      db.query("SELECT COUNT(*) FROM resources WHERE status='approved'"),
+      db.query("SELECT COUNT(*) FROM news WHERE status='published'"),
     ]);
-    const { rows:recentUsers } = await db.query("SELECT name,handle,avatar_url,created_at FROM users ORDER BY created_at DESC LIMIT 5");
     res.json({
-      counts:{ users:u.rows[0].count, posts:p.rows[0].count, jobs:j.rows[0].count, challenges:c.rows[0].count, messages:m.rows[0].count },
-      recentUsers
+      totalUsers:    parseInt(users.rows[0].count),
+      postsToday:    parseInt(postsToday.rows[0].count),
+      totalPosts:    parseInt(totalPosts.rows[0].count),
+      flaggedContent:parseInt(flagged.rows[0].count),
+      mrr:           parseInt(mrr.rows[0].mrr),
+      activeJobs:    parseInt(jobs.rows[0].count),
+      newToday:      parseInt(newToday.rows[0].count),
+      challenges:    parseInt(challenges.rows[0].count),
+      events:        parseInt(events.rows[0].count),
+      resources:     parseInt(resources.rows[0].count),
+      news:          parseInt(news.rows[0].count),
     });
   } catch (err) { res.status(500).json({ error:err.message }); }
 });
@@ -1829,7 +1956,7 @@ app.get("/api/admin/users", adminAuth, async (req, res) => {
     const where = conditions.length ? "WHERE " + conditions.join(" AND ") : "";
     const { rows } = await db.query(
       `SELECT u.id, u.name, u.handle, u.email, u.avatar_url, u.role, u.city,
-              u.status, u.is_verified, u.onboarded, u.created_at, u.updated_at,
+              u.status, u.is_verified, u.onboarded, u.plan, u.created_at, u.updated_at,
               r.name AS role_name,
               (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS posts
        FROM users u
