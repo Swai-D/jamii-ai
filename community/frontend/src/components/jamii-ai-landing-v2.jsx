@@ -31,7 +31,8 @@ function Av({ initials, color, size = 36 }) {
 function OnlineCount() {
   const [count, setCount] = useState(null);
   useEffect(() => {
-    const API = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+    const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+    const API = API_BASE.endsWith("/api") ? API_BASE : `${API_BASE}/api`;
     fetch(`${API}/users?limit=1`)
       .then(r => {
         if (!r.ok) throw new Error('API not available');

@@ -107,6 +107,49 @@ function TypeBadge({ type }) {
   );
 }
 
+function ReportModal({ postId, onClose, onReport, t }) {
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+  const reasons = ["Spam", "Harassment", "Hate Speech", "False Information", "Inappropriate", "Other"];
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 11000, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div className="fin" style={{ background: "#161B2C", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: 28, width: "100%", maxWidth: 420, boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
+        <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, color: "#F2F2F5" }}>🚩 Ripoti Post</h3>
+        <p style={{ fontSize: 13, color: "rgba(220,230,240,0.45)", marginBottom: 20 }}>Tusaidie kuweka JamiiAI salama. Kwa nini unaripoti post hii?</p>
+        
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
+          {reasons.map(r => (
+            <button
+              key={r}
+              onClick={() => setReason(r)}
+              style={{ textAlign: "left", padding: "12px 16px", borderRadius: 12, background: reason === r ? "rgba(245,166,35,0.12)" : "rgba(255,255,255,0.03)", border: `1px solid ${reason === r ? "#F5A623" : "rgba(255,255,255,0.08)"}`, color: reason === r ? "#F5A623" : "#DCE6F0", cursor: "pointer", fontSize: 13, fontWeight: 700, transition: "all 0.2s" }}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 12 }}>
+          <button onClick={onClose} style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#DCE6F0", border: "none", padding: "12px", borderRadius: 12, fontWeight: 700, cursor: "pointer" }}>Ghairi</button>
+          <button 
+            disabled={!reason || loading}
+            onClick={async () => {
+              setLoading(true);
+              await onReport(postId, reason);
+              setLoading(false);
+              onClose();
+            }} 
+            style={{ flex: 2, background: (!reason || loading) ? "rgba(245,166,35,0.3)" : "#F5A623", color: "#0A0F1C", border: "none", padding: "12px", borderRadius: 12, fontWeight: 800, cursor: (!reason || loading) ? "default" : "pointer" }}
+          >
+            {loading ? "Inatuma..." : "Ripoti Sasa →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 function Av({ initials, color, size = 40, userId, src, name }) {
@@ -1447,6 +1490,7 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
   const [showOptions, setShowOptions]     = useState(false);
   const [notification, setNotification]   = useState(null);
   const [isPosting, setIsPosting]         = useState(false);
+  const [reportingPostId, setReportingPostId] = useState(null);
 
   const notify = msg => { setNotification(msg); setTimeout(() => setNotification(null), 2500); };
 
@@ -1541,15 +1585,12 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
     setIsPosting(false);
   };
 
-  const handleReport = async (id) => {
+  const handleReport = async (id, reason) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) { notify("Ingia kwanza ili kuripoti."); return; }
       
-      const confirmReport = window.confirm("Je, una uhakika unataka kuripoti post hii kwa kukiuka kanuni za jamii?");
-      if (!confirmReport) return;
-
-      await axios.post(`${API_URL}/posts/${id}/report`, {}, {
+      await axios.post(`${API_URL}/posts/${id}/report`, { reason }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -1605,6 +1646,15 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
 
       <div style={{ display: "flex", width: "100%", maxWidth: "1600px", position: "relative", height: "100vh" }}>
         {notification && <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 999, background: "#F5A623", color: "#0A0F1C", padding: "11px 18px", borderRadius: 9, fontWeight: 700, animation: "notif 2.5s ease forwards" }}>{notification}</div>}
+
+        {reportingPostId && (
+          <ReportModal 
+            postId={reportingPostId} 
+            onClose={() => setReportingPostId(null)} 
+            onReport={handleReport}
+            t={t}
+          />
+        )}
 
         {/* SIDEBAR LEFT — FIXED */}
         <aside style={{ width: 240, flexShrink: 0, height: "100vh", position: "sticky", top: 0, borderRight: "1px solid rgba(255,255,255,0.06)", padding: "16px 12px", display: "flex", flexDirection: "column", gap: 2, background: "#0A0F1C", overflow: "hidden" }}>

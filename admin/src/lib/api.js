@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+export const BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 const api = axios.create({ baseURL: BASE });
 
@@ -22,6 +22,7 @@ export const adminAPI = {
 
   // Users
   users:                  (p)       => api.get("/api/admin/users", { params: p }),
+  userDetail:             (id)      => api.get(`/api/users/${id}`),
   banUser:                (id)      => api.patch(`/api/admin/users/${id}/ban`),
   verifyUser:             (id)      => api.patch(`/api/admin/users/${id}/verify`),
 

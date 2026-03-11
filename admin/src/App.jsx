@@ -1,13 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
-import { authAPI, adminAPI } from "./lib/api";
+import { authAPI, adminAPI, BASE } from "./lib/api";
 import { LogOut, Globe, Shield, Activity, Users, Settings, Bell, Briefcase, FileText, BarChart3, Star, Layers, Zap } from "lucide-react";
 
 const MONO = "'Roboto Mono', monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
 
-function Av({ i, c, s = 32 }) {
+function Av({ i, c, s = 32, src }) {
+  const hasImage = src && src.trim().length > 0;
+  const imageUrl = hasImage ? (src.startsWith("http") ? src : `${BASE}${src.startsWith("/") ? "" : "/"}${src}`) : null;
+
   return (
-    <div style={{ width: s, height: s, borderRadius: "50%", background: c || "#F5A623", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO, fontWeight: 700, fontSize: s * 0.35, color: "#0A0F1C", flexShrink: 0 }}>
-      {i}
+    <div style={{ width: s, height: s, borderRadius: "50%", background: hasImage ? "transparent" : (c || "#F5A623"), display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO, fontWeight: 700, fontSize: s * 0.35, color: "#0A0F1C", flexShrink: 0, overflow: "hidden", border: hasImage ? "1px solid rgba(255,255,255,0.1)" : "none" }}>
+      {hasImage ? (
+        <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        i
+      )}
     </div>
   );
 }
@@ -342,6 +349,122 @@ function DashboardPage() {
   );
 }
 
+function UserDetailPanel({ user, loading, onClose, onVerify, onBan }) {
+  if (!user && !loading) return null;
+  const dl = (d) => d ? new Date(d).toLocaleDateString() : "—";
+  const STATUS_C = { active:"#34D399", banned:"#F87171", pending:"#F5A623" };
+
+  return (
+    <div style={{ position:"fixed", top:0, right:0, bottom:0, width:450, background:"#0C0C0E", borderLeft:"1px solid #1E1E20", display:"flex", flexDirection:"column", zIndex:200, boxShadow:"-12px 0 40px rgba(0,0,0,0.6)", animation:"slideIn 0.3s ease" }}>
+      {/* Header */}
+      <div style={{ padding:20, borderBottom:"1px solid #1E1E20", position:"relative" }}>
+        <button onClick={onClose} style={{ position:"absolute", top:16, right:16, background:"#1E1E20", border:"none", borderRadius:8, width:28, height:28, color:"rgba(242,242,245,0.4)", cursor:"pointer", fontSize:14 }}>✕</button>
+
+        {loading ? (
+          <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia...</div>
+        ) : (
+          <>
+            <div style={{ display:"flex", gap:16, alignItems:"center", marginBottom:16 }}>
+               <Av i={user.name?.[0]||"U"} c="#F5A623" s={64} src={user.avatar_url} />
+               <div>
+                 <h2 style={{ fontSize:18, fontWeight:800, color:"#F2F2F5", marginBottom:2 }}>{user.name}</h2>
+                 <div style={{ fontFamily:MONO, fontSize:12, color:"#F5A623" }}>@{user.handle}</div>
+                 <div style={{ display:"flex", gap:6, marginTop:6 }}>
+                    <Badge label={user.status||"active"} color={STATUS_C[user.status]||"#34D399"} />
+                    {user.is_verified && <span style={{ color:"#60A5FA", fontSize:14 }}>✔ Verified</span>}
+                 </div>
+               </div>
+            </div>
+
+            <div style={{ display:"flex", gap:10 }}>
+               <button onClick={()=>onVerify(user.id)} style={{ flex:1, padding:"8px", borderRadius:9, border:"1px solid #232325", background:"rgba(96,165,250,0.1)", color:"#60A5FA", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+                 {user.is_verified ? "Unverify User" : "Verify User"}
+               </button>
+               <button onClick={()=>onBan(user.id)} style={{ flex:1, padding:"8px", borderRadius:9, border:"1px solid #232325", background: user.status==="banned" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: user.status==="banned" ? "#34D399" : "#F87171", fontWeight:700, fontSize:12, cursor:"pointer" }}>
+                 {user.status==="banned" ? "Unban User" : "Ban User"}
+               </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Content */}
+      {!loading && user && (
+        <div style={{ flex:1, overflowY:"auto", padding:20 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:24 }}>
+            {[
+              { label:"ROLE", value:user.role||"—" },
+              { label:"CITY", value:user.city||"—" },
+              { label:"PLAN", value:user.plan||"Free" },
+              { label:"JOINED", value:dl(user.created_at) },
+              { label:"RATING", value:user.rating||"0.0" },
+              { label:"RATE", value:user.hourly_rate||"—" },
+            ].map(s=>(
+              <div key={s.label} style={{ background:"#161618", padding:12, borderRadius:12, border:"1px solid #232325" }}>
+                <div style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.3)", marginBottom:4 }}>{s.label}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:"#F2F2F5" }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {user.bio && (
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)", marginBottom:8 }}>BIO</div>
+              <p style={{ fontSize:13, color:"rgba(242,242,245,0.6)", lineHeight:1.6 }}>{user.bio}</p>
+            </div>
+          )}
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:24 }}>
+            {[
+              { label:"POSTS", value:user.post_count||0 },
+              { label:"PROJECTS", value:user.project_count||0 },
+              { label:"FOLLOWERS", value:user.followers||0 },
+              { label:"FOLLOWING", value:user.following||0 },
+            ].map(s=>(
+              <div key={s.label} style={{ textAlign:"center", padding:12, borderRight:s.label==="POSTS"||s.label==="FOLLOWERS"?"1px solid #1E1E20":"none" }}>
+                <div style={{ fontSize:20, fontWeight:900, color:"#F5A623" }}>{s.value}</div>
+                <div style={{ fontFamily:MONO, fontSize:9, color:"rgba(242,242,245,0.3)", marginTop:2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {user.skills && user.skills.length > 0 && (
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)", marginBottom:10 }}>SKILLS</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {user.skills.map(s=>(
+                  <span key={s} style={{ fontSize:10, padding:"4px 10px", borderRadius:6, background:"rgba(245,166,35,0.08)", color:"#F5A623", border:"1px solid rgba(245,166,35,0.15)", fontWeight:700 }}>{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {user.interests && user.interests.length > 0 && (
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)", marginBottom:10 }}>INTERESTS</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {user.interests.map(i=>(
+                  <span key={i} style={{ fontSize:10, padding:"4px 10px", borderRadius:6, background:"rgba(78,205,196,0.08)", color:"#4ECDC4", border:"1px solid rgba(78,205,196,0.15)", fontWeight:700 }}>{i}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginBottom:24 }}>
+             <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)", marginBottom:10 }}>SOCIAL LINKS</div>
+             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                {user.github_url && <div style={{ fontSize:12, color:"#60A5FA" }}>⎇ {user.github_url}</div>}
+                {user.linkedin_url && <div style={{ fontSize:12, color:"#60A5FA" }}>in {user.linkedin_url}</div>}
+                {user.website_url && <div style={{ fontSize:12, color:"#60A5FA" }}>🔗 {user.website_url}</div>}
+                {!user.github_url && !user.linkedin_url && !user.website_url && <div style={{ fontSize:12, color:"rgba(242,242,245,0.2)" }}>Hakuna links</div>}
+             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── USERS ─────────────────────────────────────────────────────────
 function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -349,14 +472,18 @@ function UsersPage() {
   const [filter, setFilter] = useState("Wote");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
-  
+
+  // Detail state
+  const [selectedId, setSelectedId] = useState(null);
+  const [userDetail, setUserDetail] = useState(null);
+  const [fetchingUser, setFetchingUser] = useState(false);
+
   // Pagination states
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [total, setTotal] = useState(0);
 
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
-
   const fetchUsers = useCallback(() => {
     setLoading(true);
     adminAPI.users({ search, status: filter, page, limit })
@@ -384,7 +511,9 @@ function UsersPage() {
     const u = users.find(u=>u.id===id);
     try {
       await adminAPI.banUser(id);
-      setUsers(us => us.map(u => u.id===id ? { ...u, status: u.status==="banned" ? "active" : "banned" } : u));
+      const newS = u.status==="banned" ? "active" : "banned";
+      setUsers(us => us.map(u => u.id===id ? { ...u, status: newS } : u));
+      if (userDetail?.id === id) setUserDetail(prev => ({ ...prev, status: newS }));
       notify(u.status==="banned" ? `✅ ${u.name} ameachiliwa` : `🚫 ${u.name} amebaniwa`);
     } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
@@ -393,16 +522,41 @@ function UsersPage() {
     const u = users.find(u=>u.id===id);
     try {
       await adminAPI.verifyUser(id);
-      setUsers(us => us.map(u => u.id===id ? { ...u, is_verified:!u.is_verified } : u));
-      notify(u.is_verified ? `❌ Verification imeondolewa — ${u.name}` : `✅ ${u.name} ameverified`);
+      const newV = !u.is_verified;
+      setUsers(us => us.map(u => u.id===id ? { ...u, is_verified: newV } : u));
+      if (userDetail?.id === id) setUserDetail(prev => ({ ...prev, is_verified: newV }));
+      notify(newV ? `✅ ${u.name} ameverified` : `❌ Verification imeondolewa — ${u.name}`);
     } catch { notify("❌ Hitilafu — jaribu tena"); }
+  };
+
+  const openUser = (u) => {
+    setSelectedId(u.id);
+    setFetchingUser(true);
+    adminAPI.userDetail(u.handle || u.id)
+      .then(r => setUserDetail(r.data))
+      .catch(console.error)
+      .finally(() => setFetchingUser(false));
   };
 
   const STATUS_C = { active:"#34D399", banned:"#F87171", pending:"#F5A623" };
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div>
+    <div style={{ position:"relative" }}>
+      {/* Detail Panel */}
+      {selectedId && (
+        <>
+          <div onClick={() => { setSelectedId(null); setUserDetail(null); }} style={{ position:"fixed", inset:0, zIndex:199, background:"rgba(0,0,0,0.4)", backdropFilter:"blur(4px)" }} />
+          <UserDetailPanel
+            user={userDetail}
+            loading={fetchingUser}
+            onClose={() => { setSelectedId(null); setUserDetail(null); }}
+            onVerify={toggleVerify}
+            onBan={toggleBan}
+          />
+        </>
+      )}
+
       {toast && <div style={{ position:"fixed", bottom:24, right:24, zIndex:999, background:"#F5A623", color:"#0C0C0E", padding:"11px 18px", borderRadius:9, fontWeight:700, fontSize:13, fontFamily:MONO }}>{toast}</div>}
       <SectionHead title="Watumiaji" sub={`Wanachama ${total.toLocaleString()} wote wa JamiiAI`} />
 
@@ -432,10 +586,10 @@ function UsersPage() {
               ))}
             </div>
             {users.map((u,i)=>(
-              <div key={u.id} style={{ display:"grid", gridTemplateColumns:"50px 2fr 1.5fr 1fr 80px 80px 140px", padding:"11px 18px", borderBottom:i<users.length-1?"1px solid #1A1A1C":"none", alignItems:"center" }}>
+              <div key={u.id} onClick={()=>openUser(u)} style={{ display:"grid", gridTemplateColumns:"50px 2fr 1.5fr 1fr 80px 80px 140px", padding:"11px 18px", borderBottom:i<users.length-1?"1px solid #1A1A1C":"none", alignItems:"center", cursor:"pointer", background:selectedId===u.id?"rgba(245,166,35,0.05)":"transparent" }}>
                 <div style={{ fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.25)" }}>{(page-1)*limit + i + 1}</div>
                 <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-                  <Av i={u.name.split(" ").map(w=>w[0]).join("").slice(0,2)} c={["#F5A623","#4ECDC4","#A78BFA","#F87171","#34D399","#60A5FA"][i%6]} />
+                  <Av i={u.name.split(" ").map(w=>w[0]).join("").slice(0,2)} c={["#F5A623","#4ECDC4","#A78BFA","#F87171","#34D399","#60A5FA"][i%6]} src={u.avatar_url} />
                   <div>
                     <div style={{ fontWeight:600, fontSize:13 }}>{u.name}</div>
                     <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.32)" }}>@{u.handle}</div>
@@ -449,8 +603,8 @@ function UsersPage() {
                 <div>
                   <span style={{ fontFamily:MONO, fontSize:10, fontWeight:700, padding:"3px 8px", borderRadius:20, background:`${STATUS_C[u.status]||"#999"}18`, color:STATUS_C[u.status]||"#999" }}>{u.status||"active"}</span>
                 </div>
-                <div style={{ fontSize:16, cursor: "pointer" }} onClick={() => toggleVerify(u.id)}>{u.is_verified ? "✅" : "⬜"}</div>
-                <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                <div style={{ fontSize:16, cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); toggleVerify(u.id); }}>{u.is_verified ? "✅" : "⬜"}</div>
+                <div style={{ display:"flex", gap:5, flexWrap:"wrap" }} onClick={e=>e.stopPropagation()}>
                   <ActionBtn label={u.is_verified?"Unverify":"Verify"} color="#4ECDC4" small onClick={()=>toggleVerify(u.id)} />
                   <ActionBtn label={u.status==="banned"?"Unban":"Ban"} danger={u.status!=="banned"} color="#34D399" small onClick={()=>toggleBan(u.id)} />
                 </div>
@@ -568,18 +722,23 @@ function ContentPage() {
                   <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
                     <div style={{ flex:1 }}>
                       <div style={{ display:"flex", gap:7, alignItems:"center", flexWrap:"wrap", marginBottom:8 }}>
-                        <Badge label={p.reason || "Flagged"} color={REASON_C[p.reason]||"#F87171"} />
-                        <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(248,113,113,0.8)", fontWeight:700 }}>
-                          Reported by {p.reporter_name || "Mtumiaji"} (@{p.reporter_handle || "anon"})
-                        </span>
-                        <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>· {p.report_count||1} reports</span>
-                        <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>· {new Date(p.reported_at || p.created_at).toLocaleString()}</span>
-                      </div>
-                      <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8 }}>
-                        <Av i={(p.author_handle||"U")[0]} c="#A78BFA" />
-                        <div>
-                          <div style={{ fontSize:12, fontWeight:700 }}>{p.author_name}</div>
-                          <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.4)" }}>against @{p.author_handle || "mtumiaji"}</div>
+                        <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:10 }}>
+                          <Badge label={p.reason || "Flagged"} color={REASON_C[p.reason]||"#F87171"} />
+                          <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+                            <Av i={(p.reporter_handle||"U")[0]} c="#94A3B8" s={20} src={p.reporter_avatar} />
+                            <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(248,113,113,0.8)", fontWeight:700 }}>
+                              Reported by {p.reporter_name || "Mtumiaji"} (@{p.reporter_handle || "anon"})
+                            </span>
+                          </div>
+                          <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>· {p.report_count||1} reports</span>
+                          <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>· {new Date(p.reported_at || p.created_at).toLocaleString()}</span>
+                        </div>
+                        <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:12, paddingBottom:12, borderBottom:"1px solid #1E1E20" }}>
+                          <Av i={(p.author_handle||"U")[0]} c="#A78BFA" s={32} src={p.avatar_url} />
+                          <div>
+                            <div style={{ fontSize:12, fontWeight:700, color:"#F2F2F5" }}>{p.author_name}</div>
+                            <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.4)" }}>@{p.author_handle || "mtumiaji"}</div>
+                          </div>
                         </div>
                       </div>
                       <p style={{ fontSize:14, color:"rgba(220,230,240,0.8)", lineHeight:1.6, background:"rgba(255,255,255,0.02)", border:"1px solid #232325", borderRadius:8, padding:"12px 15px" }}>{p.content}</p>

@@ -1156,13 +1156,11 @@ app.post("/api/posts/:id/report", auth, async (req, res) => {
       [id]
     );
 
-    // Optional: Log who reported (uncomment if you have a reports table)
-    /*
+    // Log the report in the reports table
     await db.query(
-      "INSERT INTO reports (id, post_id, user_id, reason, created_at) VALUES ($1,$2,$3,$4,NOW())",
+      "INSERT INTO reports (id, post_id, reporter_id, reason, created_at) VALUES ($1,$2,$3,$4,NOW())",
       [uuid(), id, req.user.id, reason || "Reported by user"]
     );
-    */
 
     res.json({ success: true, message: "Post imeripotiwa kwa usimamizi." });
   } catch (err) {
@@ -2083,26 +2081,30 @@ app.get("/api/admin/flagged", adminAuth, async (req, res) => {
     const off = (parseInt(page)-1) * parseInt(limit);
 
     const { rows } = await db.query(
-      `SELECT p.id, p.content, p.image_url, p.created_at, p.is_flagged,
+      `SELECT DISTINCT ON (p.id) 
+              p.id, p.content, p.image_url, p.created_at, p.is_flagged,
               u.name AS author_name, u.handle AS author_handle, u.avatar_url,
               r.reason, r.created_at AS reported_at,
-              rep.name AS reporter_name, rep.handle AS reporter_handle,
+              rep.name AS reporter_name, rep.handle AS reporter_handle, rep.avatar_url AS reporter_avatar,
               (SELECT COUNT(*) FROM reports WHERE post_id=p.id) AS report_count
        FROM posts p 
        JOIN users u ON u.id=p.user_id
        LEFT JOIN reports r ON r.post_id = p.id
        LEFT JOIN users rep ON rep.id = r.reporter_id
        WHERE p.is_flagged=true AND p.is_deleted=false
-       ORDER BY r.created_at DESC NULLS LAST, p.created_at DESC
+       ORDER BY p.id, r.created_at DESC
        LIMIT $1 OFFSET $2`,
       [parseInt(limit), off]
     );
+
+    // Re-sort in memory if needed or use a subquery to sort by reported_at correctly across distinct posts
+    const sortedPosts = rows.sort((a,b) => new Date(b.reported_at || 0) - new Date(a.reported_at || 0));
 
     const { rows:[{count}] } = await db.query(
       "SELECT COUNT(*) FROM posts WHERE is_flagged=true AND is_deleted=false"
     );
 
-    res.json({ posts: rows, total: parseInt(count) });
+    res.json({ posts: sortedPosts, total: parseInt(count) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
