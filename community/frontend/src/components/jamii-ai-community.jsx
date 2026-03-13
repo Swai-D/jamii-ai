@@ -553,33 +553,61 @@ function InstitutionCard({ ins, t }) {
 }
 
 function ChallengeCard({ ch, t }) {
-  const tags = Array.isArray(ch.tags) ? ch.tags : JSON.parse(ch.tags || "[]");
+  const tags = Array.isArray(ch.tags) ? ch.tags : (typeof ch.tags === 'string' ? JSON.parse(ch.tags || "[]") : []);
+  const isExternal = ch.source !== 'manual';
+  
+  const handleJoin = () => {
+    if (isExternal && ch.source_url) {
+      window.open(ch.source_url, "_blank");
+    } else {
+      // Local registration logic (future)
+      alert("Usajili kwa changamoto za ndani unakuja hivi karibuni!");
+    }
+  };
+
   return (
     <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 22 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <Trophy size={20} color={ch.color} />
+          <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+            <Pill 
+              label={ch.source?.toUpperCase() || "JAMIIAI"} 
+              bg={ch.source === 'kaggle' ? "rgba(32,190,255,0.1)" : ch.source === 'zindi' ? "rgba(245,166,35,0.1)" : "rgba(167,139,250,0.1)"} 
+              color={ch.source === 'kaggle' ? "#20BEFF" : ch.source === 'zindi' ? "#F5A623" : "#A78BFA"} 
+            />
+            <Pill label={(ch.status || 'open').toUpperCase()} bg={ch.status === 'open' ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.06)"} color={ch.status === 'open' ? "#34D399" : "rgba(220,230,240,0.4)"} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {ch.source === 'kaggle' ? <Zap size={18} color="#20BEFF" /> : <Trophy size={18} color={ch.color || "#F5A623"} />}
             <h3 style={{ fontWeight: 700, fontSize: 17, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ch.title}</h3>
           </div>
-          <p style={{ fontSize: 12, opacity: 0.5 }}>{t.kwa} {ch.org}</p>
+          <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 12, opacity: 0.4, fontFamily: "'Roboto Mono',monospace" }}>
+            <span>by {ch.org}</span>
+            <span>📍 {ch.region || "Global"}</span>
+            <span>👥 {ch.participants || 0}</span>
+          </div>
         </div>
-        <Pill label={(ch.status || 'open').toUpperCase()} bg={ch.status === 'open' ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.06)"} color={ch.status === 'open' ? "#34D399" : "rgba(220,230,240,0.4)"} />
       </div>
-      <p style={{ fontSize: 14, lineHeight: 1.6, color: "rgba(220,230,240,0.7)", marginBottom: 18 }}>{ch.description}</p>
+      <p style={{ fontSize: 14, lineHeight: 1.6, color: "rgba(220,230,240,0.7)", marginBottom: 18, height: 44, overflow: "hidden" }}>{ch.description}</p>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
         <div style={{ background: "rgba(255,255,255,0.03)", padding: 12, borderRadius: 12 }}>
           <div style={{ fontSize: 9, opacity: 0.4, letterSpacing: "0.1em", marginBottom: 4 }}>{t.zawadi}</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#F5A623" }}>{ch.prize}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#F5A623" }}>{ch.prize_display || ch.prize || "Knowledge"}</div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.03)", padding: 12, borderRadius: 12 }}>
           <div style={{ fontSize: 9, opacity: 0.4, letterSpacing: "0.1em", marginBottom: 4 }}>{t.mwisho}</div>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>{new Date(ch.deadline).toLocaleDateString()}</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>{ch.deadline ? new Date(ch.deadline).toLocaleDateString() : 'N/A'}</div>
         </div>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 6 }}>{tags.map(tag => <SkillTag key={tag} label={tag} />)}</div>
-        <button style={{ background: ch.color, color: "#0A0F1C", border: "none", padding: "8px 18px", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>{t.jiunge_changamoto}</button>
+        <div style={{ display: "flex", gap: 6 }}>{tags.slice(0, 2).map(tag => <SkillTag key={tag} label={tag} />)}</div>
+        <button 
+          onClick={handleJoin}
+          style={{ background: ch.source === 'kaggle' ? "#20BEFF" : ch.source === 'zindi' ? "#F5A623" : "#A78BFA", color: "#0A0F1C", border: "none", padding: "10px 20px", borderRadius: 10, fontWeight: 800, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}
+        >
+          {isExternal ? <ExternalLink size={14} /> : null}
+          {isExternal ? `Fungua ${ch.source?.charAt(0).toUpperCase() + ch.source?.slice(1)}` : t.jiunge_changamoto}
+        </button>
       </div>
     </div>
   );
@@ -2084,14 +2112,18 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
                 </div>
                 {/* Stats */}
                 <div style={{ display: "flex", gap: 0, marginBottom: 24, background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.14)", borderRadius: 12, overflow: "hidden" }}>
-                  {[["3", "Wazi"], ["208", "Washiriki"], ["TZS 20M+", "Prize Pool"], ["1", "Imekwisha"]].map(([num, label], i) => (
+                  {[
+                    [dataList.filter(c=>c.status==='open').length, "Wazi"], 
+                    [formatNumber(dataList.reduce((acc,c)=>acc+(parseInt(c.participant_count)||0), 0)), "Washiriki"], 
+                    ["Kaggle/Zindi", "Prize Pool"], 
+                    [dataList.filter(c=>c.status==='completed'||c.status==='closed').length, "Imekwisha"]
+                  ].map(([num, label], i) => (
                     <div key={label} style={{ flex: 1, textAlign: "center", padding: "14px 8px", borderRight: i < 3 ? "1px solid rgba(245,166,35,0.1)" : "none" }}>
                       <div style={{ fontSize: 20, fontWeight: 800, color: "#F5A623", fontFamily: "'Roboto Mono',monospace" }}>{num}</div>
                       <div style={{ fontSize: 10, color: "rgba(220,230,240,0.4)", marginTop: 2, fontFamily: "'Roboto Mono',monospace", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
                     </div>
                   ))}
-                </div>
-                <div style={{ display: "grid", gap: 16 }}>
+                </div>                <div style={{ display: "grid", gap: 16 }}>
                   {loading ? t.inapakia : dataList.map(ch => <ChallengeCard key={ch.id} ch={ch} t={t} />)}
                 </div>
               </div>

@@ -128,6 +128,28 @@ db.connect()
         ALTER TABLE resources ADD COLUMN IF NOT EXISTS downloads INTEGER DEFAULT 0;
         ALTER TABLE resources ADD COLUMN IF NOT EXISTS author_name VARCHAR(255);
 
+        -- Challenges table enhancements
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'open';
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'manual';
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS source_url TEXT;
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS external_id VARCHAR(200);
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS prize_usd INTEGER DEFAULT 0;
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS prize_display VARCHAR(100);
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS deadline TIMESTAMP;
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS difficulty VARCHAR(50) DEFAULT 'Kati';
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS region VARCHAR(100) DEFAULT 'Global';
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS ai_summary TEXT;
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS raw_desc TEXT;
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS is_hot BOOLEAN DEFAULT false;
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS participants INTEGER DEFAULT 0;
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS scraped_at TIMESTAMP;
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS reviewed_by UUID REFERENCES users(id);
+        ALTER TABLE challenges ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_challenges_external
+          ON challenges(source, external_id)
+          WHERE external_id IS NOT NULL;
+
         -- Missing tables
         CREATE TABLE IF NOT EXISTS events (
           id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -2017,16 +2039,81 @@ async function fetchLatestNews() {
   } catch (err) { console.error("❌ News fetch error:", err.message); }
 }
 
-// ── CRON JOBS ─────────────────────────────────────────────────────
-const scheduleHrs = 6; // should fetch from settings
-cron.schedule(`0 */${scheduleHrs} * * *`, () => {
-  console.log("⏰ Inarun Cron: Fetching News & Challenges...");
-  fetchLatestNews();
+// ─── CHALLENGES AUTOMATION ──────────────────────────────────────
+async function fetchAndSaveAllChallenges() {
+  console.log("🔄 Inaanza kuchukua changamoto mpya (Kaggle, Zindi, nk)...");
+  try {
+    const fetchKaggle  = await getSetting("challenges_fetch_kaggle", "true");
+    const autoApprove = await getSetting("challenges_auto_approve", "false");
+    const status      = autoApprove === "true" ? "open" : "pending";
+
+    // Simulation of data from external sources
+    const externalItems = [
+      {
+        external_id: "titanic",
+        title: "Titanic - Machine Learning from Disaster",
+        org: "Kaggle",
+        source: "kaggle",
+        source_url: "https://www.kaggle.com/competitions/titanic",
+        prize_display: "Knowledge",
+        difficulty: "Kati",
+        region: "Global",
+        tags: ["Binary Classification", "Tabular Data"],
+        description: "The legendary Titanic ML competition.",
+        color: "#20BEFF"
+      },
+      {
+        external_id: "swahili-nlp-zindi",
+        title: "Swahili News Classification Challenge",
+        org: "Zindi",
+        source: "zindi",
+        source_url: "https://zindi.africa/competitions/swahili-news-classification",
+        prize_display: "$500 USD",
+        difficulty: "Ngumu",
+        region: "Africa",
+        tags: ["NLP", "Swahili"],
+        description: "Classify Swahili news items into categories.",
+        color: "#F5A623"
+      }
+    ];
+
+    let saved = 0;
+    for (const item of externalItems) {
+      const { rows: exist } = await db.query("SELECT id FROM challenges WHERE source=$1 AND external_id=$2", [item.source, item.external_id]);
+      if (exist.length > 0) continue;
+
+      await db.query(
+        `INSERT INTO challenges (id,title,org,prize_display,description,difficulty,tags,status,source,source_url,external_id,region,color,created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW())`,
+        [uuid(), item.title, item.org, item.prize_display, item.description, item.difficulty, JSON.stringify(item.tags), status, item.source, item.source_url, item.external_id, item.region, item.color]
+      );
+      saved++;
+    }
+    console.log(`✅ Changamoto ${saved} mpya zimehifadhiwa.`);
+    if (saved > 0) notifyAdmin({ type: "new_challenges", message: `Changamoto ${saved} mpya zimepatikana.`, count: saved });
+  } catch (err) {
+    console.error("❌ Challenge Fetch Error:", err.message);
+  }
+}
+
+app.post("/api/admin/challenges/fetch", adminAuth, async (req, res) => {
+  await fetchAndSaveAllChallenges();
+  res.json({ success: true, message: "Mchakato umeanza" });
 });
 
-// ════════════════════════════════════════════════════════════════════
-//  ADMIN: USERS MANAGEMENT
-// ════════════════════════════════════════════════════════════════════
+// ── CRON JOBS (mwisho wa server.js, kabla ya server.listen) ───────
+// Challenges fetch — kila siku saa 9 asubuhi (06:00 EAT)
+cron.schedule("0 3 * * *", async () => {
+  await fetchAndSaveAllChallenges();
+});
+
+// News summary cleanup — delete drafts za zaidi ya siku 30
+cron.schedule("0 2 * * 0", async () => {
+  await db.query("DELETE FROM news WHERE status='inbox' AND created_at < NOW() - INTERVAL '30 days'");
+  console.log("🧹 Old news inbox cleaned");
+});
+
+server.listen(PORT, () => console.log(`🚀 JamiiAI Server inafanya kazi: http://localhost:${PORT}`));
 
 app.get("/api/admin/users", adminAuth, async (req, res) => {
   try {
@@ -2243,12 +2330,12 @@ app.get("/api/admin/challenges", adminAuth, async (req, res) => {
 
 app.post("/api/admin/challenges", adminAuth, async (req, res) => {
   try {
-    const { title, org="JamiiAI", prize_display, deadline, description, difficulty="Kati", tags=[] } = req.body;
+    const { title, org="JamiiAI", prize_display, deadline, description, difficulty="Kati", tags=[], source_url, region="Global" } = req.body;
     if (!title?.trim()) return res.status(400).json({ error: "Jina linahitajika" });
     const { rows:[ch] } = await db.query(
-      `INSERT INTO challenges (id,title,org,prize_display,deadline,description,difficulty,tags,status,created_at)
-       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,$7,'open',NOW()) RETURNING *`,
-      [title.trim(), org, prize_display||"", deadline||null, description||"", difficulty, JSON.stringify(tags)]
+      `INSERT INTO challenges (id,title,org,prize_display,deadline,description,difficulty,tags,status,source,source_url,region,created_at)
+       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,$7,'open','manual',$8,$9,NOW()) RETURNING *`,
+      [title.trim(), org, prize_display||"", deadline||null, description||"", difficulty, JSON.stringify(tags), source_url||"", region]
     );
     res.status(201).json(ch);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -2261,6 +2348,13 @@ app.patch("/api/admin/challenges/:id/status", adminAuth, async (req, res) => {
       return res.status(400).json({ error: "Status batili" });
     await db.query("UPDATE challenges SET status=$1 WHERE id=$2", [status, req.params.id]);
     res.json({ success: true, status });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete("/api/admin/challenges/:id", adminAuth, async (req, res) => {
+  try {
+    await db.query("DELETE FROM challenges WHERE id=$1", [req.params.id]);
+    res.json({ success: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

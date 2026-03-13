@@ -797,16 +797,30 @@ function ChangamotoPage() {
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
-  const [form, setForm] = useState({ title:"", org:"", prize:"", deadline:"", difficulty:"Kati", desc:"" });
+  const [fetching, setFetching] = useState(false);
+  const [form, setForm] = useState({ title:"", org:"", prize_display:"", deadline:"", difficulty:"Kati", desc:"", source_url:"", region:"Global" });
   const [toast, setToast] = useState(null);
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
 
-  useEffect(() => {
+  const fetchList = useCallback(() => {
+    setLoading(true);
     adminAPI.challenges()
       .then(r => setChallenges(r.data?.challenges || r.data || []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchList(); }, [fetchList]);
+
+  const fetchFromSource = async () => {
+    setFetching(true);
+    try {
+      await adminAPI.fetchChallenges();
+      notify("🔄 Mchakato wa kuchukua changamoto umeanza...");
+      setTimeout(fetchList, 2000);
+    } catch { notify("❌ Hitilafu wakati wa kufetch"); }
+    finally { setFetching(false); }
+  };
 
   const STATUS_C = { open:"#34D399", judging:"#F5A623", completed:"#4ECDC4", closed:"#F87171" };
   const f = k => e => setForm(p=>({...p,[k]:e.target.value}));
@@ -814,10 +828,10 @@ function ChangamotoPage() {
   const save = async () => {
     if (!form.title.trim()) return;
     try {
-      const r = await adminAPI.createChallenge(form);
-      const newCh = r.data?.challenge || { id:Date.now(), ...form, status:"open", participants:0, color:["#4ECDC4","#F5A623","#A78BFA","#F87171"][Math.floor(Math.random()*4)] };
+      const r = await adminAPI.createChallenge({ ...form, description: form.desc });
+      const newCh = r.data || { id:Date.now(), ...form, status:"open", participants:0 };
       setChallenges(cs=>[newCh, ...cs]);
-      setForm({ title:"", org:"", prize:"", deadline:"", difficulty:"Kati", desc:"" });
+      setForm({ title:"", org:"", prize_display:"", deadline:"", difficulty:"Kati", desc:"", source_url:"", region:"Global" });
       setShowNew(false);
       notify("✅ Challenge mpya imeundwa!");
     } catch { notify("❌ Hitilafu — jaribu tena"); }
@@ -839,17 +853,31 @@ function ChangamotoPage() {
       {showNew && (
         <Modal title="Challenge Mpya ◆" onClose={()=>setShowNew(false)}>
           <FormField label="JINA LA CHALLENGE" value={form.title} onChange={f("title")} placeholder="Swahili Sentiment Analysis..." />
-          <FormField label="ORGANIZER" value={form.org} onChange={f("org")} placeholder="JamiiAI + UDSM" />
-          <FormField label="PRIZE (TZS)" value={form.prize} onChange={f("prize")} placeholder="5,000,000" />
-          <FormField label="DEADLINE" value={form.deadline} onChange={f("deadline")} type="date" />
-          <FormField label="UGUMU" value={form.difficulty} onChange={f("difficulty")} options={["Rahisi","Kati","Ngumu"]} />
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <FormField label="ORGANIZER" value={form.org} onChange={f("org")} placeholder="JamiiAI + UDSM" />
+            <FormField label="PRIZE / TUZO" value={form.prize_display} onChange={f("prize_display")} placeholder="5,000,000 TZS" />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <FormField label="DEADLINE" value={form.deadline} onChange={f("deadline")} type="date" />
+            <FormField label="REGION" value={form.region} onChange={f("region")} options={["Global","Africa","Tanzania"]} />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <FormField label="UGUMU" value={form.difficulty} onChange={f("difficulty")} options={["Rahisi","Kati","Ngumu"]} />
+            <FormField label="SOURCE URL" value={form.source_url} onChange={f("source_url")} placeholder="https://..." />
+          </div>
           <FormField label="MAELEZO" value={form.desc} onChange={f("desc")} placeholder="Elezea challenge..." multiline />
           <button onClick={save} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14 }}>Hifadhi Challenge →</button>
         </Modal>
       )}
 
-      <SectionHead title="Changamoto" sub="Manage AI challenges na competitions"
-        action={<ActionBtn label="+ Challenge Mpya" onClick={()=>setShowNew(true)} />} />
+      <SectionHead title="Changamoto" sub={`${challenges.length} active competitions`}
+        action={
+          <div style={{ display:"flex", gap:8 }}>
+            <ActionBtn label={fetching ? "🔄 Inafetch..." : "🔄 Fetch Vyanzo"} onClick={fetchFromSource} disabled={fetching} />
+            <ActionBtn label="+ Challenge Mpya" onClick={()=>setShowNew(true)} />
+          </div>
+        } 
+      />
 
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
         {challenges.length === 0 ? (
@@ -863,15 +891,13 @@ function ChangamotoPage() {
               <div style={{ width:4, borderRadius:2, background:ch.color||"#4ECDC4", alignSelf:"stretch", flexShrink:0 }} />
               <div style={{ flex:1 }}>
                 <div style={{ display:"flex", gap:7, flexWrap:"wrap", marginBottom:7, alignItems:"center" }}>
+                  <Badge label={(ch.source||"manual").toUpperCase()} color={ch.source === 'manual' ? "#A78BFA" : "#4ECDC4"} />
                   <Badge label={(ch.status||"open").toUpperCase()} color={STATUS_C[ch.status]||"#F5A623"} />
-                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.35)" }}>{ch.org}</span>
-                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.28)" }}>👥 {ch.participants||0} washiriki</span>
+                  <span style={{ fontFamily:MONO, fontSize:10, color:"#F5A623" }}>💰 {ch.prize_display || ch.prize || "Knowledge"}</span>
+                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>📍 {ch.region || "Global"}</span>
                 </div>
                 <h3 style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{ch.title}</h3>
-                <div style={{ display:"flex", gap:14, fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.4)" }}>
-                  <span>🏆 {ch.prize}</span>
-                  <span>📅 {ch.deadline}</span>
-                </div>
+                <div style={{ fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.25)" }}>by {ch.org} · Deadline: {ch.deadline ? new Date(ch.deadline).toLocaleDateString() : 'N/A'}</div>
               </div>
               <div style={{ display:"flex", gap:7, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end" }}>
                 {ch.status==="open"      && <ActionBtn label="Funga"   color="#F87171" small onClick={()=>toggleStatus(ch.id,"closed")}    />}
@@ -879,6 +905,7 @@ function ChangamotoPage() {
                 {ch.status==="judging"   && <ActionBtn label="Kamilisha" color="#4ECDC4" small onClick={()=>toggleStatus(ch.id,"completed")} />}
                 {ch.status==="closed"    && <ActionBtn label="Fungua" color="#34D399" small onClick={()=>toggleStatus(ch.id,"open")}       />}
                 <ActionBtn label="✏ Hariri" color="#A78BFA" small />
+                <ActionBtn label={<Trash2 size={14}/>} danger small onClick={async () => { if(window.confirm("Futa challenge?")) { await adminAPI.deleteChallenge(ch.id); setChallenges(cs=>cs.filter(x=>x.id!==ch.id)); } }} />
               </div>
             </div>
           </div>

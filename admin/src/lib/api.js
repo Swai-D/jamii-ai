@@ -42,9 +42,11 @@ export const adminAPI = {
   approveContent:         (id)      => api.patch(`/api/admin/posts/${id}/approve`),
 
   // Challenges
-  challenges:             ()        => api.get("/api/challenges"),
+  challenges:             ()        => api.get("/api/admin/challenges"),
   createChallenge:        (data)    => api.post("/api/admin/challenges", data),
+  fetchChallenges:        ()        => api.post("/api/admin/challenges/fetch"),
   updateChallengeStatus:  (id, s)   => api.patch(`/api/admin/challenges/${id}/status`, { status: s }),
+  deleteChallenge:        (id)      => api.delete(`/api/admin/challenges/${id}`),
 
   // Events
   events:                 ()        => api.get("/api/events"),
