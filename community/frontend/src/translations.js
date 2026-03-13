@@ -88,6 +88,13 @@ export const translations = {
     wanahudhuria: "wanahudhuria",
     online: "Mtandaoni",
 
+    // Resources
+    pakua_rasilimali: "Pakua Rasilimali",
+    preview_rasilimali: "Preview Rasilimali",
+    maelezo: "Maelezo",
+    shiriki: "Shiriki",
+    asante_kwa_kuchangia: "Asante kwa kuchangia kwenye jamii!",
+    
     // Messages
     tafuta_chat: "Tafuta mazungumzo...",
     andika_ujumbe: "Andika ujumbe...",
@@ -182,6 +189,13 @@ export const translations = {
     rsvp: "RSVP Now",
     wanahudhuria: "attending",
     online: "Online",
+
+    // Resources
+    pakua_rasilimali: "Download Resource",
+    preview_rasilimali: "Preview Resource",
+    maelezo: "Description",
+    shiriki: "Share",
+    asante_kwa_kuchangia: "Thank you for contributing to the community!",
 
     // Messages
     tafuta_chat: "Search chats...",

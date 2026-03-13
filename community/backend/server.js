@@ -88,6 +88,8 @@ db.connect()
     // Auto-migration: Hakikisha column na table zote zipo
     try {
       await db.query(`
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
         -- Users table enhancements
         ALTER TABLE users ADD COLUMN IF NOT EXISTS handle VARCHAR(50) UNIQUE;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(100);
@@ -111,6 +113,20 @@ db.connect()
         -- Posts table enhancements
         ALTER TABLE posts ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'swali';
         ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+        -- Resources table enhancements
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved';
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'admin';
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS link TEXT;
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS color VARCHAR(20) DEFAULT '#F5A623';
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS is_free BOOLEAN DEFAULT true;
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS reviewed_by UUID REFERENCES users(id);
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS github_data JSONB DEFAULT '{}';
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS stars INTEGER DEFAULT 0;
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS downloads INTEGER DEFAULT 0;
+        ALTER TABLE resources ADD COLUMN IF NOT EXISTS author_name VARCHAR(255);
 
         -- Missing tables
         CREATE TABLE IF NOT EXISTS events (
@@ -152,6 +168,8 @@ db.connect()
           source VARCHAR(20) DEFAULT 'admin',
           downloads INTEGER DEFAULT 0,
           stars INTEGER DEFAULT 0,
+          color VARCHAR(20) DEFAULT '#F5A623',
+          is_free BOOLEAN DEFAULT true,
           created_at TIMESTAMPTZ DEFAULT NOW()
         );
 
@@ -1325,14 +1343,18 @@ app.post("/api/challenges/:id/register", auth, async (req, res) => {
 app.get("/api/resources", async (req, res) => {
   try {
     const { type } = req.query;
-    const params = type && type !== "Zote" ? [type] : [];
-    const where  = params.length ? "WHERE type = $1" : "";
-    const result = await db.query(
-      `SELECT r.*, u.name AS author_name FROM resources r
-       LEFT JOIN users u ON u.id = r.user_id
-       ${where} ORDER BY r.stars DESC`,
-      params
-    );
+    let query = `SELECT r.*, u.name AS author_name, u.avatar_url AS author_avatar 
+                 FROM resources r
+                 LEFT JOIN users u ON u.id = r.user_id
+                 WHERE r.status = 'approved'`;
+    const params = [];
+    if (type && type !== "Zote") {
+      query += " AND r.type = $1";
+      params.push(type);
+    }
+    query += " ORDER BY r.stars DESC";
+    
+    const result = await db.query(query, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: "Hitilafu ya server" });
@@ -2291,7 +2313,7 @@ app.delete("/api/admin/events/:id", adminAuth, async (req, res) => {
 app.get("/api/admin/resources", adminAuth, async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT r.*, u.name AS submitted_by_name
+      `SELECT r.*, u.name AS submitted_by_name, u.avatar_url AS submitted_by_avatar
        FROM resources r LEFT JOIN users u ON u.id=r.user_id
        ORDER BY r.created_at DESC`
     );
@@ -2301,25 +2323,100 @@ app.get("/api/admin/resources", adminAuth, async (req, res) => {
 
 app.post("/api/admin/resources", adminAuth, async (req, res) => {
   try {
-    const { title, type="Dataset", link, tags=[], description, author } = req.body;
+    const { title, type="Dataset", link, tags, description, desc, author, color="#F5A623", is_free=true } = req.body;
     if (!title?.trim()) return res.status(400).json({ error: "Jina linahitajika" });
+    
+    // Auto-fetch GitHub Metadata
+    const gh = await getGithubStats(link);
+    const finalStars = gh ? gh.stars : 0;
+    const finalDownloads = gh ? gh.downloads : 0;
+    
+    // Support both 'desc' (from admin form) and 'description'
+    const finalDesc = description || desc || (gh ? gh.description : "");
+    
+    // Safe tags handling
+    let finalTags = [];
+    if (Array.isArray(tags)) finalTags = tags;
+    else if (typeof tags === 'string') finalTags = tags.split(",").map(t=>t.trim()).filter(Boolean);
+    
+    // Merge GitHub topics if available
+    if (gh && Array.isArray(gh.topics)) {
+      finalTags = [...new Set([...finalTags, ...gh.topics])];
+    }
+
     const { rows:[r] } = await db.query(
-      `INSERT INTO resources (id,title,type,link,tags,description,author_name,status,source,created_at)
-       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,'approved','admin',NOW()) RETURNING *`,
-      [title.trim(), type, link||"", JSON.stringify(Array.isArray(tags)?tags:tags.split(",").map(t=>t.trim()).filter(Boolean)),
-       description||"", author||"JamiiAI"]
+      `INSERT INTO resources (id,title,type,link,tags,description,author_name,status,source,color,is_free,stars,downloads,github_data,created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'approved','admin',$8,$9,$10,$11,$12,NOW()) RETURNING *`,
+      [uuid(), title.trim(), type, link||"", JSON.stringify(finalTags),
+       finalDesc, author||"JamiiAI", color, is_free, finalStars, finalDownloads, JSON.stringify(gh || {})]
     );
     res.status(201).json(r);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { 
+    console.error("❌ Resource Create Error:", err);
+    res.status(500).json({ error: err.message }); 
+  }
 });
 
 app.patch("/api/admin/resources/:id/approve", adminAuth, async (req, res) => {
   try {
-    await db.query("UPDATE resources SET status='approved' WHERE id=$1", [req.params.id]);
+    const { rows: [resObj] } = await db.query("SELECT link FROM resources WHERE id=$1", [req.params.id]);
+    
+    let updateQuery = "UPDATE resources SET status='approved', reviewed_at=NOW(), reviewed_by=$2 WHERE id=$1";
+    let params = [req.params.id, req.user.id];
+
+    if (resObj?.link?.includes("github.com")) {
+      const gh = await getGithubStats(resObj.link);
+      if (gh) {
+        updateQuery = `UPDATE resources SET 
+          status='approved', 
+          reviewed_at=NOW(), 
+          reviewed_by=$2,
+          stars=$3,
+          downloads=$4,
+          github_data=$5
+          WHERE id=$1`;
+        params.push(gh.stars, gh.downloads, JSON.stringify(gh));
+      }
+    }
+
+    await db.query(updateQuery, params);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { 
+    console.error("Approve Error:", err);
+    res.status(500).json({ error: err.message }); 
+  }
 });
 
+app.patch("/api/admin/resources/:id/update", adminAuth, async (req, res) => {
+  try {
+    const { title, type, link, tags, description, author_name, color, is_free } = req.body;
+
+    let finalTagsJson = null;
+    if (Array.isArray(tags)) finalTagsJson = JSON.stringify(tags);
+    else if (typeof tags === 'string') finalTagsJson = JSON.stringify(tags.split(",").map(t=>t.trim()).filter(Boolean));
+
+    const { rows:[r] } = await db.query(
+      `UPDATE resources SET
+        title       = COALESCE($1, title),
+        type        = COALESCE($2, type),
+        link        = COALESCE($3, link),
+        tags        = COALESCE($4::jsonb, tags),
+        description = COALESCE($5, description),
+        author_name = COALESCE($6, author_name),
+        color       = COALESCE($7, color),
+        is_free     = COALESCE($8, is_free),
+        updated_at  = NOW()
+       WHERE id = $9 RETURNING *`,
+      [title?.trim()||null, type||null, link?.trim()||null, finalTagsJson, description||null, author_name||null, color||null, is_free, req.params.id]
+    );
+
+    if (!r) return res.status(404).json({ error: "Rasilimali haipatikani" });
+    res.json(r);
+  } catch (err) {
+    console.error("❌ Resource Update Error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.delete("/api/admin/resources/:id", adminAuth, async (req, res) => {
   try {
     await db.query("DELETE FROM resources WHERE id=$1", [req.params.id]);
@@ -2327,17 +2424,74 @@ app.delete("/api/admin/resources/:id", adminAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ─── GITHUB API HELPER ──────────────────────────────────────────
+async function getGithubStats(url) {
+  if (!url || !url.includes("github.com/")) return null;
+  try {
+    const parts = url.split("github.com/")[1].split("/");
+    const owner = parts[0];
+    const repo = parts[1].replace(/\.git$/, "");
+    if (!owner || !repo) return null;
+    
+    // Use token from platform_settings or .env for higher rate limits
+    const dbToken = await getSetting("github");
+    const token = dbToken || process.env.GITHUB_TOKEN;
+    
+    const headers = { 'User-Agent': 'JamiiAI-Community' };
+    if (token) {
+      headers['Authorization'] = `token ${token}`;
+    }
+
+    // Fetch repo info and releases (for downloads)
+    const [repoRes, releaseRes] = await Promise.all([
+      axios.get(`https://api.github.com/repos/${owner}/${repo}`, { headers }),
+      axios.get(`https://api.github.com/repos/${owner}/${repo}/releases`, { headers }).catch(() => ({ data: [] }))
+    ]);
+    
+    let downloads = 0;
+    if (Array.isArray(releaseRes.data)) {
+      releaseRes.data.forEach(rel => {
+        if (rel.assets) {
+          rel.assets.forEach(asset => {
+            downloads += (asset.download_count || 0);
+          });
+        }
+      });
+    }
+
+    return {
+      stars: repoRes.data.stargazers_count,
+      forks: repoRes.data.forks_count,
+      language: repoRes.data.language,
+      description: repoRes.data.description,
+      topics: repoRes.data.topics || [],
+      downloads: downloads
+    };
+  } catch (err) {
+    console.error("GitHub API Error:", err.message);
+    return null;
+  }
+}
+
 // Community submit resource
 app.post("/api/resources/submit", auth, async (req, res) => {
   try {
     const { title, type, link, tags=[], description } = req.body;
     if (!title?.trim() || !link?.trim()) return res.status(400).json({ error: "Jina na link vinahitajika" });
+
+    // Auto-fetch GitHub Metadata
+    const gh = await getGithubStats(link);
+    const finalStars = gh ? gh.stars : 0;
+    const finalDownloads = gh ? gh.downloads : 0;
+    const finalDesc = description || (gh ? gh.description : "");
+    const finalTags = gh && gh.topics.length ? [...new Set([...(Array.isArray(tags)?tags:[]), ...gh.topics])] : tags;
+
     const { rows:[r] } = await db.query(
-      `INSERT INTO resources (id,user_id,title,type,link,tags,description,status,source,created_at)
-       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,'pending','community',NOW()) RETURNING *`,
-      [req.user.id, title.trim(), type||"Tutorial", link.trim(),
-       JSON.stringify(Array.isArray(tags)?tags:tags.split(",").map(t=>t.trim()).filter(Boolean)),
-       description||""]
+      `INSERT INTO resources (id,user_id,title,type,link,tags,description,status,source,stars,downloads,github_data,created_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'pending','community',$8,$9,$10,NOW()) RETURNING *`,
+      [uuid(), req.user.id, title.trim(), type||"Tutorial", link.trim(),
+       JSON.stringify(Array.isArray(finalTags)?finalTags:finalTags.split(",").map(t=>t.trim()).filter(Boolean)),
+       finalDesc, finalStars, finalDownloads, JSON.stringify(gh || {})]
     );
     res.status(201).json({ success: true, resource: r });
   } catch (err) { res.status(500).json({ error: err.message }); }

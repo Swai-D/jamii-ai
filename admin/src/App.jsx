@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { authAPI, adminAPI, BASE } from "./lib/api";
-import { LogOut, Globe, Shield, Activity, Users, Settings, Bell, Briefcase, FileText, BarChart3, Star, Layers, Zap } from "lucide-react";
+import { LogOut, Globe, Shield, Activity, Users, Settings, Bell, Briefcase, FileText, BarChart3, Star, Layers, Zap, Download, GitFork, ExternalLink, Trash2 } from "lucide-react";
+
+// Helper for formatted numbers (1.2k etc)
+const fmtNum = (num) => {
+  if (!num) return "0";
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  return num.toString();
+};
 
 const MONO = "'Roboto Mono', monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
 
@@ -983,12 +991,32 @@ function RasilimaliPage() {
   const [showNew, setShowNew]     = useState(false);
   const [tab, setTab]             = useState("zote");
   const [loading, setLoading]     = useState(true);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm]           = useState({ title:"", type:"Dataset", author:"JamiiAI", link:"", tags:"", desc:"" });
   const [toast, setToast]         = useState(null);
 
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
   const TYPE_C = { Dataset:"#4ECDC4", Tutorial:"#F5A623", Guide:"#34D399", Research:"#A78BFA" };
   const f = k => e => setForm(p=>({...p,[k]:e.target.value}));
+
+  const handleEdit = (r) => {
+    setEditingId(r.id);
+    setForm({
+      title: r.title || "",
+      type: r.type || "Dataset",
+      author: r.author_name || r.author || "JamiiAI",
+      link: r.link || "",
+      tags: Array.isArray(r.tags) ? r.tags.join(", ") : (typeof r.tags === 'string' ? JSON.parse(r.tags).join(", ") : ""),
+      desc: r.description || r.desc || ""
+    });
+    setShowNew(true);
+  };
+
+  const closeForm = () => {
+    setShowNew(false);
+    setEditingId(null);
+    setForm({ title:"", type:"Dataset", author:"JamiiAI", link:"", tags:"", desc:"" });
+  };
 
   useEffect(() => {
     adminAPI.resources()
@@ -1015,18 +1043,23 @@ function RasilimaliPage() {
   const save = async () => {
     if (!form.title.trim()) return;
     try {
-      const r = await adminAPI.createResource(form);
-      const color = TYPE_C[form.type] || "#F5A623";
-      const newRes = r.data?.resource || {
-        id: Date.now(), title:form.title, type:form.type,
-        author:form.author, link:form.link,
-        tags: form.tags.split(",").map(t=>t.trim()).filter(Boolean),
-        desc: form.desc, downloads:0, status:"approved", color, source:"admin",
-      };
-      setResources(rs=>[newRes, ...rs]);
-      setForm({ title:"", type:"Dataset", author:"JamiiAI", link:"", tags:"", desc:"" });
-      setShowNew(false);
-      notify("✅ Resource imeongezwa na kuidhinishwa!");
+      if (editingId) {
+        const r = await adminAPI.updateResource(editingId, { ...form, author_name: form.author, description: form.desc });
+        setResources(rs => rs.map(res => res.id === editingId ? { ...res, ...r.data } : res));
+        notify("✅ Resource imesasishwa!");
+      } else {
+        const r = await adminAPI.createResource(form);
+        const color = TYPE_C[form.type] || "#F5A623";
+        const newRes = r.data?.resource || r.data || {
+          id: Date.now(), title:form.title, type:form.type,
+          author:form.author, link:form.link,
+          tags: form.tags.split(",").map(t=>t.trim()).filter(Boolean),
+          desc: form.desc, downloads:0, status:"approved", color, source:"admin",
+        };
+        setResources(rs=>[newRes, ...rs]);
+        notify("✅ Resource imeongezwa!");
+      }
+      closeForm();
     } catch { notify("❌ Hitilafu — jaribu tena"); }
   };
 
@@ -1039,12 +1072,13 @@ function RasilimaliPage() {
     <div>
       {toast && <div style={{ position:"fixed", bottom:24, right:24, zIndex:999, background:"#F5A623", color:"#0C0C0E", padding:"11px 18px", borderRadius:9, fontWeight:700, fontSize:13, fontFamily:MONO }}>{toast}</div>}
 
-      {/* Add modal */}
       {showNew && (
-        <Modal title="Rasilimali Mpya ◧" onClose={()=>setShowNew(false)}>
-          <div style={{ background:"rgba(245,166,35,0.06)", border:"1px solid rgba(245,166,35,0.15)", borderRadius:9, padding:"10px 13px", marginBottom:16, fontSize:12, color:"rgba(242,242,245,0.6)", lineHeight:1.6 }}>
-            💡 Resources zinazoongezwa na admin <strong style={{color:"#F5A623"}}>zinapita moja kwa moja</strong> — hazipitii approval queue.
-          </div>
+        <Modal title={editingId ? "Hariri Rasilimali ✏" : "Rasilimali Mpya ◧"} onClose={closeForm}>
+          {!editingId && (
+            <div style={{ background:"rgba(245,166,35,0.06)", border:"1px solid rgba(245,166,35,0.15)", borderRadius:9, padding:"10px 13px", marginBottom:16, fontSize:12, color:"rgba(242,242,245,0.6)", lineHeight:1.6 }}>
+              💡 Resources zinazoongezwa na admin <strong style={{color:"#F5A623"}}>zinapita moja kwa moja</strong> — hazipitii approval queue.
+            </div>
+          )}
           <FormField label="JINA LA RESOURCE" value={form.title} onChange={f("title")} placeholder="Swahili NLP Dataset — 50K sentences" />
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             <FormField label="AINA" value={form.type} onChange={f("type")} options={["Dataset","Tutorial","Guide","Research"]} />
@@ -1054,8 +1088,10 @@ function RasilimaliPage() {
           <FormField label="TAGS (tenganisha kwa koma)" value={form.tags} onChange={f("tags")} placeholder="NLP, Swahili, Free" />
           <FormField label="MAELEZO MAFUPI" value={form.desc} onChange={f("desc")} multiline placeholder="Elezea resource hii — ni ya nini, inasaidia nani..." />
           <div style={{ display:"flex", gap:8, marginTop:4 }}>
-            <button onClick={()=>setShowNew(false)} style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.5)", border:"1px solid #232325", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:600, fontSize:13 }}>Ghairi</button>
-            <button onClick={save} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:13 }}>✅ Ongeza Resource →</button>
+            <button onClick={closeForm} style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.5)", border:"1px solid #232325", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:600, fontSize:13 }}>Ghairi</button>
+            <button onClick={save} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:11, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:13 }}>
+              {editingId ? "💾 Sasisha Rasilimali" : "✅ Ongeza Resource"}
+            </button>
           </div>
         </Modal>
       )}
@@ -1109,25 +1145,27 @@ function RasilimaliPage() {
                   {r.source==="admin" && <Badge label="Admin" color="#A78BFA" />}
                 </div>
                 <h3 style={{ fontWeight:600, fontSize:14, marginBottom:3 }}>{r.title}</h3>
-                <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.32)" }}>
-                  by {r.author} · ↓ {(r.downloads||0).toLocaleString()} downloads
+                <div style={{ display:"flex", alignItems:"center", gap:6, fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.32)" }}>
+                  <Av i={(r.submitted_by_name || r.author_name || "J")[0]} c="#A78BFA" s={16} src={r.submitted_by_avatar} />
+                  <span>by {r.submitted_by_name || r.author_name || "JamiiAI Team"}</span>
+                  <span>·</span>
+                  <span>↓ {(r.downloads||0).toLocaleString()} downloads</span>
                   {r.tags?.length > 0 && <span style={{ marginLeft:8 }}>{r.tags.slice(0,3).map(t=>`#${t}`).join(" ")}</span>}
+                </div>              </div>
+                <div style={{ display:"flex", gap:7, flexShrink:0 }}>
+                  {r.status==="pending" ? (
+                    <>
+                      <ActionBtn label="✓ Approve" color="#34D399" small onClick={()=>approve(r.id)} />
+                      <ActionBtn label="✕ Reject"  danger small onClick={()=>reject(r.id)} />
+                    </>
+                  ) : (
+                    <>
+                      <ActionBtn label={<ExternalLink size={14}/>} color="#60A5FA" small onClick={() => window.open(r.link, "_blank")} />
+                      <ActionBtn label="✏ Hariri" color="#A78BFA" small onClick={() => handleEdit(r)} />
+                      <ActionBtn label="🗑 Remove" danger small onClick={()=>reject(r.id)} />
+                    </>
+                  )}
                 </div>
-              </div>
-              {/* Actions */}
-              <div style={{ display:"flex", gap:7, flexShrink:0 }}>
-                {r.status==="pending" ? (
-                  <>
-                    <ActionBtn label="✓ Approve" color="#34D399" small onClick={()=>approve(r.id)} />
-                    <ActionBtn label="✕ Reject"  danger small onClick={()=>reject(r.id)} />
-                  </>
-                ) : (
-                  <>
-                    <ActionBtn label="✏ Hariri" color="#A78BFA" small />
-                    <ActionBtn label="🗑 Remove" danger small onClick={()=>reject(r.id)} />
-                  </>
-                )}
-              </div>
             </div>
           </div>
         ))}
@@ -2114,6 +2152,7 @@ function SettingsPage() {
     stripe:       { value:"",                                              visible:false, status:"optional",  label:"Stripe Secret Key",         hint:"Optional: Malipo ya subscription (Basic/Pro plans)",       color:"#34D399"  },
     railway_db:   { value:"postgresql://postgres:••••@••••.railway.app",  visible:false, status:"connected", label:"DATABASE_URL (Railway)",    hint:"Auto-set na Railway — usibadilishe isipokuwa lazima",      color:"#34D399"  },
     jwt:          { value:"••••••••••••••••••••••••••••••••••••••••••••", visible:false, status:"connected", label:"JWT_SECRET",                hint:"Secret ya authentication tokens — lazima iwe strong 64+ chars", color:"#34D399" },
+    github:       { value:"",                                              visible:false, status:"optional",  label:"GitHub API Token",          hint:"Inatumika: Kupata stars na downloads za repositories (Resources)", color:"#4ECDC4" },
   });
 
   // Apify settings

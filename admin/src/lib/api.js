@@ -55,6 +55,7 @@ export const adminAPI = {
   // Resources
   resources:              (p)       => api.get("/api/admin/resources", { params: p }),
   createResource:         (data)    => api.post("/api/admin/resources", data),
+  updateResource:         (id, data)=> api.patch(`/api/admin/resources/${id}/update`, data),
   approveResource:        (id)      => api.patch(`/api/admin/resources/${id}/approve`),
   deleteResource:         (id)      => api.delete(`/api/admin/resources/${id}`),
 

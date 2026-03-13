@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Heart, MessageSquare, Bookmark, Share2, Send, Languages, Star, Users, MapPin, Briefcase, ExternalLink, Zap, Github, Linkedin, Twitter, Mail, Phone, CheckCircle2, Trophy, Calendar, Globe, Clock, Search, ChevronRight, LogOut, UserPlus, UserCheck, MoreHorizontal, Flag, Link2 } from "lucide-react";
+import { Heart, MessageSquare, Bookmark, Share2, Send, Languages, Star, Users, MapPin, Briefcase, ExternalLink, Zap, Github, Linkedin, Twitter, Mail, Phone, CheckCircle2, Trophy, Calendar, Globe, Clock, Search, ChevronRight, LogOut, UserPlus, UserCheck, MoreHorizontal, Flag, Link2, Download, GitFork } from "lucide-react";
 import { translations } from "../translations";
 import ProfilePage from "./jamii-ai-profile";
 import SearchBar from "./SearchBar";
 import NotificationBell from "./NotificationBell";
 import DirectMessages from "./DirectMessages";
+import { resourcesAPI, postsAPI, usersAPI, notificationsAPI, authAPI } from "../lib/api";
 
 // ... (existing constants)
 
@@ -16,6 +17,14 @@ const TAG_COLORS = {
   mradi:  { bg: "rgba(52,211,153,0.12)",  color: "#34D399" },
   habari: { bg: "rgba(167,139,250,0.12)", color: "#A78BFA" },
   kazi:   { bg: "rgba(245,166,35,0.12)",  color: "#F5A623" },
+};
+
+const RES_TYPE_COLORS = {
+  Dataset:        { color: "#4ECDC4", bg: "rgba(78,205,196,0.12)" },
+  Tutorial:       { color: "#F5A623", bg: "rgba(245,166,35,0.12)" },
+  Guide:          { color: "#34D399", bg: "rgba(52,211,153,0.12)" },
+  "Research Paper": { color: "#A78BFA", bg: "rgba(167,139,250,0.12)" },
+  Other:          { color: "#94A3B8", bg: "rgba(148,163,184,0.12)" }
 };
 
 const NAV_ITEMS = [
@@ -1391,6 +1400,115 @@ function PostCard({ post, onLike, onBookmark, onReport, me, t, onHashtag, onMent
   );
 }
 
+// ─── HELPERS ────────────────────────────────────────────────────────
+const formatNumber = (num) => {
+  if (!num || isNaN(num)) return "0";
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "k";
+  return num.toString();
+};
+
+function ResourceModal({ res, onClose, t }) {
+  if (!res) return null;
+  const rc = RES_TYPE_COLORS[res.type] || RES_TYPE_COLORS.Other;
+  const tags = Array.isArray(res.tags) ? res.tags : (typeof res.tags === 'string' ? JSON.parse(res.tags || "[]") : []);
+  
+  const handleDownload = async () => {
+    try {
+      await resourcesAPI.download(res.id);
+      window.open(res.link, "_blank");
+    } catch (err) {
+      console.error("Download tracking failed:", err);
+      window.open(res.link, "_blank");
+    }
+  };
+
+  const ghData = res.github_data ? (typeof res.github_data === 'string' ? JSON.parse(res.github_data) : res.github_data) : null;
+  const isGithub = res.link?.includes("github.com");
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <div onClick={onClose} style={{ position: "absolute", inset: 0 }} />
+      <div style={{ background: "#0D1322", border: `1px solid ${rc.color}30`, borderRadius: 24, width: "100%", maxWidth: 580, position: "relative", overflow: "hidden", boxShadow: "0 25px 50px rgba(0,0,0,0.5)" }}>
+        
+        {/* Header Color Strip */}
+        <div style={{ height: 6, background: rc.color }} />
+        
+        <div style={{ padding: "28px 32px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+            <div>
+              <Pill label={res.type.toUpperCase()} bg={rc.bg} color={rc.color} />
+              <h2 style={{ fontSize: 24, fontWeight: 800, marginTop: 12, lineHeight: 1.2, letterSpacing: "-0.02em" }}>{res.title}</h2>
+              <p style={{ fontSize: 13, opacity: 0.4, marginTop: 6, fontFamily: "'Roboto Mono',monospace" }}>Imechapishwa na {res.author_name || 'JamiiAI Team'}</p>
+            </div>
+            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: "50%", width: 34, height: 34, color: "#FFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          </div>
+
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 16, padding: 20, marginBottom: 24 }}>
+            <h4 style={{ fontSize: 10, fontWeight: 800, color: rc.color, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>{t.maelezo}</h4>
+            <p style={{ fontSize: 15, lineHeight: 1.7, color: "rgba(220,230,240,0.8)" }}>{res.description || "Hakuna maelezo ya ziada kwa rasilimali hii."}</p>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 28 }}>
+            {tags.map(tag => (
+              <span key={tag} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", padding: "6px 14px", borderRadius: 10, fontSize: 12, color: "rgba(220,230,240,0.6)" }}>#{tag}</span>
+            ))}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 32 }}>
+            <div style={{ textAlign: "center", padding: "12px", background: "rgba(255,255,255,0.02)", borderRadius: 14 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#FFF" }}>⭐ {formatNumber(res.stars)}</div>
+              <div style={{ fontSize: 10, opacity: 0.3, marginTop: 4 }}>STARS</div>
+            </div>
+            
+            {isGithub ? (
+              <div style={{ textAlign: "center", padding: "12px", background: "rgba(255,255,255,0.02)", borderRadius: 14 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <GitFork size={18} /> {formatNumber(ghData?.forks || 0)}
+                </div>
+                <div style={{ fontSize: 10, opacity: 0.3, marginTop: 4 }}>FORKS</div>
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "12px", background: "rgba(255,255,255,0.02)", borderRadius: 14 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <Download size={18} /> {formatNumber(res.downloads)}
+                </div>
+                <div style={{ fontSize: 10, opacity: 0.3, marginTop: 4 }}>DOWNLOADS</div>
+              </div>
+            )}
+
+            <div style={{ textAlign: "center", padding: "12px", background: "rgba(255,255,255,0.02)", borderRadius: 14 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#4ECDC4" }}>
+                {isGithub ? (ghData?.language || 'Code') : (res.type === 'Dataset' ? 'Data' : 'Link')}
+              </div>
+              <div style={{ fontSize: 10, opacity: 0.3, marginTop: 4 }}>TYPE</div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 12 }}>
+            <button 
+              onClick={handleDownload}
+              style={{ flex: 2, background: rc.color, color: "#0A0F1C", border: "none", padding: "16px", borderRadius: 16, fontWeight: 800, fontSize: 15, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, boxShadow: `0 10px 20px ${rc.color}20` }}
+            >
+              {isGithub ? <Github size={20} /> : <Download size={20} />} 
+              {isGithub ? `${t.pakua_rasilimali} (GitHub)` : t.pakua_rasilimali}
+            </button>
+            <button 
+              style={{ flex: 1, background: "rgba(255,255,255,0.05)", color: "#FFF", border: "1px solid rgba(255,255,255,0.1)", padding: "16px", borderRadius: 16, fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+            >
+              {t.shiriki}
+            </button>
+          </div>
+          
+          <div style={{ textAlign: "center", marginTop: 24, opacity: 0.3, fontSize: 11 }}>
+            {t.asante_kwa_kuchangia}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN COMMUNITY ──────────────────────────────────────────────────────────
 
 export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw', toggleLang, socket, onSearch }) {
@@ -1414,6 +1532,7 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
   const [showResForm, setShowResForm]     = useState(false);
   const [resSubmitted, setResSubmitted]   = useState(false);
   const [resForm, setResForm]             = useState({ title: "", type: "Dataset", link: "", tags: "", desc: "" });
+  const [selectedRes, setSelectedRes]     = useState(null);
 
   const [jobs, setJobs]                   = useState([]);
   const [selectedJob, setSelectedJob]     = useState(null);
@@ -1423,56 +1542,73 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
   const [showJobForm, setShowJobForm]     = useState(false);
   const [jobForm, setJobForm]             = useState({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
 
-  const handleJobSubmit = () => {
+  const handleJobSubmit = async () => {
     if (!jobForm.title.trim() || !jobForm.company.trim()) return;
-    const newJob = {
-      id: Date.now().toString(),
-      title: jobForm.title,
-      company_name: jobForm.company,
-      type: jobForm.type,
-      location: jobForm.location || "Remote",
-      is_remote: !jobForm.location,
-      description: jobForm.desc,
-      requirements: jobForm.requirements,
-      salary_visible: !!jobForm.salary,
-      salary_min: jobForm.salary ? parseInt(jobForm.salary) : 0,
-      salary_currency: "TZS",
-      tags: ["AI", "New"],
-      views: 0,
-      applications_count: 0,
-      deadline: "2026-12-31",
-      created_at: new Date().toISOString(),
-      is_saved: false,
-      has_applied: false
-    };
-    setJobs([newJob, ...jobs]);
-    setShowJobForm(false);
-    setJobForm({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
-    notify("✓ Kazi imechapishwa!");
+    
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(`${API_URL}/jobs`, {
+        title: jobForm.title,
+        company_name: jobForm.company,
+        type: jobForm.type,
+        location: jobForm.location || "Remote",
+        is_remote: !jobForm.location,
+        description: jobForm.desc,
+        requirements: jobForm.requirements,
+        salary_min: jobForm.salary ? parseInt(jobForm.salary) : 0,
+        salary_currency: "TZS",
+        salary_visible: !!jobForm.salary,
+        tags: ["AI", "New"],
+        deadline: "2026-12-31"
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Update local state if it's immediately active, or just notify if pending
+      if (res.data.status === 'active') {
+        setJobs([res.data, ...jobs]);
+        notify("✓ Kazi imechapishwa!");
+      } else {
+        notify("✓ Kazi imewasilishwa kwa ajili ya mapitio!");
+      }
+
+      setShowJobForm(false);
+      setJobForm({ title: "", company: "", type: "full_time", location: "", desc: "", requirements: "", salary: "" });
+    } catch (err) {
+      console.error(err);
+      notify("❌ Hitilafu imetokea wakati wa kutuma.");
+    }
   };
 
-  const handleResSubmit = () => {
+  const handleResSubmit = async () => {
     if (!resForm.title.trim() || !resForm.link.trim()) return;
 
-    const newRes = {
-      id: Date.now(),
-      title: resForm.title,
-      type: resForm.type,
-      author_name: user?.name || "Mwanachama",
-      link: resForm.link,
-      tags: resForm.tags.split(",").map(t => t.trim()).filter(Boolean),
-      description: resForm.desc,
-      stars: 0,
-      downloads: 0,
-      status: "pending"
-    };
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(`${API_URL}/resources/submit`, {
+        title: resForm.title,
+        type: resForm.type,
+        link: resForm.link,
+        tags: resForm.tags,
+        description: resForm.desc
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-    setDataList([newRes, ...dataList]);
-    setResForm({ title: "", type: "Dataset", link: "", tags: "", desc: "" });
-    setShowResForm(false);
-    setResSubmitted(true);
-    setTimeout(() => setResSubmitted(false), 4000);
-    notify("✓ Resource imewasilishwa kwa ajili ya mapitio!");
+      // Update local state with the saved resource from backend
+      if (res.data.resource) {
+        setDataList([res.data.resource, ...dataList]);
+      }
+      
+      setResForm({ title: "", type: "Dataset", link: "", tags: "", desc: "" });
+      setShowResForm(false);
+      setResSubmitted(true);
+      setTimeout(() => setResSubmitted(false), 4000);
+      notify("✓ Resource imewasilishwa kwa ajili ya mapitio!");
+    } catch (err) {
+      console.error(err);
+      notify("❌ Hitilafu imetokea wakati wa kutuma.");
+    }
   };
 
   const [searchQuery, setSearchQuery]     = useState("");
@@ -1614,6 +1750,11 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
         me={ME}
         onFollow={(id) => handleLike && axios.post(`${API_URL}/users/${id}/follow`, {}, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }).then(() => notify("✓ Umemfuata!")).catch(() => {})}
         onMessage={(dev) => { setActiveNav("ujumbe"); }}
+      />}
+      {selectedRes && <ResourceModal
+        res={selectedRes}
+        onClose={() => setSelectedRes(null)}
+        t={t}
       />}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap');
@@ -2019,20 +2160,39 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
                 </div>
                 <div className="responsive-grid">
                   {loading ? t.inapakia : dataList.filter(r => resFilter === "Zote" || r.type === resFilter).map(r => {
-                    const typeColor = { Dataset: "#4ECDC4", Tutorial: "#F5A623", Guide: "#34D399", "Research Paper": "#A78BFA" };
-                    const tc = typeColor[r.type] || "#F5A623";
+                    const rc = RES_TYPE_COLORS[r.type] || RES_TYPE_COLORS.Other;
                     const tags = Array.isArray(r.tags) ? r.tags : (typeof r.tags === 'string' ? JSON.parse(r.tags || "[]") : []);
                     const isPending = r.status === "pending";
+                    const isGithub = r.link?.includes("github.com");
+                    const ghData = r.github_data ? (typeof r.github_data === 'string' ? JSON.parse(r.github_data) : r.github_data) : null;
+
                     return (
-                      <div key={r.id} style={{ background: "rgba(255,255,255,0.025)", border: `1px solid ${isPending ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", cursor: "pointer", transition: "all 0.2s", opacity: isPending ? 0.8 : 1 }} className="post-card">
+                      <div 
+                        key={r.id} 
+                        onClick={() => !isPending && setSelectedRes(r)}
+                        style={{ background: "rgba(255,255,255,0.025)", border: `1px solid ${isPending ? "rgba(245,166,35,0.2)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", cursor: isPending ? "default" : "pointer", transition: "all 0.2s", opacity: isPending ? 0.8 : 1 }} 
+                        className="post-card"
+                      >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            <Pill label={r.type} bg={`${tc}18`} color={tc} />
+                            <Pill label={(r.type || "Other").toUpperCase()} bg={rc.bg} color={rc.color} />
                             {isPending && <Pill label="⏳ INASUBIRI" bg="rgba(245,166,35,0.1)" color="#F5A623" />}
                           </div>
-                          <div style={{ display: "flex", gap: 8 }}>
-                            {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "#F5A623" }}>⭐ {r.stars}</span>}
-                            {!isPending && <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.35)" }}>↓ {r.downloads?.toLocaleString()}</span>}
+                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            {!isPending && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#F5A623", fontSize: 11, fontWeight: 700 }}>
+                                <span>⭐</span> {formatNumber(r.stars)}
+                              </div>
+                            )}
+                            {!isPending && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(220,230,240,0.35)", fontSize: 11 }}>
+                                {isGithub ? (
+                                  <><GitFork size={12} /> {formatNumber(ghData?.forks || 0)}</>
+                                ) : (
+                                  <><Download size={12} /> {formatNumber(r.downloads)}</>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <h3 style={{ fontWeight: 800, fontSize: 14, letterSpacing: "-0.01em", marginBottom: 5, lineHeight: 1.3, flex: 1 }}>{r.title}</h3>
@@ -2044,7 +2204,10 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
                         {isPending ? (
                           <div style={{ background: "rgba(245,166,35,0.08)", border: "1px solid rgba(245,166,35,0.15)", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "rgba(245,166,35,0.6)", textAlign: "center", fontWeight: 700 }}>MAPITIO YA ADMIN...</div>
                         ) : (
-                          <button style={{ background: tc, color: "#0A0F1C", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',sans-serif", fontWeight: 800, fontSize: 12, marginTop: "auto" }}>Pakua / Angalia →</button>
+                          <button style={{ background: rc.color, color: "#0A0F1C", border: "none", padding: "8px", borderRadius: 8, cursor: "pointer", fontFamily: "'Roboto Mono',sans-serif", fontWeight: 800, fontSize: 12, marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                            {isGithub ? <Github size={14} /> : <Download size={14} />}
+                            {isGithub ? "View Code" : "Download"}
+                          </button>
                         )}
                       </div>
                     );
