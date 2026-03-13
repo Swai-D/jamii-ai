@@ -897,7 +897,9 @@ function ChangamotoPage() {
                   <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.3)" }}>📍 {ch.region || "Global"}</span>
                 </div>
                 <h3 style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{ch.title}</h3>
-                <div style={{ fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.25)" }}>by {ch.org} · Deadline: {ch.deadline ? new Date(ch.deadline).toLocaleDateString() : 'N/A'}</div>
+                <div style={{ fontFamily:MONO, fontSize:11, color:"rgba(242,242,245,0.25)" }}>
+                  by {ch.org} · Deadline: {ch.deadline ? new Date(ch.deadline).toLocaleDateString('sw-TZ', { day:'numeric', month:'short', year:'numeric' }) : 'Hakuna Deadline'}
+                </div>
               </div>
               <div style={{ display:"flex", gap:7, flexShrink:0, flexWrap:"wrap", justifyContent:"flex-end" }}>
                 {ch.status==="open"      && <ActionBtn label="Funga"   color="#F87171" small onClick={()=>toggleStatus(ch.id,"closed")}    />}

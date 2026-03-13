@@ -596,7 +596,9 @@ function ChallengeCard({ ch, t }) {
         </div>
         <div style={{ background: "rgba(255,255,255,0.03)", padding: 12, borderRadius: 12 }}>
           <div style={{ fontSize: 9, opacity: 0.4, letterSpacing: "0.1em", marginBottom: 4 }}>{t.mwisho}</div>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>{ch.deadline ? new Date(ch.deadline).toLocaleDateString() : 'N/A'}</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>
+            {ch.deadline ? new Date(ch.deadline).toLocaleDateString('sw-TZ', { day:'numeric', month:'short' }) : 'Bado'}
+          </div>
         </div>
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

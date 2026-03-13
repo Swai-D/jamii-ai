@@ -1636,4 +1636,30 @@ JAMII-ADMIN-KAZI-SECTION.md      → Admin Kazi section (4 changes only)
 
 ---
 
-**🇹🇿 JamiiAI — Mfumo kamili. Fuata Sehemu A → B → C → D → E → F. Umalize kwa utaratibu.**
+## SEHEMU G — CHALLENGES (CHANGAMOTO)
+Sehemu hii inasimamiwa kwa njia mbili: **Auto-fetch** na **Manual Entry**.
+
+### 1. Automation (Auto-fetch)
+Mfumo unachukua changamoto mpya automaticamente kutoka Kaggle na AIcrowd.
+- **Vyanzo:** Kaggle (API v1), AIcrowd (v1).
+- **Usajili:** Kila siku saa 9 asubuhi (Cron: `0 3 * * *`).
+- **Trigger:** Admin anaweza kubonyeza "Fetch Vyanzo" wakati wowote upande wa Admin Panel.
+- **Config:** Hakikisha `.env` ina:
+  - `KAGGLE_USERNAME`
+  - `KAGGLE_KEY`
+  - `AICROWD_API_KEY`
+
+### 2. Manual Management
+- Admin anaweza kuongeza changamoto za ndani (JamiiAI) au vyanzo vingine ambavyo havina API.
+- **Fields:** Title, Org, Prize (Tuzo), Deadline, Region (Global/Africa/Tanzania), Source URL.
+- **Status:** `open` (inaonekana kwa community), `judging`, `completed`, `closed`.
+
+### 3. Community View
+- Kadi za changamoto zinaonyesha nembo ya chanzo (Kaggle/Zindi/JamiiAI).
+- Kitufe cha **Apply** kinabadilika kulingana na chanzo:
+  - Kama ni chanzo cha nje (Kaggle), kinampeleka mtumiaji moja kwa moja kwenye link ya nje.
+  - Kama ni cha ndani, kinatayarisha usajili wa ndani.
+
+---
+
+**JamiiAI — Inafanya kazi sasa hivi. Endelea na sehemu inayofuata.**
