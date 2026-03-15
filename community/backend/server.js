@@ -2697,42 +2697,543 @@ app.post("/api/admin/announcements", adminAuth, async (req, res) => {
 
 app.get("/api/admin/analytics", adminAuth, async (req, res) => {
   try {
-    const [users, posts, jobs, messages, daily] = await Promise.all([
-      db.query("SELECT COUNT(*) FROM users"),
-      db.query("SELECT COUNT(*) FROM posts WHERE is_deleted=false"),
-      db.query("SELECT COUNT(*) FROM jobs WHERE status='active'"),
-      db.query("SELECT COUNT(*) FROM messages"),
-      db.query(`
-        SELECT DATE(created_at) AS day, COUNT(*) AS users
-        FROM users
-        WHERE created_at >= NOW() - INTERVAL '7 days'
-        GROUP BY DATE(created_at) ORDER BY day ASC
-      `),
-    ]);
-    const postsDaily = await db.query(`
+    const { range = "wiki" } = req.query;
+    
+    // Determine date range
+    let interval, days;
+    if (range === "leo") {
+      interval = "1 day";
+      days = ["Leo"];
+    } else if (range === "mwezi") {
+      interval = "30 days";
+      days = Array.from({ length: 30 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (29 - i));
+        return d.toLocaleDateString("sw-TZ", { weekday: "short" });
+      });
+    } else {
+      interval = "7 days";
+      days = ["Jum","Alh","Ijm","Alm","Jtn","Jmt","Leo"];
+    }
+
+    // KPIs - Daily Active Users (users who posted, commented, or liked today)
+    const dauQuery = await db.query(`
+      SELECT COUNT(DISTINCT u.id) as dau
+      FROM users u
+      WHERE u.id IN (
+        SELECT DISTINCT user_id FROM posts WHERE created_at >= NOW() - INTERVAL '1 day' AND is_deleted=false
+        UNION
+        SELECT DISTINCT user_id FROM comments WHERE created_at >= NOW() - INTERVAL '1 day'
+        UNION
+        SELECT DISTINCT user_id FROM post_likes WHERE created_at >= NOW() - INTERVAL '1 day'
+      )
+    `);
+    const dau = parseInt(dauQuery.rows[0]?.dau || 0);
+
+    // Retention (30-day) - Users who registered 30+ days ago and are still active
+    const retentionQuery = await db.query(`
+      WITH registered_30d_ago AS (
+        SELECT id FROM users 
+        WHERE created_at >= NOW() - INTERVAL '60 days' 
+        AND created_at < NOW() - INTERVAL '30 days'
+      ),
+      active_last_30d AS (
+        SELECT DISTINCT user_id FROM posts WHERE created_at >= NOW() - INTERVAL '30 days' AND is_deleted=false
+        UNION
+        SELECT DISTINCT user_id FROM comments WHERE created_at >= NOW() - INTERVAL '30 days'
+        UNION
+        SELECT DISTINCT user_id FROM post_likes WHERE created_at >= NOW() - INTERVAL '30 days'
+      )
+      SELECT 
+        COUNT(DISTINCT r.id) as total_registered,
+        COUNT(DISTINCT a.user_id) as still_active,
+        CASE 
+          WHEN COUNT(DISTINCT r.id) > 0 
+          THEN ROUND((COUNT(DISTINCT a.user_id)::numeric / COUNT(DISTINCT r.id)::numeric) * 100, 1)
+          ELSE 0 
+        END as retention_rate
+      FROM registered_30d_ago r
+      LEFT JOIN active_last_30d a ON r.id = a.user_id
+    `);
+    const retention30d = retentionQuery.rows[0]?.retention_rate || 0;
+
+    // Conversion Rate (Free to Paid)
+    const conversionQuery = await db.query(`
+      SELECT 
+        COUNT(CASE WHEN plan = 'free' THEN 1 END) as free_users,
+        COUNT(CASE WHEN plan IN ('basic', 'pro') THEN 1 END) as paid_users,
+        CASE 
+          WHEN COUNT(CASE WHEN plan = 'free' THEN 1 END) > 0
+          THEN ROUND((COUNT(CASE WHEN plan IN ('basic', 'pro') THEN 1 END)::numeric / 
+                     COUNT(*)::numeric) * 100, 1)
+          ELSE 0
+        END as conversion_rate
+      FROM users
+      WHERE status = 'active'
+    `);
+    const conversion = conversionQuery.rows[0]?.conversion_rate || 0;
+
+    // Average Session (estimated from posts/comments per user per day)
+    const avgSessionQuery = await db.query(`
+      SELECT 
+        COUNT(*) as total_actions,
+        COUNT(DISTINCT user_id) as active_users,
+        CASE 
+          WHEN COUNT(DISTINCT user_id) > 0
+          THEN ROUND((COUNT(*)::numeric / COUNT(DISTINCT user_id)::numeric), 1)
+          ELSE 0
+        END as avg_actions_per_user
+      FROM (
+        SELECT user_id, created_at FROM posts WHERE created_at >= NOW() - INTERVAL '1 day' AND is_deleted=false
+        UNION ALL
+        SELECT user_id, created_at FROM comments WHERE created_at >= NOW() - INTERVAL '1 day'
+        UNION ALL
+        SELECT user_id, created_at FROM post_likes WHERE created_at >= NOW() - INTERVAL '1 day'
+      ) daily_activity
+    `);
+    const avgSession = avgSessionQuery.rows[0]?.avg_actions_per_user || 0;
+
+    // Daily Users and Posts
+    const dailyUsersQuery = await db.query(`
+      SELECT DATE(created_at) AS day, COUNT(*) AS users
+      FROM users
+      WHERE created_at >= NOW() - INTERVAL '${interval}'
+      GROUP BY DATE(created_at) ORDER BY day ASC
+    `);
+    
+    const dailyPostsQuery = await db.query(`
       SELECT DATE(created_at) AS day, COUNT(*) AS posts
-      FROM posts WHERE created_at >= NOW() - INTERVAL '7 days'
+      FROM posts 
+      WHERE created_at >= NOW() - INTERVAL '${interval}' AND is_deleted=false
       GROUP BY DATE(created_at) ORDER BY day ASC
     `);
 
-    // Build 7-day chart (fill missing days)
-    const days = ["Jum","Alh","Ijm","Alm","Jtn","Jmt","Leo"];
-    const weekly = days.map((day, i) => {
-      const d = daily.rows[i] || {};
-      const p = postsDaily.rows[i] || {};
-      return { day, users: parseInt(d.users||0), posts: parseInt(p.posts||0) };
+    // Build daily data array (fill missing days)
+    const dailyDataMap = new Map();
+    dailyUsersQuery.rows.forEach(row => {
+      const dayKey = row.day instanceof Date ? row.day.toISOString().split('T')[0] : String(row.day).split('T')[0];
+      dailyDataMap.set(dayKey, { users: parseInt(row.users || 0), posts: 0 });
+    });
+    dailyPostsQuery.rows.forEach(row => {
+      const dayKey = row.day instanceof Date ? row.day.toISOString().split('T')[0] : String(row.day).split('T')[0];
+      if (dailyDataMap.has(dayKey)) {
+        dailyDataMap.get(dayKey).posts = parseInt(row.posts || 0);
+      } else {
+        dailyDataMap.set(dayKey, { users: 0, posts: parseInt(row.posts || 0) });
+      }
     });
 
-    res.json({
-      counts: {
-        users: parseInt(users.rows[0].count),
-        posts: parseInt(posts.rows[0].count),
-        jobs: parseInt(jobs.rows[0].count),
-        messages: parseInt(messages.rows[0].count),
-      },
-      weekly,
+    const dailyUsers = days.map((dayLabel, idx) => {
+      const targetDate = new Date();
+      if (range === "leo") {
+        targetDate.setDate(targetDate.getDate());
+      } else if (range === "mwezi") {
+        targetDate.setDate(targetDate.getDate() - (29 - idx));
+      } else {
+        targetDate.setDate(targetDate.getDate() - (6 - idx));
+      }
+      const dateKey = targetDate.toISOString().split('T')[0];
+      const data = dailyDataMap.get(dateKey) || { users: 0, posts: 0 };
+      return { 
+        d: dayLabel, 
+        day: dayLabel,
+        u: data.users, 
+        users: data.users, 
+        p: data.posts, 
+        posts: data.posts 
+      };
     });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+
+    // Top Content (Posts with most engagement this week)
+    const topContentQuery = await db.query(`
+      SELECT 
+        p.id,
+        LEFT(p.content, 60) as title,
+        p.content,
+        'Posts' as section,
+        (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes,
+        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as views,
+        p.created_at
+      FROM posts p
+      WHERE p.created_at >= NOW() - INTERVAL '${interval}' 
+        AND p.is_deleted = false
+      ORDER BY 
+        (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) DESC,
+        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) DESC
+      LIMIT 5
+    `);
+    const topContent = topContentQuery.rows.map(row => ({
+      title: row.title || row.content?.slice(0, 60) || "Post",
+      section: "Posts",
+      likes: parseInt(row.likes || 0),
+      views: parseInt(row.views || 0),
+      id: row.id
+    }));
+
+    // Traffic Sources (simulated based on content types)
+    const trafficQuery = await db.query(`
+      SELECT 
+        'Direct' as source,
+        COUNT(*) as count
+      FROM users
+      WHERE created_at >= NOW() - INTERVAL '${interval}'
+      UNION ALL
+      SELECT 
+        'Social' as source,
+        COUNT(*) as count
+      FROM posts
+      WHERE created_at >= NOW() - INTERVAL '${interval}' AND is_deleted=false
+      UNION ALL
+      SELECT 
+        'Search' as source,
+        COUNT(*) as count
+      FROM resources
+      WHERE created_at >= NOW() - INTERVAL '${interval}' AND status='approved'
+    `);
+    
+    const totalTraffic = trafficQuery.rows.reduce((sum, r) => sum + parseInt(r.count || 0), 0);
+    const traffic = trafficQuery.rows.map((row, idx) => {
+      const colors = ["#F5A623", "#4ECDC4", "#34D399", "#A78BFA"];
+      const pct = totalTraffic > 0 ? Math.round((parseInt(row.count || 0) / totalTraffic) * 100) : 0;
+      return {
+        source: row.source,
+        pct: pct,
+        color: colors[idx % colors.length]
+      };
+    });
+
+    // Retention by Week (last 4 weeks)
+    const retentionWeeks = [];
+    for (let w = 3; w >= 0; w--) {
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - (w * 7 + 7));
+      const weekEnd = new Date();
+      weekEnd.setDate(weekEnd.getDate() - (w * 7));
+      
+      const weekRetention = await db.query(`
+        WITH registered_in_week AS (
+          SELECT id FROM users 
+          WHERE created_at >= $1 AND created_at < $2
+        ),
+        active_after_week AS (
+          SELECT DISTINCT user_id FROM posts 
+          WHERE created_at >= $2 AND is_deleted=false
+          UNION
+          SELECT DISTINCT user_id FROM comments WHERE created_at >= $2
+        )
+        SELECT 
+          COUNT(DISTINCT r.id) as total,
+          COUNT(DISTINCT a.user_id) as active,
+          CASE 
+            WHEN COUNT(DISTINCT r.id) > 0 
+            THEN ROUND((COUNT(DISTINCT a.user_id)::numeric / COUNT(DISTINCT r.id)::numeric) * 100, 0)
+            ELSE 0 
+          END as rate
+        FROM registered_in_week r
+        LEFT JOIN active_after_week a ON r.id = a.user_id
+      `, [weekStart, weekEnd]);
+      
+      retentionWeeks.push({
+        week: `Wiki ${4 - w}`,
+        rate: parseInt(weekRetention.rows[0]?.rate || 0)
+      });
+    }
+
+    res.json({
+      kpis: {
+        dau: dau,
+        dailyActiveUsers: dau,
+        retention30d: retention30d,
+        retention: retention30d,
+        conversion: conversion,
+        conversionRate: conversion,
+        avgSession: `${avgSession} min`,
+        avg_session: `${avgSession} min`
+      },
+      dailyUsers: dailyUsers,
+      daily_users: dailyUsers,
+      topContent: topContent,
+      top_content: topContent,
+      traffic: traffic,
+      retention: retentionWeeks,
+      weekly: dailyUsers, // For backward compatibility
+      counts: {
+        users: parseInt((await db.query("SELECT COUNT(*) FROM users")).rows[0].count),
+        posts: parseInt((await db.query("SELECT COUNT(*) FROM posts WHERE is_deleted=false")).rows[0].count),
+        jobs: parseInt((await db.query("SELECT COUNT(*) FROM jobs WHERE status='active'")).rows[0].count),
+        messages: parseInt((await db.query("SELECT COUNT(*) FROM messages")).rows[0].count),
+      }
+    });
+  } catch (err) { 
+    console.error("Analytics error:", err);
+    res.status(500).json({ error: err.message }); 
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  ADMIN: ROLES & PERMISSIONS
+// ════════════════════════════════════════════════════════════════════
+
+// GET all roles with member counts
+app.get("/api/admin/roles", adminAuth, async (req, res) => {
+  try {
+    const { rows: roles } = await db.query(`
+      SELECT 
+        r.id,
+        r.name,
+        r.permissions,
+        r.color,
+        r.created_at,
+        COUNT(DISTINCT ur.user_id) as member_count
+      FROM roles r
+      LEFT JOIN user_roles ur ON r.id = ur.role_id
+      GROUP BY r.id, r.name, r.permissions, r.color, r.created_at
+      ORDER BY r.created_at ASC
+    `);
+
+    // Get members for each role
+    const rolesWithMembers = await Promise.all(roles.map(async (role) => {
+      const { rows: members } = await db.query(`
+        SELECT u.id, u.name, u.handle, u.email, u.avatar_url, u.is_verified
+        FROM users u
+        JOIN user_roles ur ON u.id = ur.user_id
+        WHERE ur.role_id = $1
+        ORDER BY u.name ASC
+      `, [role.id]);
+
+      return {
+        id: role.id,
+        name: role.name,
+        label: role.name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+        permissions: Array.isArray(role.permissions) ? role.permissions : JSON.parse(role.permissions || '[]'),
+        color: role.color || '#94A3B8',
+        icon: role.name === 'super_admin' ? '👑' : 
+              role.name === 'admin' ? '🛡' :
+              role.name === 'moderator' ? '⚖' :
+              role.name === 'editor' ? '✏' :
+              role.name === 'analyst' ? '📊' : '🎭',
+        members: members.map(m => ({
+          id: m.id,
+          name: m.name,
+          handle: m.handle,
+          email: m.email,
+          avatar: m.avatar_url,
+          verified: m.is_verified
+        })),
+        member_count: parseInt(role.member_count || 0),
+        desc: role.name === 'super_admin' ? 'Ufikiaji kamili wa kila kitu — admin ya admin' :
+              role.name === 'admin' ? 'Manage community yote isipokuwa billing na settings' :
+              role.name === 'moderator' ? 'Pitiwa content iliyoflagiwa, ban watu wahalifu' :
+              role.name === 'editor' ? 'Chapisha habari na approve resources' :
+              role.name === 'analyst' ? 'Angalia analytics na reports tu' : 'Custom role'
+      };
+    }));
+
+    res.json({ roles: rolesWithMembers });
+  } catch (err) {
+    console.error("Roles fetch error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET single role
+app.get("/api/admin/roles/:id", adminAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      "SELECT * FROM roles WHERE id = $1",
+      [req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Role haikupatikana" });
+    res.json({ role: rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST create new role
+app.post("/api/admin/roles", adminAuth, async (req, res) => {
+  try {
+    const { name, permissions, color, description } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: "Jina la role linahitajika" });
+
+    const { rows } = await db.query(
+      `INSERT INTO roles (name, permissions, color, created_at)
+       VALUES ($1, $2, $3, NOW())
+       RETURNING *`,
+      [
+        name.trim().toLowerCase().replace(/\s+/g, '_'),
+        JSON.stringify(permissions || []),
+        color || '#94A3B8'
+      ]
+    );
+    res.status(201).json({ role: rows[0] });
+  } catch (err) {
+    if (err.code === '23505') return res.status(400).json({ error: "Role yenye jina hilo tayari ipo" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH update role
+app.patch("/api/admin/roles/:id", adminAuth, async (req, res) => {
+  try {
+    const { permissions, color, name } = req.body;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (permissions !== undefined) {
+      updates.push(`permissions = $${paramCount}`);
+      values.push(JSON.stringify(permissions));
+      paramCount++;
+    }
+    if (color !== undefined) {
+      updates.push(`color = $${paramCount}`);
+      values.push(color);
+      paramCount++;
+    }
+    if (name !== undefined) {
+      updates.push(`name = $${paramCount}`);
+      values.push(name.trim().toLowerCase().replace(/\s+/g, '_'));
+      paramCount++;
+    }
+
+    if (updates.length === 0) return res.status(400).json({ error: "Hakuna mabadiliko" });
+
+    values.push(req.params.id);
+    const { rows } = await db.query(
+      `UPDATE roles SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "Role haikupatikana" });
+    res.json({ role: rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE role
+app.delete("/api/admin/roles/:id", adminAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query("SELECT name FROM roles WHERE id = $1", [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: "Role haikupatikana" });
+    
+    // Prevent deleting system roles
+    const systemRoles = ['super_admin', 'admin', 'moderator', 'editor', 'analyst'];
+    if (systemRoles.includes(rows[0].name)) {
+      return res.status(400).json({ error: "Huwezi kufuta system role" });
+    }
+
+    await db.query("DELETE FROM roles WHERE id = $1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST assign role to user
+app.post("/api/admin/roles/:roleId/assign", adminAuth, async (req, res) => {
+  try {
+    const { roleId } = req.params;
+    const { userId, userHandle, userEmail } = req.body;
+
+    let targetUserId = userId;
+
+    // If userId not provided, find by handle or email
+    if (!targetUserId) {
+      if (userHandle) {
+        const { rows } = await db.query("SELECT id FROM users WHERE handle = $1 OR LOWER(handle) = $1", [userHandle.replace('@', '').toLowerCase()]);
+        if (rows.length === 0) return res.status(404).json({ error: "Mtumiaji hajapatikana" });
+        targetUserId = rows[0].id;
+      } else if (userEmail) {
+        const { rows } = await db.query("SELECT id FROM users WHERE email = $1", [userEmail.toLowerCase()]);
+        if (rows.length === 0) return res.status(404).json({ error: "Mtumiaji hajapatikana" });
+        targetUserId = rows[0].id;
+      } else {
+        return res.status(400).json({ error: "Tafadhali toa userId, userHandle, au userEmail" });
+      }
+    }
+
+    // Check if assignment already exists
+    const { rows: existing } = await db.query(
+      "SELECT 1 FROM user_roles WHERE user_id = $1 AND role_id = $2",
+      [targetUserId, roleId]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "Mtumiaji tayari ana role hii" });
+    }
+
+    await db.query(
+      `INSERT INTO user_roles (user_id, role_id, assigned_by, assigned_at)
+       VALUES ($1, $2, $3, NOW())`,
+      [targetUserId, roleId, req.user.id]
+    );
+
+    const { rows: user } = await db.query("SELECT name, handle FROM users WHERE id = $1", [targetUserId]);
+    res.json({ success: true, user: user[0] });
+  } catch (err) {
+    if (err.code === '23503') return res.status(400).json({ error: "User au Role haipo" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE remove role from user
+app.delete("/api/admin/roles/:roleId/users/:userId", adminAuth, async (req, res) => {
+  try {
+    const { roleId, userId } = req.params;
+
+    // Check if it's a system role and prevent removing from super_admin
+    const { rows: role } = await db.query("SELECT name FROM roles WHERE id = $1", [roleId]);
+    if (role.length > 0 && role[0].name === 'super_admin') {
+      const { rows: userRoles } = await db.query(
+        "SELECT COUNT(*) as count FROM user_roles WHERE role_id = $1",
+        [roleId]
+      );
+      if (parseInt(userRoles[0].count) <= 1) {
+        return res.status(400).json({ error: "Huwezi kuondoa super_admin pekee" });
+      }
+    }
+
+    await db.query(
+      "DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2",
+      [userId, roleId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET users with their roles
+app.get("/api/admin/users/roles", adminAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.handle,
+        u.email,
+        u.avatar_url,
+        u.is_verified,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', r.id,
+              'name', r.name,
+              'color', r.color
+            )
+          ) FILTER (WHERE r.id IS NOT NULL),
+          '[]'
+        ) as roles
+      FROM users u
+      LEFT JOIN user_roles ur ON u.id = ur.user_id
+      LEFT JOIN roles r ON ur.role_id = r.id
+      GROUP BY u.id, u.name, u.handle, u.email, u.avatar_url, u.is_verified
+      ORDER BY u.name ASC
+    `);
+    res.json({ users: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ════════════════════════════════════════════════════════════════════

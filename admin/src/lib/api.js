@@ -18,7 +18,7 @@ export const authAPI = {
 export const adminAPI = {
   // Stats & Dashboard
   stats:                  ()        => api.get("/api/admin/stats"),
-  analytics:              ()        => api.get("/api/admin/analytics"),
+  analytics:              (range)   => api.get("/api/admin/analytics", { params: { range: range || "wiki" } }),
 
   // Users
   users:                  (p)       => api.get("/api/admin/users", { params: p }),
@@ -76,6 +76,16 @@ export const adminAPI = {
 
   // Apify
   runApify:               ()        => api.post("/api/admin/apify/run"),
+
+  // Roles & Permissions
+  getRoles:              ()        => api.get("/api/admin/roles"),
+  getRole:                (id)      => api.get(`/api/admin/roles/${id}`),
+  createRole:             (data)    => api.post("/api/admin/roles", data),
+  updateRole:             (id, data)=> api.patch(`/api/admin/roles/${id}`, data),
+  deleteRole:             (id)      => api.delete(`/api/admin/roles/${id}`),
+  assignRole:             (roleId, data) => api.post(`/api/admin/roles/${roleId}/assign`, data),
+  removeRoleFromUser:     (roleId, userId) => api.delete(`/api/admin/roles/${roleId}/users/${userId}`),
+  getUsersWithRoles:      ()        => api.get("/api/admin/users/roles"),
 };
 
 export default api;

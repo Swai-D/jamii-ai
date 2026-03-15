@@ -1521,15 +1521,6 @@ function HabariPage() {
 }
 
 // ── ROLES ─────────────────────────────────────────────────────────
-const ROLES_DATA = [
-  { id:"super_admin", label:"Super Admin",  color:"#F87171", icon:"👑", perms:["all"],                         members:["Davy Mwangi"],               desc:"Ufikiaji kamili wa kila kitu — admin ya admin" },
-  { id:"admin",       label:"Admin",        color:"#F5A623", icon:"🛡", perms:["users","content","habari","events","challenges","resources"], members:["Amina Hassan"], desc:"Manage community yote isipokuwa billing na settings" },
-  { id:"moderator",   label:"Moderator",    color:"#4ECDC4", icon:"⚖", perms:["content","users_view"],        members:["Jonas Kimaro","Fatuma Said"], desc:"Pitiwa content iliyoflagiwa, ban watu wahalifu" },
-  { id:"editor",      label:"Editor",       color:"#A78BFA", icon:"✏", perms:["habari","resources"],          members:["Grace Mushi"],               desc:"Chapisha habari na approve resources" },
-  { id:"analyst",     label:"Analyst",      color:"#60A5FA", icon:"📊", perms:["analytics","dashboard_view"], members:[],                            desc:"Angalia analytics na reports tu" },
-  { id:"member",      label:"Member",       color:"rgba(242,242,245,0.4)", icon:"👤", perms:["community"],  members:["...wanachama 1,240"],          desc:"Mwanachama wa kawaida wa JamiiAI" },
-];
-
 const ALL_PERMS = [
   { id:"all",          label:"Full Access",           group:"System"    },
   { id:"users",        label:"Manage Users",          group:"Community" },
@@ -1547,37 +1538,144 @@ const ALL_PERMS = [
 ];
 
 function RolesPage() {
-  const [roles, setRoles]       = useState(ROLES_DATA);
+  const [roles, setRoles]       = useState([]);
   const [selected, setSelected] = useState(null);
   const [showNew, setShowNew]   = useState(false);
   const [toast, setToast]       = useState(null);
   const [assignHandle, setAssignHandle] = useState("");
   const [newRole, setNewRole]   = useState({ label:"", color:"#4ECDC4", desc:"" });
+  const [loading, setLoading]  = useState(true);
+  const [saving, setSaving]      = useState(false);
 
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2400); };
   const sel = roles.find(r=>r.id===selected);
 
-  const togglePerm = (roleId, permId) => {
-    setRoles(rs=>rs.map(r=>{
-      if (r.id!==roleId) return r;
-      const has = r.perms.includes(permId);
-      return { ...r, perms: has ? r.perms.filter(p=>p!==permId) : [...r.perms, permId] };
-    }));
+  // Load roles from API
+  useEffect(() => {
+    loadRoles();
+  }, []);
+
+  const loadRoles = async () => {
+    setLoading(true);
+    try {
+      const res = await adminAPI.getRoles();
+      const rolesData = res.data?.roles || [];
+      setRoles(rolesData);
+    } catch (err) {
+      console.error("Failed to load roles:", err);
+      notify("❌ Hitilafu kwa kupakia roles");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const assign = () => {
+  const togglePerm = async (roleId, permId) => {
+    const role = roles.find(r => r.id === roleId);
+    if (!role) return;
+    
+    const has = role.permissions.includes(permId) || role.permissions.includes("all");
+    const newPerms = has 
+      ? role.permissions.filter(p => p !== permId && p !== "all")
+      : [...role.permissions, permId];
+
+    // Optimistic update
+    setRoles(rs => rs.map(r => 
+      r.id === roleId ? { ...r, permissions: newPerms } : r
+    ));
+
+    try {
+      await adminAPI.updateRole(roleId, { permissions: newPerms });
+      notify(`✅ Permission ${has ? 'imeondolewa' : 'imeongezwa'}`);
+    } catch (err) {
+      // Revert on error
+      setRoles(rs => rs.map(r => 
+        r.id === roleId ? { ...r, permissions: role.permissions } : r
+      ));
+      notify("❌ Hitilafu kwa kuhifadhi permission");
+    }
+  };
+
+  const assign = async () => {
     if (!assignHandle.trim() || !selected) return;
-    setRoles(rs=>rs.map(r=>r.id===selected?{...r,members:[...r.members,assignHandle.trim()]}:r));
-    notify(`✅ @${assignHandle} amepewa role ya ${sel?.label}!`);
-    setAssignHandle("");
+    setSaving(true);
+    try {
+      const handle = assignHandle.trim().replace('@', '');
+      await adminAPI.assignRole(selected, { userHandle: handle });
+      await loadRoles(); // Reload to get updated members
+      notify(`✅ @${handle} amepewa role ya ${sel?.label}!`);
+      setAssignHandle("");
+    } catch (err) {
+      notify(err.response?.data?.error || "❌ Hitilafu kwa kupeleka role");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const removeMember = (roleId, member) => {
-    setRoles(rs=>rs.map(r=>r.id===roleId?{...r,members:r.members.filter(m=>m!==member)}:r));
-    notify(`↩ ${member} ameondolewa kutoka role`);
+  const removeMember = async (roleId, userId) => {
+    try {
+      await adminAPI.removeRoleFromUser(roleId, userId);
+      await loadRoles(); // Reload to get updated members
+      notify(`↩ Mwanachama ameondolewa kutoka role`);
+    } catch (err) {
+      notify(err.response?.data?.error || "❌ Hitilafu kwa kuondoa mwanachama");
+    }
+  };
+
+  const saveRole = async () => {
+    if (!sel) return;
+    setSaving(true);
+    try {
+      await adminAPI.updateRole(sel.id, {
+        permissions: sel.permissions,
+        color: sel.color
+      });
+      notify(`✅ ${sel.label} permissions zimehifadhiwa!`);
+    } catch (err) {
+      notify("❌ Hitilafu kwa kuhifadhi mabadiliko");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createRole = async () => {
+    if (!newRole.label.trim()) return;
+    setSaving(true);
+    try {
+      const roleName = newRole.label.trim().toLowerCase().replace(/\s+/g, '_');
+      await adminAPI.createRole({
+        name: roleName,
+        permissions: [],
+        color: newRole.color,
+        description: newRole.desc
+      });
+      await loadRoles();
+      setShowNew(false);
+      setNewRole({ label: "", color: "#4ECDC4", desc: "" });
+      notify("✅ Role mpya imeundwa!");
+    } catch (err) {
+      notify(err.response?.data?.error || "❌ Hitilafu kwa kuunda role");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteRole = async (roleId) => {
+    if (!confirm("Una uhakika unataka kufuta role hii?")) return;
+    try {
+      await adminAPI.deleteRole(roleId);
+      await loadRoles();
+      if (selected === roleId) setSelected(null);
+      notify("✅ Role imefutwa");
+    } catch (err) {
+      notify(err.response?.data?.error || "❌ Hitilafu kwa kufuta role");
+    }
   };
 
   const GROUPS = [...new Set(ALL_PERMS.map(p=>p.group))];
+
+  if (loading) {
+    return <div style={{ padding:40, textAlign:"center", color:"rgba(242,242,245,0.3)", fontFamily:MONO }}>Inapakia roles...</div>;
+  }
 
   return (
     <div>
@@ -1597,7 +1695,9 @@ function RolesPage() {
               ))}
             </div>
           </div>
-          <button onClick={()=>{if(!newRole.label.trim())return;setRoles(rs=>[...rs,{id:Date.now().toString(),label:newRole.label,color:newRole.color,icon:"🎭",perms:[],members:[],desc:newRole.desc}]);setShowNew(false);setNewRole({label:"",color:"#4ECDC4",desc:""});notify("✅ Role mpya imeundwa!");}} style={{width:"100%",background:"#F5A623",color:"#0C0C0E",border:"none",padding:12,borderRadius:9,cursor:"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:800,fontSize:14}}>Unda Role →</button>
+          <button onClick={createRole} disabled={saving || !newRole.label.trim()} style={{width:"100%",background:saving?"#666":"#F5A623",color:"#0C0C0E",border:"none",padding:12,borderRadius:9,cursor:saving?"not-allowed":"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:800,fontSize:14,opacity:saving?0.6:1}}>
+            {saving ? "Inaunda..." : "Unda Role →"}
+          </button>
         </Modal>
       )}
 
@@ -1605,20 +1705,28 @@ function RolesPage() {
         {/* Roles list */}
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {roles.map(r=>(
-            <div key={r.id} onClick={()=>setSelected(selected===r.id?null:r.id)} style={{background:"#161618",border:`1px solid ${selected===r.id?r.color+"60":"#232325"}`,borderRadius:14,padding:"14px 16px",cursor:"pointer",transition:"all 0.18s"}}>
-              <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:6}}>
-                <div style={{width:36,height:36,borderRadius:9,background:`${r.color}18`,border:`1px solid ${r.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{r.icon}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:14,color:r.color}}>{r.label}</div>
-                  <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)"}}>👥 {r.members.length} watu</div>
+            <div key={r.id} style={{background:"#161618",border:`1px solid ${selected===r.id?r.color+"60":"#232325"}`,borderRadius:14,padding:"14px 16px",cursor:"pointer",transition:"all 0.18s",position:"relative"}}>
+              <div onClick={()=>setSelected(selected===r.id?null:r.id)}>
+                <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:6}}>
+                  <div style={{width:36,height:36,borderRadius:9,background:`${r.color}18`,border:`1px solid ${r.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{r.icon}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:14,color:r.color}}>{r.label}</div>
+                    <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)"}}>👥 {r.member_count || r.members?.length || 0} watu</div>
+                  </div>
+                  <span style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.3)"}}>{selected===r.id?"▲":"▼"}</span>
                 </div>
-                <span style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.3)"}}>{selected===r.id?"▲":"▼"}</span>
+                <p style={{fontSize:12,color:"rgba(242,242,245,0.45)",lineHeight:1.5,marginBottom:8}}>{r.desc}</p>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                  {(r.permissions || []).slice(0,4).map(p=>{
+                    const perm = ALL_PERMS.find(ap => ap.id === p);
+                    return <span key={p} style={{fontFamily:MONO,fontSize:9,padding:"2px 7px",borderRadius:4,background:`${r.color}12`,color:r.color}}>{perm?.label || p}</span>;
+                  })}
+                  {(r.permissions || []).length>4 && <span style={{fontFamily:MONO,fontSize:9,padding:"2px 7px",borderRadius:4,background:"rgba(255,255,255,0.05)",color:"rgba(242,242,245,0.3)"}}>+{(r.permissions || []).length-4}</span>}
+                </div>
               </div>
-              <p style={{fontSize:12,color:"rgba(242,242,245,0.45)",lineHeight:1.5,marginBottom:8}}>{r.desc}</p>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {r.perms.slice(0,4).map(p=><span key={p} style={{fontFamily:MONO,fontSize:9,padding:"2px 7px",borderRadius:4,background:`${r.color}12`,color:r.color}}>{p}</span>)}
-                {r.perms.length>4 && <span style={{fontFamily:MONO,fontSize:9,padding:"2px 7px",borderRadius:4,background:"rgba(255,255,255,0.05)",color:"rgba(242,242,245,0.3)"}}>+{r.perms.length-4}</span>}
-              </div>
+              {selected===r.id && !["super_admin","admin","moderator","editor","analyst"].includes(r.name) && (
+                <button onClick={(e)=>{e.stopPropagation();deleteRole(r.id);}} style={{position:"absolute",top:10,right:10,background:"rgba(248,113,113,0.1)",border:"1px solid rgba(248,113,113,0.3)",color:"#F87171",padding:"4px 8px",borderRadius:6,cursor:"pointer",fontFamily:MONO,fontSize:9}}>Futa</button>
+              )}
             </div>
           ))}
         </div>
@@ -1635,8 +1743,8 @@ function RolesPage() {
                 <div key={group} style={{marginBottom:12}}>
                   <div style={{fontFamily:MONO,fontSize:9,color:"rgba(242,242,245,0.25)",letterSpacing:"0.05em",marginBottom:6}}>{group.toUpperCase()}</div>
                   {ALL_PERMS.filter(p=>p.group===group).map(p=>{
-                    const has = sel.perms.includes(p.id) || sel.perms.includes("all");
-                    const locked = sel.id==="super_admin" || sel.id==="member";
+                    const has = (sel.permissions || []).includes(p.id) || (sel.permissions || []).includes("all");
+                    const locked = ["super_admin","member"].includes(sel.name);
                     return (
                       <div key={p.id} onClick={()=>!locked&&togglePerm(sel.id,p.id)} style={{display:"flex",gap:10,alignItems:"center",padding:"7px 0",cursor:locked?"default":"pointer",opacity:locked?0.5:1}}>
                         <div style={{width:16,height:16,borderRadius:4,background:has?sel.color:"transparent",border:`2px solid ${has?sel.color:"#3C3C3E"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"}}>
@@ -1652,24 +1760,43 @@ function RolesPage() {
 
             {/* Members */}
             <div style={{borderTop:"1px solid #1E1E20",paddingTop:16,marginBottom:16}}>
-              <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",marginBottom:10}}>WANACHAMA ({sel.members.length})</div>
-              <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:12}}>
-                {sel.members.map(m=>(
-                  <div key={m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 10px",background:"rgba(255,255,255,0.03)",borderRadius:7}}>
-                    <span style={{fontSize:13,fontWeight:500}}>{m}</span>
-                    {sel.id!=="super_admin"&&sel.id!=="member"&&<button onClick={()=>removeMember(sel.id,m)} style={{background:"transparent",border:"none",color:"rgba(248,113,113,0.6)",cursor:"pointer",fontSize:12}}>✕</button>}
+              <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",marginBottom:10}}>WANACHAMA ({sel.members?.length || 0})</div>
+              <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:12,maxHeight:200,overflowY:"auto"}}>
+                {sel.members && sel.members.length > 0 ? sel.members.map(m=>(
+                  <div key={m.id || m} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 10px",background:"rgba(255,255,255,0.03)",borderRadius:7}}>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flex:1}}>
+                      {m.avatar && <img src={m.avatar} alt="" style={{width:24,height:24,borderRadius:"50%"}} />}
+                      <div>
+                        <span style={{fontSize:13,fontWeight:500}}>{m.name || m}</span>
+                        {m.handle && <span style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.4)",marginLeft:6}}>@{m.handle}</span>}
+                      </div>
+                    </div>
+                    {!["super_admin","member"].includes(sel.name) && <button onClick={()=>removeMember(sel.id, m.id || m)} style={{background:"transparent",border:"none",color:"rgba(248,113,113,0.6)",cursor:"pointer",fontSize:12}}>✕</button>}
                   </div>
-                ))}
+                )) : (
+                  <div style={{padding:"20px",textAlign:"center",color:"rgba(242,242,245,0.3)",fontSize:12}}>Hakuna wanachama</div>
+                )}
               </div>
-              {sel.id!=="member" && (
+              {sel.name !== "member" && (
                 <div style={{display:"flex",gap:8}}>
-                  <input value={assignHandle} onChange={e=>setAssignHandle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&assign()} placeholder="@handle au email..." style={{flex:1,background:"rgba(255,255,255,0.04)",border:"1px solid #2C2C2E",borderRadius:8,padding:"8px 12px",color:"#F2F2F5",fontFamily:"'Roboto Mono',monospace",fontSize:13,outline:"none"}} />
-                  <button onClick={assign} style={{background:sel.color,color:"#0C0C0E",border:"none",padding:"0 14px",borderRadius:8,cursor:"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:700,fontSize:13}}>+ Ongeza</button>
+                  <input 
+                    value={assignHandle} 
+                    onChange={e=>setAssignHandle(e.target.value)} 
+                    onKeyDown={e=>e.key==="Enter"&&!saving&&assign()} 
+                    placeholder="@handle au email..." 
+                    disabled={saving}
+                    style={{flex:1,background:"rgba(255,255,255,0.04)",border:"1px solid #2C2C2E",borderRadius:8,padding:"8px 12px",color:"#F2F2F5",fontFamily:"'Roboto Mono',monospace",fontSize:13,outline:"none",opacity:saving?0.5:1}} 
+                  />
+                  <button onClick={assign} disabled={saving} style={{background:saving?"#666":sel.color,color:"#0C0C0E",border:"none",padding:"0 14px",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:700,fontSize:13,opacity:saving?0.6:1}}>
+                    {saving ? "..." : "+ Ongeza"}
+                  </button>
                 </div>
               )}
             </div>
 
-            <button onClick={()=>notify(`✅ ${sel.label} permissions zimehifadhiwa!`)} style={{width:"100%",background:"#F5A623",color:"#0C0C0E",border:"none",padding:11,borderRadius:9,cursor:"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:800,fontSize:13}}>Hifadhi Mabadiliko →</button>
+            <button onClick={saveRole} disabled={saving} style={{width:"100%",background:saving?"#666":"#F5A623",color:"#0C0C0E",border:"none",padding:11,borderRadius:9,cursor:saving?"not-allowed":"pointer",fontFamily:"'Roboto Mono',monospace",fontWeight:800,fontSize:13,opacity:saving?0.6:1}}>
+              {saving ? "Inahifadhi..." : "Hifadhi Mabadiliko →"}
+            </button>
           </div>
         ) : (
           <div style={{background:"#161618",border:"1px solid #232325",borderRadius:14,padding:"40px 24px",textAlign:"center",color:"rgba(242,242,245,0.25)"}}>
@@ -1861,8 +1988,9 @@ function AnalyticsPage() {
   const [retention, setRetention]   = useState([]);
   const [kpis, setKpis]             = useState({});
 
-  useEffect(() => {
-    adminAPI.analytics()
+  const loadAnalytics = () => {
+    setLoading(true);
+    adminAPI.analytics(range)
       .then(r => {
         const d = r.data || {};
         setDailyUsers(d.dailyUsers || d.daily_users || []);
@@ -1871,9 +1999,15 @@ function AnalyticsPage() {
         setRetention(d.retention || []);
         setKpis(d.kpis || d);
       })
-      .catch(console.error)
+      .catch(err => {
+        console.error("Analytics error:", err);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [range]);
 
   const maxU = dailyUsers.length > 0 ? Math.max(...dailyUsers.map(d=>d.u||d.users||0)) : 1;
   const maxP = dailyUsers.length > 0 ? Math.max(...dailyUsers.map(d=>d.p||d.posts||0)) : 1;
@@ -1896,32 +2030,93 @@ function AnalyticsPage() {
 
       {/* KPIs */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
-        <StatCard icon="👥" label="DAU"            value={kpis.dau||kpis.dailyActiveUsers||"—"}  sub="Daily Active Users"    color="#F5A623" delta={8}  />
-        <StatCard icon="🔁" label="Retention (30d)" value={kpis.retention30d||kpis.retention||"—"} sub="Wanarudi baada ya mwezi" color="#4ECDC4" delta={3}  />
-        <StatCard icon="📈" label="Conversion"      value={kpis.conversion||kpis.conversionRate||"—"} sub="Free → Paid"           color="#34D399" delta={1}  />
-        <StatCard icon="⏱" label="Avg Session"      value={kpis.avgSession||kpis.avg_session||"—"} sub="Dakika per visit"      color="#A78BFA" delta={12} />
+        <StatCard 
+          icon="👥" 
+          label="DAU" 
+          value={kpis.dau || kpis.dailyActiveUsers || 0} 
+          sub="Daily Active Users" 
+          color="#F5A623" 
+        />
+        <StatCard 
+          icon="🔁" 
+          label="Retention (30d)" 
+          value={kpis.retention30d || kpis.retention ? `${kpis.retention30d || kpis.retention}%` : "0%"} 
+          sub="Wanarudi baada ya mwezi" 
+          color="#4ECDC4" 
+        />
+        <StatCard 
+          icon="📈" 
+          label="Conversion" 
+          value={kpis.conversion || kpis.conversionRate ? `${kpis.conversion || kpis.conversionRate}%` : "0%"} 
+          sub="Free → Paid" 
+          color="#34D399" 
+        />
+        <StatCard 
+          icon="⏱" 
+          label="Avg Session" 
+          value={kpis.avgSession || kpis.avg_session || "0 min"} 
+          sub="Actions per user" 
+          color="#A78BFA" 
+        />
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,marginBottom:14}}>
         {/* Users + Posts chart */}
         <div style={{background:"#161618",border:"1px solid #232325",borderRadius:14,padding:"18px 20px"}}>
           <div style={{display:"flex",gap:16,marginBottom:14,alignItems:"center"}}>
-            <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",flex:1}}>WATUMIAJI & POSTS — WIKI HII</div>
+            <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",flex:1}}>
+              WATUMIAJI & POSTS — {range === "leo" ? "LEO" : range === "mwezi" ? "MWEZI HUU" : "WIKI HII"}
+            </div>
             <div style={{display:"flex",gap:12}}>
               <div style={{display:"flex",gap:5,alignItems:"center"}}><div style={{width:10,height:3,background:"#F5A623",borderRadius:2}}/><span style={{fontFamily:MONO,fontSize:9,color:"rgba(242,242,245,0.4)"}}>Users</span></div>
               <div style={{display:"flex",gap:5,alignItems:"center"}}><div style={{width:10,height:3,background:"#4ECDC4",borderRadius:2}}/><span style={{fontFamily:MONO,fontSize:9,color:"rgba(242,242,245,0.4)"}}>Posts</span></div>
             </div>
           </div>
-          <div style={{display:"flex",gap:5,alignItems:"flex-end",height:90}}>
+          <div style={{display:"flex",gap:range === "mwezi" ? 1 : 5,alignItems:"flex-end",height:90,overflowX:range === "mwezi" ? "auto" : "visible"}}>
             {dailyUsers.length === 0 ? (
-              <div style={{color:"rgba(242,242,245,0.2)",fontSize:12,fontFamily:MONO,margin:"auto"}}>Hakuna data ya wiki hii</div>
-            ) : dailyUsers.map(d=>(
-              <div key={d.d||d.day} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                <div style={{width:"100%",display:"flex",gap:2,alignItems:"flex-end",height:72}}>
-                  <div style={{flex:1,borderRadius:"3px 3px 0 0",background:"#F5A623",height:`${((d.u||d.users||0)/maxU)*72}px`,minHeight:4}} />
-                  <div style={{flex:1,borderRadius:"3px 3px 0 0",background:"#4ECDC4",height:`${((d.p||d.posts||0)/maxP)*72}px`,minHeight:4}} />
+              <div style={{color:"rgba(242,242,245,0.2)",fontSize:12,fontFamily:MONO,margin:"auto"}}>
+                Hakuna data {range === "leo" ? "ya leo" : range === "mwezi" ? "ya mwezi huu" : "ya wiki hii"}
+              </div>
+            ) : dailyUsers.map((d, idx) => (
+              <div key={d.d||d.day||idx} style={{
+                flex:range === "mwezi" ? "0 0 auto" : 1,
+                minWidth:range === "mwezi" ? "20px" : "auto",
+                display:"flex",
+                flexDirection:"column",
+                alignItems:"center",
+                gap:4
+              }}>
+                <div style={{
+                  width:"100%",
+                  display:"flex",
+                  gap:range === "mwezi" ? 1 : 2,
+                  alignItems:"flex-end",
+                  height:72
+                }}>
+                  <div style={{
+                    flex:1,
+                    borderRadius:"3px 3px 0 0",
+                    background:"#F5A623",
+                    height:`${Math.max(((d.u||d.users||0)/maxU)*72, 2)}px`,
+                    minHeight:2
+                  }} />
+                  <div style={{
+                    flex:1,
+                    borderRadius:"3px 3px 0 0",
+                    background:"#4ECDC4",
+                    height:`${Math.max(((d.p||d.posts||0)/maxP)*72, 2)}px`,
+                    minHeight:2
+                  }} />
                 </div>
-                <span style={{fontFamily:MONO,fontSize:8,color:"rgba(242,242,245,0.3)"}}>{d.d||d.day}</span>
+                <span style={{
+                  fontFamily:MONO,
+                  fontSize:range === "mwezi" ? 7 : 8,
+                  color:"rgba(242,242,245,0.3)",
+                  transform:range === "mwezi" ? "rotate(-45deg)" : "none",
+                  whiteSpace:"nowrap"
+                }}>
+                  {range === "mwezi" ? (idx % 5 === 0 ? d.d || d.day : "") : (d.d || d.day)}
+                </span>
               </div>
             ))}
           </div>
@@ -1965,7 +2160,9 @@ function AnalyticsPage() {
 
         {/* Top content */}
         <div style={{background:"#161618",border:"1px solid #232325",borderRadius:14,padding:"18px 20px"}}>
-          <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",marginBottom:14}}>TOP CONTENT — WIKI HII</div>
+          <div style={{fontFamily:MONO,fontSize:10,color:"rgba(242,242,245,0.35)",letterSpacing:"0.04em",marginBottom:14}}>
+            TOP CONTENT — {range === "leo" ? "LEO" : range === "mwezi" ? "MWEZI HUU" : "WIKI HII"}
+          </div>
           {topContent.length === 0 ? (
             <div style={{color:"rgba(242,242,245,0.2)",fontSize:12,fontFamily:MONO,textAlign:"center",padding:"20px 0"}}>Hakuna data</div>
           ) : topContent.map((c,i)=>(
