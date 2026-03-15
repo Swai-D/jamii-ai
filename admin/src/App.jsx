@@ -922,7 +922,9 @@ function MatukioPage() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
-  const [form, setForm] = useState({ name:"", date:"", type:"Webinar", loc:"", desc:"" });
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name:"", date:"", type:"Webinar", location:"", description:"", is_online:false });
   const [toast, setToast] = useState(null);
   const notify = msg => { setToast(msg); setTimeout(()=>setToast(null), 2200); };
 
@@ -932,20 +934,47 @@ function MatukioPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
   const TYPE_C = { Hackathon:"#F5A623", Webinar:"#4ECDC4", Meetup:"#A78BFA", Workshop:"#F87171", Conference:"#60A5FA" };
   const STATUS_C = { upcoming:"#34D399", draft:"#F5A623", past:"rgba(242,242,245,0.3)" };
-  const f = k => e => setForm(p=>({...p,[k]:e.target.value}));
+  const f = k => e => setForm(p=>({...p,[k]:e.target.type==='checkbox'?e.target.checked:e.target.value}));
+
+  const closeForm = () => {
+    setShowNew(false);
+    setEditingId(null);
+    setForm({ name:"", date:"", type:"Webinar", location:"", description:"", is_online:false });
+  };
+
+  const handleEdit = (ev) => {
+    setEditingId(ev.id);
+    setForm({
+      name: ev.name || ev.title || "",
+      date: ev.date ? new Date(ev.date).toISOString().split('T')[0] : "",
+      type: ev.type || "Webinar",
+      location: ev.location || "",
+      description: ev.description || "",
+      is_online: ev.is_online || false
+    });
+    setShowNew(true);
+  };
 
   const save = async () => {
     if (!form.name.trim()) return;
+    setSaving(true);
     try {
-      const r = await adminAPI.createEvent(form);
-      const newEv = r.data?.event || { id:Date.now(), ...form, status:"draft", rsvp:0, color:TYPE_C[form.type]||"#F5A623" };
-      setEvents(es=>[newEv, ...es]);
-      setForm({ name:"", date:"", type:"Webinar", loc:"", desc:"" });
-      setShowNew(false);
-      notify("✅ Event imeundwa — Draft!");
+      if (editingId) {
+        const r = await adminAPI.updateEvent(editingId, form);
+        setEvents(es => es.map(e => e.id === editingId ? { ...e, ...r.data } : e));
+        notify("✅ Event imesasishwa!");
+      } else {
+        const r = await adminAPI.createEvent(form);
+        const newEv = r.data?.event || r.data;
+        setEvents(es=>[newEv, ...es]);
+        notify("✅ Event imeundwa — Draft!");
+      }
+      closeForm();
     } catch { notify("❌ Hitilafu — jaribu tena"); }
+    finally { setSaving(false); }
   };
 
   const publish = async id => {
@@ -957,6 +986,7 @@ function MatukioPage() {
   };
 
   const del = async id => {
+    if (!confirm("Una uhakika unataka kufuta event hii?")) return;
     try {
       await adminAPI.deleteEvent(id);
       setEvents(es=>es.filter(e=>e.id!==id));
@@ -970,13 +1000,19 @@ function MatukioPage() {
     <div>
       {toast && <div style={{ position:"fixed", bottom:24, right:24, zIndex:999, background:"#F5A623", color:"#0C0C0E", padding:"11px 18px", borderRadius:9, fontWeight:700, fontSize:13, fontFamily:MONO }}>{toast}</div>}
       {showNew && (
-        <Modal title="Event Mpya ◷" onClose={()=>setShowNew(false)}>
+        <Modal title={editingId ? "Hariri Event" : "Event Mpya ◷"} onClose={closeForm}>
           <FormField label="JINA LA EVENT" value={form.name} onChange={f("name")} placeholder="Tanzania AI Hackathon..." />
           <FormField label="TAREHE" value={form.date} onChange={f("date")} type="date" />
           <FormField label="AINA" value={form.type} onChange={f("type")} options={["Hackathon","Webinar","Meetup","Workshop","Conference"]} />
-          <FormField label="MAHALI" value={form.loc} onChange={f("loc")} placeholder="DSM / Online — Zoom" />
-          <FormField label="MAELEZO" value={form.desc} onChange={f("desc")} multiline placeholder="Elezea event..." />
-          <button onClick={save} style={{ width:"100%", background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14 }}>Hifadhi Draft →</button>
+          <FormField label="MAHALI" value={form.location} onChange={f("location")} placeholder="DSM / Online — Zoom" />
+          <div style={{ marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
+            <input type="checkbox" id="is_online" checked={form.is_online} onChange={f("is_online")} />
+            <label htmlFor="is_online" style={{ fontSize:12, fontWeight:700, cursor:"pointer" }}>NI EVENT YA MTANDAONI (ONLINE)?</label>
+          </div>
+          <FormField label="MAELEZO" value={form.description} onChange={f("description")} multiline placeholder="Elezea event..." />
+          <button onClick={save} disabled={saving} style={{ width:"100%", background:saving?"#666":"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:saving?"not-allowed":"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14 }}>
+            {saving ? "Inahifadhi..." : editingId ? "Sasisha Event →" : "Hifadhi Draft →"}
+          </button>
         </Modal>
       )}
 
@@ -992,18 +1028,22 @@ function MatukioPage() {
         ) : events.map(ev=>(
           <div key={ev.id} style={{ background:"#161618", border:`1px solid ${ev.status==="draft"?"rgba(245,166,35,0.2)":"#232325"}`, borderRadius:14, padding:"16px 18px" }}>
             <div style={{ display:"flex", gap:12, alignItems:"center" }}>
-              <div style={{ width:48, height:48, borderRadius:11, background:`${ev.color||"#F5A623"}15`, border:`1px solid ${ev.color||"#F5A623"}30`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:MONO, fontSize:9, color:ev.color||"#F5A623", fontWeight:700, textAlign:"center", lineHeight:1.4, flexShrink:0, padding:"0 4px" }}>{ev.date}</div>
+              <div style={{ width:48, height:48, borderRadius:11, background:`${ev.color||"#F5A623"}15`, border:`1px solid ${ev.color||"#F5A623"}30`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:MONO, fontSize:9, color:ev.color||"#F5A623", fontWeight:700, textAlign:"center", lineHeight:1.4, flexShrink:0, padding:"0 4px" }}>
+                {ev.date ? new Date(ev.date).toLocaleDateString('en-GB', {day:'2-digit', month:'short'}).toUpperCase() : "N/A"}
+              </div>
               <div style={{ flex:1 }}>
                 <div style={{ display:"flex", gap:7, alignItems:"center", marginBottom:5, flexWrap:"wrap" }}>
                   <Badge label={ev.type} color={TYPE_C[ev.type]||"#F5A623"} />
                   <Badge label={ev.status} color={STATUS_C[ev.status]||"#F5A623"} />
-                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.35)" }}>👥 {ev.rsvp||ev.rsvp_count||0} RSVPs</span>
+                  <span style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.35)" }}>👥 {ev.rsvp_count||0} RSVPs</span>
+                  {ev.is_online && <Badge label="Online" color="#34D399" />}
                 </div>
                 <h3 style={{ fontWeight:700, fontSize:14 }}>{ev.name||ev.title}</h3>
+                <div style={{ fontSize:11, color:"rgba(242,242,245,0.4)", marginTop:2 }}>📍 {ev.location || "Mahali haijawekwa"}</div>
               </div>
               <div style={{ display:"flex", gap:7, flexShrink:0 }}>
                 {ev.status==="draft" && <ActionBtn label="🚀 Publish" color="#34D399" small onClick={()=>publish(ev.id)} />}
-                <ActionBtn label="✏ Hariri" color="#A78BFA" small />
+                <ActionBtn label="✏ Hariri" color="#A78BFA" small onClick={()=>handleEdit(ev)} />
                 <ActionBtn label="🗑" danger small onClick={()=>del(ev.id)} />
               </div>
             </div>
@@ -1035,7 +1075,7 @@ function RasilimaliPage() {
       type: r.type || "Dataset",
       author: r.author_name || r.author || "JamiiAI",
       link: r.link || "",
-      tags: Array.isArray(r.tags) ? r.tags.join(", ") : (typeof r.tags === 'string' ? JSON.parse(r.tags).join(", ") : ""),
+      tags: Array.isArray(r.tags) ? r.tags.join(", ") : (typeof r.tags === 'string' && r.tags.trim().startsWith('[') ? JSON.parse(r.tags).join(", ") : (r.tags || "")),
       desc: r.description || r.desc || ""
     });
     setShowNew(true);

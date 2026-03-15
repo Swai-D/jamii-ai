@@ -1447,12 +1447,16 @@ app.get("/api/institutions", async (req, res) => {
 //  EVENTS
 // ════════════════════════════════════════════════════════════════════
 
-app.get("/api/events", async (req, res) => {
+app.get("/api/events", optionalAuth, async (req, res) => {
   try {
     const result = await db.query(
       `SELECT e.*,
-              (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id) AS rsvp_count
-       FROM events e WHERE e.date >= NOW() ORDER BY e.date ASC`
+              (SELECT COUNT(*) FROM event_registrations WHERE event_id = e.id) AS rsvp_count,
+              EXISTS(SELECT 1 FROM event_registrations WHERE event_id = e.id AND user_id = $1) AS user_rsvpd
+       FROM events e 
+       WHERE e.date >= NOW() AND e.status = 'upcoming'
+       ORDER BY e.date ASC`,
+      [req.user?.id || null]
     );
     res.json(result.rows);
   } catch (err) {
@@ -2433,8 +2437,8 @@ app.post("/api/admin/events", adminAuth, async (req, res) => {
     const { name, date, type="Webinar", location, is_online=false, description, color="#F5A623" } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Jina linahitajika" });
     const { rows:[ev] } = await db.query(
-      `INSERT INTO events (id,name,date,type,location,is_online,description,color,created_at)
-       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,$7,NOW()) RETURNING *`,
+      `INSERT INTO events (id,name,date,type,location,is_online,description,color,status,created_at)
+       VALUES (uuid_generate_v4(),$1,$2,$3,$4,$5,$6,$7,'draft',NOW()) RETURNING *`,
       [name.trim(), date||null, type, location||"", is_online, description||"", color]
     );
     res.status(201).json(ev);
@@ -2445,6 +2449,33 @@ app.patch("/api/admin/events/:id/publish", adminAuth, async (req, res) => {
   try {
     await db.query("UPDATE events SET status='upcoming' WHERE id=$1", [req.params.id]);
     res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.patch("/api/admin/events/:id", adminAuth, async (req, res) => {
+  try {
+    const { name, date, type, location, is_online, description, color, status } = req.body;
+    const updates = [];
+    const values = [];
+    let pi = 1;
+
+    if (name !== undefined) { updates.push(`name=$${pi++}`); values.push(name.trim()); }
+    if (date !== undefined) { updates.push(`date=$${pi++}`); values.push(date || null); }
+    if (type !== undefined) { updates.push(`type=$${pi++}`); values.push(type); }
+    if (location !== undefined) { updates.push(`location=$${pi++}`); values.push(location || ""); }
+    if (is_online !== undefined) { updates.push(`is_online=$${pi++}`); values.push(is_online); }
+    if (description !== undefined) { updates.push(`description=$${pi++}`); values.push(description || ""); }
+    if (color !== undefined) { updates.push(`color=$${pi++}`); values.push(color); }
+    if (status !== undefined) { updates.push(`status=$${pi++}`); values.push(status); }
+
+    if (updates.length === 0) return res.status(400).json({ error: "No fields to update" });
+
+    values.push(req.params.id);
+    const { rows:[ev] } = await db.query(
+      `UPDATE events SET ${updates.join(", ")} WHERE id=$${pi} RETURNING *`,
+      values
+    );
+    res.json(ev);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

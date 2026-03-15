@@ -615,10 +615,11 @@ function ChallengeCard({ ch, t }) {
   );
 }
 
-function EventCard({ ev, t }) {
+function EventCard({ ev, t, onRSVP }) {
   const date = new Date(ev.date);
   const day = date.getDate();
   const month = date.toLocaleString('default', { month: 'short' }).toUpperCase();
+  const pct = Math.round(((ev.rsvp_count || 0) / (ev.max_rsvp || 100)) * 100);
 
   return (
     <div style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 20, display: "flex", gap: 20 }}>
@@ -640,9 +641,24 @@ function EventCard({ ev, t }) {
           </div>
         </div>
         <p style={{ fontSize: 13, color: "rgba(220,230,240,0.6)", lineHeight: 1.5, marginBottom: 16 }}>{ev.description}</p>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 11, opacity: 0.4 }}>{ev.rsvp_count || 0} {t.wanahudhuria}</span>
-          <button style={{ background: "transparent", color: ev.color, border: `1px solid ${ev.color}40`, padding: "6px 16px", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 12 }}>{t.rsvp}</button>
+        
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+          <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${pct}%`, background: pct > 85 ? "#F87171" : (ev.color || "#F5A623"), borderRadius: 2, transition: "width 0.6s ease" }} />
+          </div>
+          <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(242,242,245,0.35)", whiteSpace: "nowrap" }}>{ev.rsvp_count || 0}/{ev.max_rsvp || 100}</span>
+          <button
+            onClick={() => onRSVP(ev.id)}
+            style={{ 
+              background: ev.user_rsvpd ? "rgba(52,211,153,0.15)" : (ev.color || "#F5A623"), 
+              color: ev.user_rsvpd ? "#34D399" : "#0C0C0E", 
+              border: ev.user_rsvpd ? `1px solid rgba(52,211,153,0.3)` : "none", 
+              padding: "6px 14px", borderRadius: 8, cursor: "pointer", 
+              fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 12, 
+              transition: "all 0.2s", whiteSpace: "nowrap" 
+            }}>
+            {ev.user_rsvpd ? "✓ Umejiunga" : (t.rsvp || "RSVP →")}
+          </button>
         </div>
       </div>
     </div>
@@ -1734,6 +1750,22 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
     } catch { notify("Ingia kwanza!"); }
   };
 
+  const handleRSVP = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return notify("Ingia kwanza kushiriki matukio!");
+      const res = await axios.post(`${API_URL}/events/${id}/rsvp`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setDataList(prev => prev.map(ev => 
+        ev.id === id ? { 
+          ...ev, 
+          user_rsvpd: res.data.rsvp, 
+          rsvp_count: res.data.rsvp ? parseInt(ev.rsvp_count || 0) + 1 : parseInt(ev.rsvp_count || 1) - 1 
+        } : ev
+      ));
+      notify(res.data.rsvp ? "✅ Umejiunga na tukio!" : "❌ Umejiondoa kwenye tukio");
+    } catch { notify("Hitilafu imetokea!"); }
+  };
+
   const handlePost = async () => {
     if (!composerText.trim() && !composerImage) return;
     setIsPosting(true);
@@ -2296,56 +2328,41 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
                 </div>
 
                 {/* Stats bar */}
-                <div style={{ display: "flex", gap: 0, marginBottom: 20, background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, overflow: "hidden" }}>
-                  {[[dataList.length.toString(), t.yanayokuja || "Yanayokuja"], ["1.16K", t.watashuhudia || "Watashuhudia"], ["3", t.wiki_hii || "Wiki hii"], ["2", "Online"]].map(([n, l], i) => (
-                    <div key={l} style={{ flex: 1, textAlign: "center", padding: "14px 8px", borderRight: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#F5A623", fontFamily: "'Roboto Mono',monospace" }}>{n}</div>
-                      <div style={{ fontSize: 10, color: "rgba(242,242,245,0.38)", marginTop: 2, fontFamily: "'Roboto Mono',monospace", textTransform: "uppercase" }}>{l}</div>
+                {(() => {
+                  const totalRSVPs = dataList.reduce((acc, ev) => acc + (parseInt(ev.rsvp_count) || 0), 0);
+                  const thisWeekCount = dataList.filter(ev => {
+                    const d = new Date(ev.date);
+                    const now = new Date();
+                    const nextWeek = new Date();
+                    nextWeek.setDate(now.getDate() + 7);
+                    return d >= now && d <= nextWeek;
+                  }).length;
+                  const onlineCount = dataList.filter(ev => ev.is_online).length;
+
+                  const stats = [
+                    [dataList.length.toString(), t.yanayokuja || "Yanayokuja"],
+                    [formatNumber(totalRSVPs), t.watashuhudia || "Watashuhudia"],
+                    [thisWeekCount.toString(), t.wiki_hii || "Wiki hii"],
+                    [onlineCount.toString(), "Online"]
+                  ];
+
+                  return (
+                    <div style={{ display: "flex", gap: 0, marginBottom: 20, background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, overflow: "hidden" }}>
+                      {stats.map(([n, l], i) => (
+                        <div key={l} style={{ flex: 1, textAlign: "center", padding: "14px 8px", borderRight: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: "#F5A623", fontFamily: "'Roboto Mono',monospace" }}>{n}</div>
+                          <div style={{ fontSize: 10, color: "rgba(242,242,245,0.38)", marginTop: 2, fontFamily: "'Roboto Mono',monospace", textTransform: "uppercase" }}>{l}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {loading ? t.inapakia : dataList.map(ev => {
-                    const pct = Math.round(((ev.rsvp_count || 0) / (ev.max_rsvp || 100)) * 100);
-                    return (
-                      <div key={ev.id} style={{ background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "18px 20px", cursor: "pointer", transition: "all 0.2s" }} className="post-card">
-                        <div style={{ display: "flex", gap: 14 }}>
-                          <div style={{ width: 52, height: 52, borderRadius: 12, background: `${ev.color || '#F5A623'}12`, border: `1px solid ${ev.color || '#F5A623'}30`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 14, color: ev.color || '#F5A623', fontWeight: 700 }}>{new Date(ev.date).getDate()}</span>
-                            <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 8, color: ev.color || '#F5A623', fontWeight: 700, opacity: 0.6 }}>{new Date(ev.date).toLocaleString('default', { month: 'short' }).toUpperCase()}</span>
-                          </div>
-
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
-                              <Pill label={ev.type} color={ev.color || '#F5A623'} />
-                              <span style={{ marginLeft: "auto", fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(242,242,245,0.3)" }}>📍 {ev.location}</span>
-                            </div>
-                            <h3 style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em", marginBottom: 4 }}>{ev.name}</h3>
-                            <p style={{ fontSize: 13, color: "rgba(220,230,240,0.58)", lineHeight: 1.6, marginBottom: 12 }}>{ev.description}</p>
-
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
-                              <div style={{ flex: 1, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
-                                <div style={{ height: "100%", width: `${pct}%`, background: pct > 85 ? "#F87171" : (ev.color || "#F5A623"), borderRadius: 2, transition: "width 0.6s ease" }} />
-                              </div>
-                              <span style={{ fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(242,242,245,0.35)", whiteSpace: "nowrap" }}>{ev.rsvp_count || 0}/{ev.max_rsvp || 100}</span>
-                              <button
-                                style={{ background: "#F5A623", color: "#0C0C0E", border: "none", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: 12, transition: "all 0.2s", whiteSpace: "nowrap" }}>
-                                {t.rsvp || "RSVP →"}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {loading ? t.inapakia : dataList.map(ev => (
+                    <EventCard key={ev.id} ev={ev} t={t} onRSVP={handleRSVP} />
+                  ))}
                 </div>
-              </div>
-            )}
-
-            {activeNav === "matukio" && (
-              <div className="fin">
-                {/* ... existing matukio code ... */}
               </div>
             )}
 

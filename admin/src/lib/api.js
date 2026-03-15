@@ -49,9 +49,10 @@ export const adminAPI = {
   deleteChallenge:        (id)      => api.delete(`/api/admin/challenges/${id}`),
 
   // Events
-  events:                 ()        => api.get("/api/events"),
+  events:                 ()        => api.get("/api/admin/events"),
   createEvent:            (data)    => api.post("/api/admin/events", data),
   publishEvent:           (id)      => api.patch(`/api/admin/events/${id}/publish`),
+  updateEvent:            (id, data)=> api.patch(`/api/admin/events/${id}`, data),
   deleteEvent:            (id)      => api.delete(`/api/admin/events/${id}`),
 
   // Resources
