@@ -2307,7 +2307,7 @@ export default function JamiiAICommunity({ user, setUser, onLogout, lang = 'sw',
                             <span style={{ marginLeft: "auto", fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.28)" }}>{new Date(item.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                           <h3 style={{ fontWeight: 800, fontSize: 15, letterSpacing: "-0.02em", marginBottom: 6, lineHeight: 1.3 }}>{item.title}</h3>
-                          <p style={{ color: "rgba(220,230,240,0.52)", fontSize: 13, lineHeight: 1.6 }}>{item.summary}</p>
+                          <p style={{ color: "rgba(220,230,240,0.52)", fontSize: 13, lineHeight: 1.6 }}>{item.ai_summary || item.summary}</p>
                           <div style={{ marginTop: 8, fontFamily: "'Roboto Mono',monospace", fontSize: 10, color: "rgba(220,230,240,0.25)" }}>{item.reads?.toLocaleString() || 0} wasomaji</div>
                         </div>
                         <div style={{ width: 4, height: 54, borderRadius: 2, background: itemColor, opacity: 0.55 }} />

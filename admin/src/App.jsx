@@ -474,7 +474,7 @@ function UserDetailPanel({ user, loading, onClose, onVerify, onBan }) {
 }
 
 // ── USERS ─────────────────────────────────────────────────────────
-function UsersPage() {
+function UsersPage({ currentUser }) {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("Wote");
@@ -483,6 +483,7 @@ function UsersPage() {
 
   // Detail state
   const [selectedId, setSelectedId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // Mpya kwa ajili ya Custom Confirm
   const [userDetail, setUserDetail] = useState(null);
   const [fetchingUser, setFetchingUser] = useState(false);
 
@@ -615,6 +616,19 @@ function UsersPage() {
                 <div style={{ display:"flex", gap:5, flexWrap:"wrap" }} onClick={e=>e.stopPropagation()}>
                   <ActionBtn label={u.is_verified?"Unverify":"Verify"} color="#4ECDC4" small onClick={()=>toggleVerify(u.id)} />
                   <ActionBtn label={u.status==="banned"?"Unban":"Ban"} danger={u.status!=="banned"} color="#34D399" small onClick={()=>toggleBan(u.id)} />
+                  {/* DELETE BUTTON - ONLY FOR SUPER ADMIN */}
+                  {currentUser?.role_name === 'super_admin' && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDelete(u);
+                      }}
+                      style={{ background: "rgba(248,113,113,0.1)", color: "#F87171", border: "1px solid rgba(248,113,113,0.3)", padding: "4px 8px", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      title="Futa Mtumiaji Kabisa"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -643,6 +657,37 @@ function UsersPage() {
             </div>
           </div>
         </>
+      )}
+
+      {/* CUSTOM TOAST NOTIFICATION */}
+      {toast && (
+        <div style={{ position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)", zIndex:9999, background:"#121214", border:"1px solid rgba(245,166,35,0.3)", color:"#F5A623", padding:"12px 24px", borderRadius:14, fontFamily:MONO, fontSize:13, boxShadow:"0 10px 40px rgba(0,0,0,0.7)", display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:8, height:8, borderRadius:"50%", background:"#F5A623" }} />
+          <span>{toast}</span>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {confirmDelete && (
+        <div onClick={() => setConfirmDelete(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:10000, display:"flex", alignItems:"center", justifyContent:"center", backdropFilter:"blur(4px)" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:"#0C0C0E", border:"1px solid #232325", padding:32, borderRadius:24, maxWidth:400, width:"90%", textAlign:"center" }}>
+            <div style={{ width:60, height:60, background:"rgba(248,113,113,0.1)", color:"#F87171", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}><Trash2 size={30} /></div>
+            <h3 style={{ color:"#fff", fontSize:20, marginBottom:10 }}>Futa Mtumiaji?</h3>
+            <p style={{ color:"rgba(242,242,245,0.6)", fontSize:14, marginBottom:28 }}>Una uhakika unataka kumfuta <b>{confirmDelete.name}</b>? Kitendo hiki ni cha kudumu.</p>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <button onClick={() => setConfirmDelete(null)} style={{ padding:"12px", borderRadius:12, border:"1px solid #232325", background:"transparent", color:"#fff", cursor:"pointer" }}>Ghairi</button>
+              <button onClick={async () => {
+                try {
+                  await adminAPI.deleteUser(confirmDelete.id);
+                  setUsers(prev => prev.filter(u => u.id !== confirmDelete.id));
+                  setTotal(prev => prev - 1);
+                  notify(`🗑 ${confirmDelete.name} amefutwa`);
+                  setConfirmDelete(null);
+                } catch (err) { notify(err.response?.data?.error || "❌ Imeshindikana"); }
+              }} style={{ padding:"12px", borderRadius:12, border:"none", background:"#F87171", color:"#fff", cursor:"pointer" }}>Ndiyo, Futa</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1284,21 +1329,25 @@ function HabariPage() {
     setScraping(true);
     adminAPI.runApify()
       .then(r => {
-        const items = r.data?.items || [];
-        setInbox(prev => [...items, ...prev]);
-        notify(`✅ Apify imekimbia — habari ${items.length} mpya imepatikana!`);
+        if (r.data?.inserted) {
+          // If simulation or quick run found items
+          adminAPI.news("inbox").then(res => setInbox(res.data?.news || res.data || []));
+          notify(`✅ Scraper imekimbia — ${r.data.inserted} mpya imepatikana!`);
+        } else {
+          notify(`🚀 Scraper imeanza (Run ID: ${r.data?.runId || "N/A"}). Angalia inbox baada ya dakika chache.`);
+        }
       })
-      .catch(() => notify("❌ Apify imefeli — angalia API token"))
+      .catch(() => notify("❌ Scraper imefeli — angalia API token au settings"))
       .finally(() => setScraping(false));
   };
 
-  // Simulate AI re-summarize
+  // Simulate AI re-summarize (keeping as UI-only for now as per server.js)
   const reSummarize = (id) => {
     setSummarizing(id);
     setTimeout(() => {
       setInbox(prev => prev.map(n => n.id===id ? {
         ...n,
-        aiSummary: n.aiSummary + " [AI imesasisha muhtasari — toleo jipya la Kiswahili lenye usahihi zaidi.]"
+        ai_summary: n.ai_summary + " [AI imesasisha muhtasari — toleo jipya la Kiswahili lenye usahihi zaidi.]"
       } : n));
       setSummarizing(null);
       notify("🤖 AI imesasisha muhtasari wa Kiswahili!");
@@ -1306,46 +1355,46 @@ function HabariPage() {
   };
 
   // Publish from inbox
-  const publishFromInbox = (item) => {
-    const summary = editId===item.id ? editSummary : item.aiSummary;
-    setPublished(prev => [{
-      id: Date.now(),
-      title: item.title,
-      category: item.category,
-      status: "published",
-      reads: 0,
-      time: "Sasa",
-      source: item.source,
-      hot: item.hot,
-      summary,
-    }, ...prev]);
-    setInbox(prev => prev.filter(n => n.id !== item.id));
-    setEditId(null);
-    notify("🚀 Habari imechapishwa kwenye community feed!");
+  const publishFromInbox = async (item) => {
+    const summary = editId===item.id ? editSummary : (item.ai_summary || item.aiSummary);
+    try {
+      await adminAPI.publishNews(item.id, { summary });
+      const publishedItem = { ...item, status: "published", ai_summary: summary, published_at: new Date().toISOString() };
+      setPublished(prev => [publishedItem, ...prev]);
+      setInbox(prev => prev.filter(n => n.id !== item.id));
+      setEditId(null);
+      notify("🚀 Habari imechapishwa kwenye community feed!");
+    } catch { notify("❌ Hitilafu wakati wa kuchapisha"); }
   };
 
   // Discard from inbox
-  const discard = (id) => {
-    setInbox(prev => prev.filter(n => n.id !== id));
-    notify("🗑 Habari imeondolewa kutoka inbox");
+  const discard = async (id) => {
+    try {
+      await adminAPI.deleteNews(id);
+      setInbox(prev => prev.filter(n => n.id !== id));
+      notify("🗑 Habari imeondolewa kutoka inbox");
+    } catch { notify("❌ Hitilafu wakati wa kufuta"); }
   };
 
   // Unpublish
-  const unpublish = (id) => {
-    setPublished(prev => prev.filter(n => n.id !== id));
-    notify("↩ Habari imefutwa kutoka community");
+  const unpublish = async (id) => {
+    try {
+      await adminAPI.deleteNews(id);
+      setPublished(prev => prev.filter(n => n.id !== id));
+      notify("↩ Habari imefutwa kutoka community");
+    } catch { notify("❌ Hitilafu wakati wa kuondoa"); }
   };
 
   // Manual publish
-  const saveManual = () => {
+  const saveManual = async () => {
     if (!manualForm.title.trim()) return;
-    setPublished(prev => [{
-      id: Date.now(), ...manualForm,
-      status:"published", reads:0, time:"Sasa", hot:false,
-    }, ...prev]);
-    setManualForm({ title:"", category:"Tanzania", summary:"", source:"" });
-    setShowManual(false);
-    notify("✅ Habari ya manual imechapishwa!");
+    try {
+      const r = await adminAPI.createNews({ ...manualForm, status: "published" });
+      setPublished(prev => [r.data, ...prev]);
+      setManualForm({ title:"", category:"Tanzania", summary:"", source:"" });
+      setShowManual(false);
+      notify("✅ Habari ya manual imechapishwa!");
+    } catch { notify("❌ Hitilafu wakati wa kuhifadhi"); }
   };
 
   const inboxCount     = inbox.length;
@@ -2668,14 +2717,18 @@ function SettingsPage() {
           {/* ── SMTP / EMAIL ── */}
           {section==="smtp" && (
             <div style={{ background:"#161618", border:"1px solid #232325", borderRadius:14, padding:"20px 22px" }}>
-              <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.35)", letterSpacing:"0.04em", marginBottom:6 }}>EMAIL (SMTP) — MIPANGILIO</div>
+              <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(242,242,245,0.35)", letterSpacing:"0.04em", marginBottom:6 }}>EMAIL (BREVO / SMTP) — MIPANGILIO</div>
               <div style={{ fontSize:12, color:"rgba(242,242,245,0.4)", marginBottom:18, lineHeight:1.7 }}>
-                Inatumika kutuma: Welcome email, notifications, password reset, weekly digest.
-                Tumia Gmail App Password au Brevo (free 300 emails/day).
+                Inatumika kutuma: Welcome email, notifications, password reset, weekly digest.<br/>
+                <b>Brevo (Sendinblue)</b> inapendekezwa zaidi kwa utulivu na urahisi.
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                <div style={{ gridColumn: "span 2", marginBottom: 8 }}>
+                  <label style={{ fontFamily:MONO, fontSize:10, color:"#F5A623", letterSpacing:"0.04em", display:"block", marginBottom:6 }}>BREVO API KEY (RECOMMENDED)</label>
+                  <input type="password" value={keys.brevo_api_key?.value||""} onChange={e=>updateKey("brevo_api_key",e.target.value)} placeholder="xkeysib-..." style={{...inputS(false), border:"1px solid rgba(245,166,35,0.3)"}} />
+                </div>
                 {[
-                  ["smtpHost","SMTP HOST","smtp.gmail.com"],
+                  ["smtpHost","SMTP HOST (FALLBACK)","smtp.gmail.com"],
                   ["smtpPort","PORT","587"],
                   ["smtpUser","SMTP USERNAME / EMAIL","noreply@jamii.ai"],
                 ].map(([k,label,ph])=>(
@@ -2690,12 +2743,31 @@ function SettingsPage() {
                 </div>
               </div>
               <div style={{ background:"rgba(96,165,250,0.06)", border:"1px solid rgba(96,165,250,0.15)", borderRadius:10, padding:"12px 14px", marginTop:16, fontSize:12, color:"rgba(242,242,245,0.5)", lineHeight:1.7 }}>
-                💡 <strong style={{color:"#60A5FA"}}>Gmail App Password:</strong> Gmail → Security → 2FA → App Passwords → Generate.<br/>
-                💡 <strong style={{color:"#60A5FA"}}>Brevo (Sendinblue):</strong> brevo.com — free plan ina 300 emails/siku, recommended kwa production.
+                💡 <strong style={{color:"#60A5FA"}}>Brevo (Sendinblue):</strong> brevo.com — free plan ina 300 emails/siku. Weka API Key hapo juu pekee.<br/>
+                💡 <strong style={{color:"#60A5FA"}}>Gmail App Password:</strong> Ikiwa hutumii Brevo, weka SMTP Host, User na App Password.
               </div>
               <div style={{ display:"flex", gap:8, marginTop:16 }}>
-                <button onClick={()=>notify("📧 Test email imetumwa kwa admin@jamii.ai!")} style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.55)", border:"1px solid #2C2C2E", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:600, fontSize:13 }}>📧 Tuma Test Email</button>
-                <button onClick={()=>notify("✅ SMTP settings zimehifadhiwa!")} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14 }}>Hifadhi →</button>
+                <button 
+                  onClick={async () => {
+                    const email = prompt("Ingiza email ya kupokea jaribio:", platform.adminEmail);
+                    if (!email) return;
+                    try {
+                      notify("⏳ Inatuma email ya jaribio...");
+                      await adminAPI.testEmail(email);
+                      notify("📧 Email ya jaribio imetumwa kwa " + email);
+                    } catch (err) {
+                      notify("❌ Hitilafu: " + (err.response?.data?.error || "Imeshindikana kutuma"));
+                    }
+                  }} 
+                  style={{ flex:1, background:"rgba(255,255,255,0.04)", color:"rgba(242,242,245,0.55)", border:"1px solid #2C2C2E", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:600, fontSize:13 }}>
+                  📧 Tuma Test Email
+                </button>
+                <button onClick={async () => {
+                  try {
+                    await adminAPI.saveSettings(platform);
+                    notify("✅ Mipangilio imehifadhiwa!");
+                  } catch { notify("❌ Hitilafu ya kuhifadhi"); }
+                }} style={{ flex:2, background:"#F5A623", color:"#0C0C0E", border:"none", padding:12, borderRadius:9, cursor:"pointer", fontFamily:"'Roboto Mono',monospace", fontWeight:800, fontSize:14 }}>Hifadhi →</button>
               </div>
             </div>
           )}
@@ -3229,7 +3301,7 @@ export default function AdminPanel() {
 
   const PAGES = {
     dashboard:     <DashboardPage />,
-    users:         <UsersPage />,
+    users:         <UsersPage currentUser={adminUser} />,
     content:       <ContentPage />,
     roles:         <RolesPage />,
     changamoto:    <ChangamotoPage />,

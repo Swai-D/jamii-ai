@@ -24,7 +24,7 @@ async function seedAdmin() {
 
   const name = "Davy Swai";
   const handle = "davyswai";
-  const email = "davyswai@jamii.ai";
+  const email = "davyswai53@gmail.com";
   const password = "davyswai1995";
   const role = "System Administrator";
 

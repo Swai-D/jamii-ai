@@ -49,7 +49,7 @@ function Btn({ children, onClick, variant = "primary", disabled, full }) {
 
 // ─── PANELS ──────────────────────────────────────────────────────────────────
 
-function LoginPanel({ onSwitch, onSuccess, onForgot }) {
+function LoginPanel({ onSwitch, onSuccess, onForgot, onVerify }) {
   const [form, setForm] = useState({ identifier: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -61,7 +61,6 @@ function LoginPanel({ onSwitch, onSuccess, onForgot }) {
     if (!iden || !form.password) { setErr("Jaza fields zote."); return; }
     setLoading(true); setErr("");
     try {
-      // Tunatuma 'identifier' na 'email' (kama alias) kwa compatibility ya server
       const res = await axios.post(`${API_URL}/auth/login`, {
         identifier: iden,
         email: iden, 
@@ -71,7 +70,12 @@ function LoginPanel({ onSwitch, onSuccess, onForgot }) {
       onSuccess(res.data);
     } catch (error) {
       setLoading(false);
-      setErr(error.response?.data?.error || "Hitilafu imetokea wakati wa kuingia.");
+      const errorData = error.response?.data;
+      if (errorData?.requiresVerification) {
+        onVerify(errorData.email);
+      } else {
+        setErr(errorData?.error || "Hitilafu imetokea wakati wa kuingia.");
+      }
     }
   };
 
@@ -293,6 +297,65 @@ function RegisterPanel({ onSwitch, onNext }) {
   );
 }
 
+function VerifyPanel({ email, onSuccess, onResend }) {
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const handleVerify = async () => {
+    if (code.length < 6) { setErr("Ingiza code yote ya namba 6."); return; }
+    setLoading(true); setErr("");
+    try {
+      const res = await axios.post(`${API_URL}/auth/verify-email`, { email, code });
+      setLoading(false);
+      onSuccess(res.data);
+    } catch (error) {
+      setLoading(false);
+      setErr(error.response?.data?.error || "Code si sahihi.");
+    }
+  };
+
+  const handleResend = async () => {
+    setLoading(true); setErr(""); setMsg("");
+    try {
+      await axios.post(`${API_URL}/auth/resend-verification`, { email });
+      setLoading(false);
+      setMsg("Code mpya imetumwa kwenye email yako.");
+    } catch (error) {
+      setLoading(false);
+      setErr("Imeshindikana kutuma code.");
+    }
+  };
+
+  return (
+    <div className="panel-in">
+      <div style={{ marginBottom: 36 }}>
+        <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.04em", marginBottom: 8 }}>Thibitisha Email 📧</h2>
+        <p style={{ color: "rgba(220,230,240,0.45)", fontSize: 14, lineHeight: 1.6 }}>Tumekutumia code ya namba 6 kwenye <b>{email}</b></p>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <FloatLabel label="Code ya Uhakiki">
+          <Input value={code} onChange={e => setCode(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="123456" />
+        </FloatLabel>
+
+        {err && <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 8, padding: "10px 14px", fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#F87171" }}>{err}</div>}
+        {msg && <div style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.2)", borderRadius: 8, padding: "10px 14px", fontFamily: "'Roboto Mono',monospace", fontSize: 11, color: "#34D399" }}>{msg}</div>}
+
+        <Btn onClick={handleVerify} disabled={loading} full>
+          {loading ? "Inahakiki..." : "Thibitisha sasa →"}
+        </Btn>
+
+        <p style={{ marginTop: 24, textAlign: "center", color: "rgba(220,230,240,0.4)", fontSize: 13 }}>
+          Hukapokea code?{" "}
+          <span onClick={handleResend} style={{ color: "#F5A623", fontWeight: 700, cursor: "pointer" }}>Tuma tena</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── ONBOARDING STEPS ────────────────────────────────────────────────────────
 
 function OnboardStep1({ data, setData, onNext, token }) {
@@ -409,7 +472,12 @@ function OnboardStep3({ data, setData, onFinish, token }) {
       });
       setLoading(false);
       // Backend sasa inarudisha { success: true, user: safeUser }
-      onFinish(res.data.user);
+      if (res.data.user) {
+        onFinish(res.data.user);
+      } else {
+        // Fallback kama user hayupo kwenye response
+        onFinish({ ...data, onboarded: true });
+      }
     } catch (error) {
       setLoading(false);
       alert(error.response?.data?.error || "Hitilafu imetokea wakati wa ku-onboard.");
@@ -510,6 +578,7 @@ function SuccessScreen({ user, onFinish }) {
 export default function JamiiAIAuth({ onAuthSuccess, onBack }) {
   const [screen, setScreen] = useState("login");
   const [resetEmail, setResetEmail] = useState("");
+  const [verifyEmail, setVerifyEmail] = useState("");
   const [authData, setAuthData] = useState(null); // stores { token, user }
   const [onboardData, setOnboardData] = useState({
     handle: "", role: "", city: "", bio: "",
@@ -518,8 +587,15 @@ export default function JamiiAIAuth({ onAuthSuccess, onBack }) {
   });
 
   const handleAuthResult = (data) => {
+    if (data.success && !data.token) {
+      // Huyu ni user mpya aliyerejisiti, anahitaji ku-verify kwanza
+      setVerifyEmail(data.email);
+      setScreen("verify");
+      return;
+    }
+    
     setAuthData(data);
-    if (data.user.onboarded) {
+    if (data.user && data.user.onboarded) {
       onAuthSuccess(data);
     } else {
       setScreen("onboard1");
@@ -527,12 +603,17 @@ export default function JamiiAIAuth({ onAuthSuccess, onBack }) {
   };
 
   const handleOnboardSuccess = (updatedUser) => {
-    setAuthData(prev => ({ ...prev, user: updatedUser }));
+    // Muhimu: Tunahakikisha authData inakuwa na user object mpya
+    const newData = { ...authData, user: updatedUser };
+    setAuthData(newData);
     setScreen("success");
   };
 
   const handleOnboardFinish = () => {
-    onAuthSuccess(authData);
+    // Hakikisha tunatuma data iliyosafishwa (Final)
+    if (authData) {
+      onAuthSuccess(authData);
+    }
   };
 
   const quotes = [
@@ -602,13 +683,14 @@ export default function JamiiAIAuth({ onAuthSuccess, onBack }) {
 
       <div style={{ padding: "48px 56px", display: "flex", flexDirection: "column", justifyContent: "center", overflowY: "auto" }}>
         <div style={{ maxWidth: 420, width: "100%", margin: "0 auto" }}>
-          {screen === "login"    && <LoginPanel    onSwitch={() => setScreen("register")} onSuccess={handleAuthResult} onForgot={() => setScreen("forgot")} />}
+          {screen === "login"    && <LoginPanel    onSwitch={() => setScreen("register")} onSuccess={handleAuthResult} onForgot={() => setScreen("forgot")} onVerify={(email) => { setVerifyEmail(email); setScreen("verify"); }} />}
           {screen === "register" && <RegisterPanel onSwitch={() => setScreen("login")} onNext={handleAuthResult} />}
+          {screen === "verify"   && <VerifyPanel   email={verifyEmail} onSuccess={handleAuthResult} />}
           {screen === "forgot"   && <ForgotPasswordPanel onBack={() => setScreen("login")} onNext={(email) => { setResetEmail(email); setScreen("reset"); }} />}
           {screen === "reset"    && <ResetPasswordPanel email={resetEmail} onSuccess={() => setScreen("login")} />}
           {screen === "onboard1" && <OnboardStep1  data={onboardData} setData={setOnboardData} onNext={() => setScreen("onboard2")} token={authData?.token} />}
           {screen === "onboard2" && <OnboardStep2  data={onboardData} setData={setOnboardData} onNext={() => setScreen("onboard3")} onBack={() => setScreen("onboard1")} />}
-          {screen === "onboard3" && <OnboardStep3  data={onboardData} setData={setOnboardData} onFinish={() => setScreen("success")} token={authData?.token} />}
+          {screen === "onboard3" && <OnboardStep3  data={onboardData} setData={setOnboardData} onFinish={handleOnboardSuccess} token={authData?.token} />}
           {screen === "success"  && <SuccessScreen user={authData?.user} onFinish={handleOnboardFinish} />}
         </div>
       </div>

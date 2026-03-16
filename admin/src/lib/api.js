@@ -25,6 +25,7 @@ export const adminAPI = {
   userDetail:             (id)      => api.get(`/api/users/${id}`),
   banUser:                (id)      => api.patch(`/api/admin/users/${id}/ban`),
   verifyUser:             (id)      => api.patch(`/api/admin/users/${id}/verify`),
+  deleteUser:             (id)      => api.delete(`/api/admin/users/${id}`),
 
   // Settings
   getSettings:            ()        => api.get("/api/admin/settings"),
@@ -68,7 +69,7 @@ export const adminAPI = {
 
   // News
   news:                   (s)       => api.get("/api/admin/news", { params: { status: s } }),
-  publishNews:            (id)      => api.patch(`/api/admin/news/${id}/publish`),
+  publishNews:            (id, data)=> api.patch(`/api/admin/news/${id}/publish`, data),
   deleteNews:             (id)      => api.delete(`/api/admin/news/${id}`),
   createNews:             (data)    => api.post("/api/admin/news", data),
 
@@ -87,6 +88,7 @@ export const adminAPI = {
   assignRole:             (roleId, data) => api.post(`/api/admin/roles/${roleId}/assign`, data),
   removeRoleFromUser:     (roleId, userId) => api.delete(`/api/admin/roles/${roleId}/users/${userId}`),
   getUsersWithRoles:      ()        => api.get("/api/admin/users/roles"),
+  testEmail:              (email)   => api.post("/api/admin/test-email", { email }),
 };
 
 export default api;

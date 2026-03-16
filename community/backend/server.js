@@ -108,7 +108,12 @@ db.connect()
         ALTER TABLE users ADD COLUMN IF NOT EXISTS website_url TEXT;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255);
         ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expiry TIMESTAMPTZ;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code VARCHAR(10);
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT true;
         ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+        -- Hakikisha is_verified ni true kwa users waliokuwepo kabla ya feature hii
+        UPDATE users SET is_verified = true WHERE is_verified IS NULL;
 
         -- Posts table enhancements
         ALTER TABLE posts ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'swali';
@@ -204,6 +209,7 @@ db.connect()
           source VARCHAR(100) DEFAULT 'JamiiAI',
           source_url TEXT,
           is_hot BOOLEAN DEFAULT false,
+          reads INTEGER DEFAULT 0,
           status VARCHAR(20) DEFAULT 'published',
           published_at TIMESTAMPTZ DEFAULT NOW(),
           created_at TIMESTAMPTZ DEFAULT NOW()
@@ -469,24 +475,68 @@ Jibu kwa Kiswahili tu.`
   }
 }
 
-// ── EMAIL ─────────────────────────────────────────────────────────
-async function getEmailTransporter() {
-  const host = await getSetting("smtp_host", "smtp.gmail.com");
-  const port = parseInt(await getSetting("smtp_port", "587"));
-  const user = await getSetting("smtp_user", "");
-  const pass = process.env.SMTP_PASSWORD;
-  if (!user || !pass) return null;
-  return nodemailer.createTransport({ host, port, secure:port===465, auth:{ user, pass } });
-}
+// ── EMAIL (BREVO / NODEMAILER) ────────────────────────────────────
+const SibApiV3Sdk = require('sib-api-v3-sdk');
 
-async function sendEmail({ to, subject, html }) {
-  const transporter = await getEmailTransporter();
-  if (!transporter) { console.warn("⚠ SMTP haijawekwa"); return false; }
+async function sendEmail({ to, subject, html, text }) {
+  const brevoKey = process.env.BREVO_API_KEY;
+  
+  // Njia ya 1: BREVO API (Inapendekezwa)
+  if (brevoKey && brevoKey.startsWith('xkeysib-')) {
+    try {
+      const defaultClient = SibApiV3Sdk.ApiClient.instance;
+      const apiKey = defaultClient.authentications['api-key'];
+      apiKey.apiKey = brevoKey;
+
+      const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+      const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+
+      sendSmtpEmail.subject = subject;
+      sendSmtpEmail.htmlContent = html;
+      sendSmtpEmail.sender = { 
+        name: "JamiiAI", 
+        email: process.env.SENDER_EMAIL || "davyswai53@gmail.com" 
+      };
+      sendSmtpEmail.to = [{ email: to }];
+      if (text) sendSmtpEmail.textContent = text;
+
+      const data = await apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log("📧 Brevo Email imetumwa kikamilifu:", data.messageId);
+      return true;
+    } catch (err) {
+      // Kama ni kosa la API Key, itatuambia hapa
+      const errorMsg = err.response?.body?.message || err.message || "Unknown Brevo Error";
+      console.error("❌ Brevo API Error:", errorMsg);
+      // Ikishindikana Brevo, jaribu kuendelea na SMTP hapa chini
+    }
+  }
+
+  // Njia ya 2: SMTP FALLBACK (Nodemailer)
+  console.log("🔄 Inajaribu kutuma kupitia SMTP Fallback...");
   try {
-    const from = await getSetting("smtp_user", "noreply@jamii.ai");
-    await transporter.sendMail({ from:`"JamiiAI" <${from}>`, to, subject, html });
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD
+      }
+    });
+
+    const fromEmail = process.env.SENDER_EMAIL || "davyswai53@gmail.com";
+    await transporter.sendMail({
+      from: `"JamiiAI" <${fromEmail}>`,
+      to,
+      subject,
+      html,
+      text
+    });
+    console.log("✅ Email imetumwa kupitia SMTP Fallback");
     return true;
-  } catch (err) { console.error("❌ Email error:", err.message); return false; }
+  } catch (err) {
+    console.error("❌ SMTP Fallback Error:", err.message);
+    return false;
+  }
 }
 
 // ── MIDDLEWARE ──────────────────────────────────────────────────────
@@ -532,6 +582,30 @@ const adminAuth = async (req, res, next) => {
   } catch { res.status(401).json({ error: "Token batili" }); }
 };
 
+// ── ADMIN: EMAIL TEST ROUTE ────────────────────────────────────────
+app.post("/api/admin/test-email", adminAuth, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Toa email ya kupokea jaribio" });
+    
+    const success = await sendEmail({
+      to: email,
+      subject: "JamiiAI — Email Test 🚀",
+      html: `
+        <div style="font-family:sans-serif; max-width:600px; padding:20px; border:1px solid #eee; border-radius:10px;">
+          <h2 style="color:#F5A623;">JamiiAI Connected!</h2>
+          <p>Hongera! Mfumo wako wa email kupitia <b>Brevo</b> umefanikiwa kuunganishwa.</p>
+          <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+          <p style="font-size:12px; color:#999;">Ujumbe huu umetolewa na JamiiAI Admin Test Tool.</p>
+        </div>
+      `
+    });
+    
+    if (success) res.json({ success: true, message: "Email ya jaribio imetumwa!" });
+    else res.status(500).json({ error: "Imeshindikana kutuma email. Angalia logs za server." });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── SOCKET.IO ─────────────────────────────────────────────────────
 global.io = io;
 
@@ -566,15 +640,98 @@ authRouter.post("/register", async (req, res) => {
     if (exists.rows.length) return res.status(409).json({ error: "Barua pepe tayari inatumika" });
 
     const hash = await bcrypt.hash(password, 12);
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Tengeneza handle ya mwanzo kutokana na jina
+    const baseHandle = name.toLowerCase().replace(/\s+/g, '').substring(0, 15);
+    const handle = `${baseHandle}${Math.floor(Math.random() * 1000)}`;
+
     const result = await db.query(
-      `INSERT INTO users (id, name, email, password_hash, created_at)
-       VALUES ($1, $2, $3, $4, NOW()) RETURNING id, name, email`,
-      [uuid(), name.trim(), email.toLowerCase(), hash]
+      `INSERT INTO users (id, name, email, handle, password_hash, verification_code, is_verified, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, false, NOW()) RETURNING id, name, email, handle`,
+      [uuid(), name.trim(), email.toLowerCase(), handle, hash, verificationCode]
     );
+
     const user = result.rows[0];
-    res.status(201).json({ token: signToken(user), user });
+
+    // Tuma Email ya Verification
+    await sendEmail({
+      to: email.toLowerCase(),
+      subject: "JamiiAI — Karibu! Thibitisha Email Yako 📧",
+      html: `
+        <div style="font-family:sans-serif; max-width:600px; padding:20px; border:1px solid #eee; border-radius:12px;">
+          <h2 style="color:#F5A623; margin-bottom:20px;">Karibu JamiiAI, ${name}!</h2>
+          <p>Asante kwa kujiunga na JamiiAI. Ili kukamilisha usajili wako, tafadhali tumia code ifuatayo kuthibitisha email yako:</p>
+          <div style="background:#f9f9f9; padding:20px; text-align:center; border-radius:10px; margin:25px 0; border:1px solid #eee;">
+            <span style="font-size:32px; font-weight:800; letter-spacing:8px; color:#0C0C0E; font-family:monospace;">${verificationCode}</span>
+          </div>
+          <p style="color:#666; font-size:14px;">Ingiza code hii kwenye app ili uweze kuanza kutumia huduma zetu.</p>
+          <hr style="border:0; border-top:1px solid #eee; margin:30px 0;">
+          <p style="font-size:12px; color:#999; text-align:center;">JamiiAI Community — Tanzania's AI Hub 🇹🇿</p>
+        </div>
+      `
+    });
+
+    res.status(201).json({ 
+      success: true, 
+      message: "Usajili umefanikiwa! Tafadhali thibitisha email yako kwa kutumia code tuliyokutumia.",
+      email: user.email 
+    });
   } catch (err) {
     console.error("❌ Register error:", err);
+    res.status(500).json({ error: "Hitilafu ya server" });
+  }
+});
+
+authRouter.post("/verify-email", async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) return res.status(400).json({ error: "Email na code vinahitajika" });
+
+    const result = await db.query(
+      "SELECT id, email, handle FROM users WHERE email = $1 AND verification_code = $2",
+      [email.toLowerCase(), code]
+    );
+
+    if (!result.rows.length) {
+      return res.status(400).json({ error: "Code si sahihi au email haijapatikana." });
+    }
+
+    const user = result.rows[0];
+    await db.query(
+      "UPDATE users SET is_verified = true, verification_code = NULL WHERE id = $1",
+      [user.id]
+    );
+
+    // Rudisha token na user object kamili (bila password)
+    const token = signToken(user);
+    const { password_hash, ...safeUser } = user;
+    res.json({ success: true, message: "Email imethibitishwa!", token, user: safeUser });
+  } catch (err) {
+    console.error("❌ Verification error:", err);
+    res.status(500).json({ error: "Hitilafu ya server" });
+  }
+});
+
+authRouter.post("/resend-verification", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const result = await db.query("SELECT id, name, is_verified FROM users WHERE email = $1", [email.toLowerCase()]);
+    
+    if (!result.rows.length) return res.status(404).json({ error: "Email haikupatikana" });
+    if (result.rows[0].is_verified) return res.status(400).json({ error: "Email tayari imethibitishwa" });
+
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await db.query("UPDATE users SET verification_code = $1 WHERE email = $2", [verificationCode, email.toLowerCase()]);
+
+    await sendEmail({
+      to: email.toLowerCase(),
+      subject: "JamiiAI — Code Mpya ya Verification 📧",
+      html: `<p>Code yako mpya ni: <b>${verificationCode}</b></p>`
+    });
+
+    res.json({ success: true, message: "Code mpya imetumwa kwenye email yako." });
+  } catch (err) {
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
@@ -588,15 +745,9 @@ authRouter.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Ingiza barua pepe/handle na nywila" });
     }
 
-    // Safisha identifier
     let iden = String(rawIden).trim().toLowerCase();
-    // Ondoa @ ikiwa ipo (handles huhifadhiwa bila @)
     if (iden.startsWith("@")) iden = iden.substring(1);
 
-    console.log(`[AUTH] Jaribio la Login: input="${rawIden}", processed="${iden}"`);
-
-    // Tafuta mtumiaji kwa email AU handle
-    // Tunatumia LOWER() na TRIM() kuhakikisha mechi kamili
     const result = await db.query(
       `SELECT u.*, r.name as role_name 
        FROM users u
@@ -606,26 +757,24 @@ authRouter.post("/login", async (req, res) => {
     );
     
     const user = result.rows[0];
-    if (!user) {
-      console.log(`[AUTH] Mtumiaji hajapatikana kwa: "${iden}"`);
-      return res.status(401).json({ error: "Barua pepe/handle au nywila si sahihi" });
-    }
+    if (!user) return res.status(401).json({ error: "Barua pepe/handle au nywila si sahihi" });
 
     const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      console.log(`[AUTH] Nywila si sahihi kwa: "${user.handle || user.email}"`);
-      return res.status(401).json({ error: "Barua pepe/handle au nywila si sahihi" });
+    if (!valid) return res.status(401).json({ error: "Barua pepe/handle au nywila si sahihi" });
+
+    if (user.status === "banned") {
+      return res.status(403).json({ error: "Akaunti yako imezuiwa (banned)." });
     }
 
-    // Angalia kama akaunti imezuiwa (Banned)
-    if (user.status === "banned") {
-      console.log(`[AUTH] Login imekataliwa: Mtumiaji @${user.handle} amebaniwa.`);
+    // ZUIA LOGIN KAMA HAIJAVERIFIWA
+    if (!user.is_verified) {
       return res.status(403).json({ 
-        error: "Akaunti yako imezuiwa (banned). Tafadhali wasiliana na usimamizi wa JamiiAI kwa msaada zaidi." 
+        error: "Tafadhali thibitisha email yako kwanza.", 
+        requiresVerification: true,
+        email: user.email 
       });
     }
 
-    console.log(`[AUTH] Login imefanikiwa: @${user.handle} (${user.email})`);
     const { password_hash, ...safe } = user;
     res.json({ token: signToken(user), user: safe });
   } catch (err) {
@@ -665,8 +814,27 @@ authRouter.post("/forgot-password", async (req, res) => {
       [token, expiry, email.toLowerCase()]
     );
 
-    console.log(`[JAMII-AI] Password reset code for ${email}: ${token}`);
-    res.json({ success: true, message: "Code imetumwa kwenye barua pepe yako.", debug_token: token });
+    // Tuma Email
+    await sendEmail({
+      to: email.toLowerCase(),
+      subject: "JamiiAI — Code ya Kubadili Nywila 🔐",
+      html: `
+        <div style="font-family:sans-serif; max-width:600px; padding:20px; border:1px solid #eee; border-radius:12px;">
+          <h2 style="color:#F5A623; margin-bottom:20px;">Badili Nywila yako JamiiAI</h2>
+          <p>Habari,</p>
+          <p>Tumepokea ombi la kubadili nywila (password) ya akaunti yako. Tumia code ifuatayo kukamilisha mchakato huu:</p>
+          <div style="background:#f9f9f9; padding:20px; text-align:center; border-radius:10px; margin:25px 0; border:1px solid #eee;">
+            <span style="font-size:32px; font-weight:800; letter-spacing:8px; color:#0C0C0E; font-family:monospace;">${token}</span>
+          </div>
+          <p style="color:#666; font-size:14px;">Code hii itakwisha muda wake baada ya saa 1.</p>
+          <p style="color:#666; font-size:14px;">Ikiwa hukuomba kubadili nywila, tafadhali puuza ujumbe huu.</p>
+          <hr style="border:0; border-top:1px solid #eee; margin:30px 0;">
+          <p style="font-size:12px; color:#999; text-align:center;">JamiiAI Community — Tanzania's AI Hub 🇹🇿</p>
+        </div>
+      `
+    });
+
+    res.json({ success: true, message: "Code imetumwa kwenye barua pepe yako." });
   } catch (err) {
     console.error("Forgot password error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
@@ -699,19 +867,28 @@ authRouter.post("/reset-password", async (req, res) => {
 authRouter.get("/me", auth, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT u.*, r.name as role_name,
-        (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS post_count,
-        (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
-        (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following
+      `SELECT u.id, u.name, u.handle, u.email, u.avatar_url, u.cover_image,
+              u.role, u.city, u.bio, u.skills, u.interests, u.hourly_rate,
+              u.available, u.rating, u.project_count, u.github_url,
+              u.linkedin_url, u.website_url, u.notification_prefs,
+              u.is_verified, u.onboarded, u.plan, u.status, u.created_at,
+              r.name as role_name,
+              (SELECT COUNT(*) FROM posts WHERE user_id = u.id AND is_deleted=false) AS post_count,
+              (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
+              (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        LEFT JOIN roles r ON ur.role_id = r.id
        WHERE u.id = $1`,
       [req.user.id]
     );
+    
+    if (result.rows.length === 0) return res.status(404).json({ error: "Mtumiaji hajapatikana" });
+    
     const { password_hash, ...user } = result.rows[0];
     res.json(user);
   } catch (err) {
+    console.error("❌ Auth Me Error:", err);
     res.status(500).json({ error: "Hitilafu ya server" });
   }
 });
@@ -804,15 +981,33 @@ authRouter.patch("/onboard", auth, async (req, res) => {
     await db.query(
       `UPDATE users SET handle=$1, role=$2, city=$3, bio=$4, interests=$5,
        notification_prefs=$6, onboarded=true, updated_at=NOW() WHERE id=$7`,
-      [handle, role, city, bio, JSON.stringify(interests), JSON.stringify(notifications), req.user.id]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Onboard error:", err);
-    res.status(500).json({ error: "Hitilafu ya server" });
-  }
-});
+       [handle, role, city, bio, JSON.stringify(interests), JSON.stringify(notifications), req.user.id]
+       );
 
+       // CHUKUA USER MPYA KWA UKAMILIFU (KAMA /ME)
+       const fullUser = await db.query(
+       `SELECT u.id, u.name, u.handle, u.email, u.avatar_url, u.cover_image,
+              u.role, u.city, u.bio, u.skills, u.interests, u.hourly_rate,
+              u.available, u.rating, u.project_count, u.github_url,
+              u.linkedin_url, u.website_url, u.notification_prefs,
+              u.is_verified, u.onboarded, u.plan, u.status, u.created_at,
+              r.name as role_name,
+              (SELECT COUNT(*) FROM posts WHERE user_id = u.id AND is_deleted=false) AS post_count,
+              (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS followers,
+              (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following
+       FROM users u
+       LEFT JOIN user_roles ur ON u.id = ur.user_id
+       LEFT JOIN roles r ON ur.role_id = r.id
+       WHERE u.id = $1`, [req.user.id]
+       );
+
+       const { password_hash, ...safeUser } = fullUser.rows[0];
+       res.json({ success: true, user: safeUser });
+       } catch (err) {
+       console.error("❌ Onboard error:", err);
+       res.status(500).json({ error: "Hitilafu ya server" });
+       }
+       });
 // POST /api/auth/change-password
 authRouter.post("/change-password", auth, async (req, res) => {
   try {
@@ -2226,6 +2421,36 @@ app.patch("/api/admin/users/:id/verify", adminAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// DELETE USER (Super Admin Only)
+app.delete("/api/admin/users/:id", adminAuth, async (req, res) => {
+  try {
+    // 1. Hakikisha anayefuta ni Super Admin
+    if (req.user.role_name !== 'super_admin') {
+      return res.status(403).json({ error: "Ruhusa inahitajika: Super Admin pekee anaweza kufuta mtumiaji." });
+    }
+
+    const userIdToDelete = req.params.id;
+
+    // 2. Zuia Super Admin asijifute mwenyewe
+    if (userIdToDelete === req.user.id) {
+      return res.status(400).json({ error: "Huwezi kufuta akaunti yako mwenyewe ukiwa ndani ya mfumo." });
+    }
+
+    // 3. Futa mtumiaji (Cascade itashughulikia posts/comments kama zipo kwenye schema)
+    const { rowCount } = await db.query("DELETE FROM users WHERE id = $1", [userIdToDelete]);
+
+    if (rowCount === 0) {
+      return res.status(404).json({ error: "Mtumiaji hajapatikana." });
+    }
+
+    console.log(`[ADMIN] Mtumiaji ${userIdToDelete} amefutwa na Super Admin @${req.user.handle}`);
+    res.json({ success: true, message: "Mtumiaji amefutwa kikamilifu kwenye mfumo." });
+  } catch (err) {
+    console.error("❌ Delete user error:", err);
+    res.status(500).json({ error: "Imeshindikana kufuta mtumiaji. Huenda ana data zilizofungwa (foreign keys)." });
+  }
+});
+
 // ════════════════════════════════════════════════════════════════════
 //  ADMIN: CONTENT MODERATION
 // ════════════════════════════════════════════════════════════════════
@@ -2344,23 +2569,38 @@ app.post("/api/admin/apify/run", adminAuth, async (req, res) => {
     const apiToken   = process.env.APIFY_API_TOKEN;
     const actorId    = process.env.APIFY_ACTOR_ID || "apify~cheerio-scraper";
     const sources    = JSON.parse(await getSetting("apify_sources", '{"techcrunch":true}'));
-    const keywordsTz = await getSetting("apify_keywords_tz", "Tanzania AI");
 
     if (!apiToken) {
       // Simulate for dev without real token
-      const simulated = {
-        id: uuid(), title: `Tanzania AI Roundup — ${new Date().toLocaleDateString()}`,
-        summary: "Muhtasari wa habari za AI Tanzania — imeandaliwa na JamiiAI.",
-        ai_summary: "Muhtasari wa habari za AI Tanzania — imeandaliwa na JamiiAI.",
-        category: "Tanzania", source: "JamiiAI Bot", is_hot: false, status: "inbox",
-      };
-      await db.query(
-        `INSERT INTO news (id,title,summary,ai_summary,category,source,status,created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())`,
-        [simulated.id, simulated.title, simulated.summary, simulated.ai_summary,
-         simulated.category, simulated.source, simulated.status]
-      );
-      return res.json({ success: true, inserted: 1, message: "Simulated (no Apify token)" });
+      const items = [
+        {
+          id: uuid(), title: `Google yazindua toleo jipya la Gemini 1.5 Pro nchini Tanzania`,
+          summary: "Google imeanza kutoa ufikiaji wa Gemini 1.5 Pro kwa watengenezaji wa programu nchini Tanzania, ikiahidi maboresho makubwa katika uchakataji wa lugha ya Kiswahili.",
+          ai_summary: "Google imeanza kutoa ufikiaji wa Gemini 1.5 Pro kwa watengenezaji wa programu nchini Tanzania, ikiahidi maboresho makubwa katika uchakataji wa lugha ya Kiswahili.",
+          category: "Tanzania", source: "Tech News TZ", is_hot: true, status: "inbox",
+        },
+        {
+          id: uuid(), title: `Mkutano wa AI Afrika Mashariki kufanyika Arusha mwezi ujao`,
+          summary: "Arusha inatarajia kuwa kitovu cha teknolojia mwezi ujao wakati wataalamu wa AI kutoka kote Afrika Mashariki watakapokutana kujadili mustakabali wa akili mnemba.",
+          ai_summary: "Arusha inatarajia kuwa kitovu cha teknolojia mwezi ujao wakati wataalamu wa AI kutoka kote Afrika Mashariki watakapokutana kujadili mustakabali wa akili mnemba.",
+          category: "Tanzania", source: "Habari Leo", is_hot: false, status: "inbox",
+        },
+        {
+          id: uuid(), title: `OpenAI yafungua ofisi ya kwanza barani Afrika mjini Nairobi`,
+          summary: "Katika hatua ya kihistoria, OpenAI imetangaza kufungua kituo cha utafiti mjini Nairobi ili kuimarisha ushirikiano na wabunifu wa Kiafrika.",
+          ai_summary: "Katika hatua ya kihistoria, OpenAI imetangaza kufungua kituo cha utafiti mjini Nairobi ili kuimarisha ushirikiano na wabunifu wa Kiafrika.",
+          category: "Global", source: "Global Tech", is_hot: true, status: "inbox",
+        }
+      ];
+
+      for (const item of items) {
+        await db.query(
+          `INSERT INTO news (id,title,summary,ai_summary,category,source,is_hot,status,created_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NOW())`,
+          [item.id, item.title, item.summary, item.ai_summary, item.category, item.source, item.is_hot, item.status]
+        );
+      }
+      return res.json({ success: true, inserted: items.length, message: "Simulated (no Apify token)" });
     }
 
     // Real Apify call
